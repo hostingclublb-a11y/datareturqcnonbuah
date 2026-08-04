@@ -3671,24 +3671,64 @@ function buildNota() {
 
 function openNotaModal(nota, isHistory) {
   const root = $('#modalRoot');
-  const itemsHtml = nota.items.map((c,i) => {
-    const pic = resolveItemPic(c) || '-';
-    const kond = (c.kondisi || 'Bad') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
-    return `
-    <div class="rline">
-      <div class="top"><span>${i+1}. ${esc(c.nama)}</span><span>${esc(c.qty)} ${esc(c.satuan)}</span></div>
-      <div class="sub">Kode: ${esc(c.kode||'-')} · Vendor: ${esc(c.vendor||'-')} · <b>${kond}</b></div>
-      <div class="sub" style="font-weight:700;color:#0f766e;">PIC Purchasing: ${esc(pic)}</div>
-      ${c.alasan?`<div class="sub">Alasan: ${esc(c.alasan)}</div>`:''}
-      ${c.catatan?`<div class="sub" style="color:var(--danger);">Catatan: ${esc(c.catatan)}</div>`:''}
-    </div>
-  `;
-  }).join('');
-  const totalQty = nota.items.reduce((s,c)=>s+parseFloat(c.qty||0),0);
-  const goodItems = (nota.items||[]).filter(c => (c.kondisi||'Bad')==='Good');
-  const badItems = (nota.items||[]).filter(c => (c.kondisi||'Bad')!=='Good');
-  const goodQty = goodItems.reduce((s,c)=>s+parseFloat(c.qty||0),0);
-  const badQty = badItems.reduce((s,c)=>s+parseFloat(c.qty||0),0);
+  if (!root) return;
+
+  // Daftar PIC unik di nota ini
+  const allItems = (nota.items || []).slice();
+  const picSet = [];
+  allItems.forEach(it => {
+    const p = (resolveItemPic(it) || it.pic || '').trim();
+    const key = p || '(Tanpa PIC)';
+    if (!picSet.includes(key)) picSet.push(key);
+  });
+  picSet.sort((a, b) => a.localeCompare(b, 'id'));
+
+  let activePic = ''; // '' = semua
+
+  function filteredItems() {
+    if (!activePic) return allItems;
+    return allItems.filter(it => {
+      const p = (resolveItemPic(it) || it.pic || '').trim() || '(Tanpa PIC)';
+      return p === activePic;
+    });
+  }
+
+  function buildItemsHtml(items) {
+    return items.map((c, i) => {
+      const pic = resolveItemPic(c) || c.pic || '-';
+      const kond = (c.kondisi || 'Bad') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
+      return `
+      <div class="rline">
+        <div class="top"><span>${i + 1}. ${esc(c.nama)}</span><span>${esc(c.qty)} ${esc(c.satuan)}</span></div>
+        <div class="sub">Kode: ${esc(c.kode || '-')} · Vendor: ${esc(c.vendor || '-')} · <b>${kond}</b></div>
+        <div class="sub" style="font-weight:700;color:#0f766e;">PIC Purchasing: ${esc(pic)}</div>
+        ${c.alasan ? `<div class="sub">Alasan: ${esc(c.alasan)}</div>` : ''}
+        ${c.catatan ? `<div class="sub" style="color:var(--danger);">Catatan: ${esc(c.catatan)}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function buildTotalsHtml(items) {
+    const totalQty = items.reduce((s, c) => s + parseFloat(c.qty || 0), 0);
+    const goodItems = items.filter(c => (c.kondisi || 'Bad') === 'Good');
+    const badItems = items.filter(c => (c.kondisi || 'Bad') !== 'Good');
+    const goodQty = goodItems.reduce((s, c) => s + parseFloat(c.qty || 0), 0);
+    const badQty = badItems.reduce((s, c) => s + parseFloat(c.qty || 0), 0);
+    return { totalQty, goodItems, badItems, goodQty, badQty };
+  }
+
+  const picFilterHtml = picSet.length > 1 ? `
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Filter PIC Purchasing</label>
+      <select id="notaPicFilter" style="width:100%;">
+        <option value="">Semua PIC (${allItems.length} item)</option>
+        ${picSet.map(p => {
+          const cnt = allItems.filter(it => ((resolveItemPic(it) || it.pic || '').trim() || '(Tanpa PIC)') === p).length;
+          return `<option value="${esc(p)}">${esc(p)} (${cnt} item)</option>`;
+        }).join('')}
+      </select>
+      <p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Pilih PIC untuk menampilkan / salin / cetak hanya item purchasing tersebut.</p>
+    </div>` : '';
 
   root.innerHTML = `
     <div class="modal-backdrop" id="notaBackdrop">
@@ -3701,69 +3741,121 @@ function openNotaModal(nota, isHistory) {
         <div class="modal-body">
           <div class="form-group">
             <label>Judul Laporan (opsional)</label>
-            <input type="text" id="notaJudul" value="${esc(nota.judul||'')}" placeholder="Contoh: Retur Vendor ABC Minggu 1">
+            <input type="text" id="notaJudul" value="${esc(nota.judul || '')}" placeholder="Contoh: Retur Vendor ABC Minggu 1">
           </div>
+          ${picFilterHtml}
           <div class="receipt" id="printArea">
             <div class="brand">
-              <div class="title">${esc(nota.judul||'NOTA PENGAJUAN RETUR')}</div>
+              <div class="title">${esc(nota.judul || 'NOTA PENGAJUAN RETUR')}</div>
               <div class="sub">${esc(nota.dcName)}</div>
             </div>
             <hr>
             <div class="meta-row"><span>No</span><b>${esc(nota.nomor)}</b></div>
             <div class="meta-row"><span>Tanggal</span><b>${esc(nota.tanggalLabel)}</b></div>
-            <div class="meta-row"><span>Item</span><b>${nota.items.length} produk</b></div>
+            <div class="meta-row"><span>Item</span><b id="notaItemCount">${allItems.length} produk</b></div>
+            <div class="meta-row" id="notaPicMeta" style="display:none;"><span>PIC</span><b id="notaPicMetaVal"></b></div>
             <hr>
-            ${itemsHtml}
+            <div id="notaItemsBody">${buildItemsHtml(allItems)}</div>
             <hr>
-            <div class="totals"><span>TOTAL QTY</span><span>${totalQty}</span></div>
-            <div class="meta-row" style="margin-top:6px;"><span>🟢 Bagus</span><b>${goodItems.length} item · qty ${goodQty}</b></div>
-            <div class="meta-row"><span>🔴 Jelek</span><b>${badItems.length} item · qty ${badQty}</b></div>
-            <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;">Status: Diajukan · ${esc(nota.createdByName||'')}</div>
+            <div class="totals"><span>TOTAL QTY</span><span id="notaTotalQty">${buildTotalsHtml(allItems).totalQty}</span></div>
+            <div class="meta-row" style="margin-top:6px;"><span>🟢 Bagus</span><b id="notaGoodSum">${buildTotalsHtml(allItems).goodItems.length} item · qty ${buildTotalsHtml(allItems).goodQty}</b></div>
+            <div class="meta-row"><span>🔴 Jelek</span><b id="notaBadSum">${buildTotalsHtml(allItems).badItems.length} item · qty ${buildTotalsHtml(allItems).badQty}</b></div>
+            <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;">Status: Diajukan · ${esc(nota.createdByName || '')}</div>
           </div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
           <button class="btn btn-primary" id="notaCopy">📋 Salin WA</button>
           <button class="btn btn-outline" id="notaPdf">📑 PDF</button>
           <button class="btn btn-outline" id="notaPrint">🖨 Cetak</button>
-          ${!isHistory?`<button class="btn btn-primary" id="notaSave">✅ Simpan & Selesai</button>`:''}
-          ${isHistory && can('edit')?`<button class="btn btn-primary" id="notaEditFromView">✏️ Edit Qty</button>`:''}
-          ${isHistory?`<button class="btn btn-outline" id="notaSaveJudul">💾 Simpan Judul</button>`:''}
+          ${!isHistory ? `<button class="btn btn-primary" id="notaSave">✅ Simpan & Selesai</button>` : ''}
+          ${isHistory && can('edit') ? `<button class="btn btn-primary" id="notaEditFromView">✏️ Edit Qty</button>` : ''}
+          ${isHistory ? `<button class="btn btn-outline" id="notaSaveJudul">💾 Simpan Judul</button>` : ''}
         </div>
       </div>
     </div>
   `;
 
+  function refreshView() {
+    const items = filteredItems();
+    const t = buildTotalsHtml(items);
+    const body = $('#notaItemsBody');
+    if (body) body.innerHTML = items.length
+      ? buildItemsHtml(items)
+      : '<div class="sub" style="padding:8px 0;color:var(--text-muted);">Tidak ada item untuk PIC ini</div>';
+    if ($('#notaItemCount')) $('#notaItemCount').textContent = items.length + ' produk';
+    if ($('#notaTotalQty')) $('#notaTotalQty').textContent = t.totalQty;
+    if ($('#notaGoodSum')) $('#notaGoodSum').textContent = t.goodItems.length + ' item · qty ' + t.goodQty;
+    if ($('#notaBadSum')) $('#notaBadSum').textContent = t.badItems.length + ' item · qty ' + t.badQty;
+    const meta = $('#notaPicMeta');
+    const metaVal = $('#notaPicMetaVal');
+    if (meta && metaVal) {
+      if (activePic) {
+        meta.style.display = 'flex';
+        metaVal.textContent = activePic;
+      } else {
+        meta.style.display = 'none';
+      }
+    }
+  }
+
   const close = () => { root.innerHTML = ''; };
   $('#notaClose').onclick = close;
-  $('#notaBackdrop').addEventListener('click', e => { if(e.target.id==='notaBackdrop') close(); });
+  $('#notaBackdrop').addEventListener('click', e => { if (e.target.id === 'notaBackdrop') close(); });
+
+  const picSel = $('#notaPicFilter');
+  if (picSel) {
+    picSel.onchange = () => {
+      activePic = picSel.value || '';
+      refreshView();
+    };
+  }
 
   $('#notaCopy').onclick = () => {
+    const items = filteredItems();
+    const t = buildTotalsHtml(items);
     const lines = [
-      `🧾 *${nota.judul||'NOTA PENGAJUAN RETUR'}*`,
+      `🧾 *${($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim() || 'NOTA PENGAJUAN RETUR'}*`,
       nota.dcName || '',
       `No: ${nota.nomor}`,
       `Tanggal: ${nota.tanggalLabel}`,
-      ''
     ];
-    nota.items.forEach((c,i) => {
-      const pic = resolveItemPic(c) || '-';
+    if (activePic) lines.push(`PIC: ${activePic}`);
+    lines.push('');
+    items.forEach((c, i) => {
+      const pic = (resolveItemPic(c) || c.pic || '').trim();
+      const vendor = (c.vendor || '').trim();
       const sat = c.satuan || 'PCS';
-      lines.push(`${i+1}. ${c.nama}`);
-      lines.push(`Qty: ${c.qty} ${sat} | Vendor: ${c.vendor||'-'} | PIC: ${pic}`);
+      lines.push(`${i + 1}. ${c.nama}`);
+      let detail = `Qty: ${c.qty} ${sat}`;
+      if (vendor && vendor !== '-') detail += ` | Vendor: ${vendor}`;
+      if (pic && pic !== '-') detail += ` | PIC: ${pic}`;
+      lines.push(detail);
       if (c.alasan) lines.push(`Alasan: ${c.alasan}`);
       if (c.catatan) lines.push(`Catatan: ${c.catatan}`);
       lines.push('');
     });
-    lines.push(`Total: ${nota.items.length} Produk | Qty: ${totalQty} PCS`);
+    const bySat = {};
+    items.forEach(c => {
+      const s = (c.satuan || 'PCS').toUpperCase();
+      bySat[s] = (bySat[s] || 0) + (parseFloat(c.qty) || 0);
+    });
+    const qtyText = Object.entries(bySat).map(([s, q]) => q + ' ' + s).join(' + ') || (t.totalQty + ' PCS');
+    lines.push(`Total: ${items.length} Produk | Qty: ${qtyText}`);
     lines.push('', 'Mohon diajukan retur ke vendor. Terima kasih.');
-    navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Disalin ke clipboard')).catch(()=>showToast('Gagal salin'));
+    navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Disalin ke clipboard' + (activePic ? ' (filter: ' + activePic + ')' : ''))).catch(() => showToast('Gagal salin'));
   };
 
   $('#notaPdf').onclick = () => {
-    const meta = ExportEngine.getMeta('Nota Retur', nota.items.length);
-    const headers = ['No','Nama','Qty','Satuan','Kondisi','Vendor','PIC','Alasan'];
-    const rows = nota.items.map((c,i)=>[i+1,c.nama,c.qty,c.satuan||'PCS',((c.kondisi||'Bad')==='Good'?'Bagus':'Jelek'),c.vendor||'',resolveItemPic(c)||'-',c.alasan||'']);
-    ExportEngine.toPDF(nota.judul||'Nota Pengajuan Retur', headers, rows, meta);
+    const items = filteredItems();
+    const meta = ExportEngine.getMeta('Nota Retur', items.length);
+    const headers = ['No', 'Nama', 'Qty', 'Satuan', 'Kondisi', 'Vendor', 'PIC', 'Alasan'];
+    const rows = items.map((c, i) => [
+      i + 1, c.nama, c.qty, c.satuan || 'PCS',
+      ((c.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek'),
+      c.vendor || '', resolveItemPic(c) || c.pic || '-', c.alasan || ''
+    ]);
+    const title = ($('#notaJudul')?.value || nota.judul || 'Nota Pengajuan Retur') + (activePic ? ' · PIC ' + activePic : '');
+    ExportEngine.toPDF(title, headers, rows, meta);
   };
 
   $('#notaPrint').onclick = () => window.print();
@@ -3771,9 +3863,9 @@ function openNotaModal(nota, isHistory) {
   if (!isHistory) {
     $('#notaSave').onclick = async () => {
       if (!requireServer()) return;
+      // Simpan SELALU semua item (filter hanya untuk tampilan/export)
       nota.judul = $('#notaJudul').value.trim();
-      nota.items = (nota.items || []).map(it => Object.assign({}, it, { pic: resolveItemPic(it) || it.pic || '' }));
-      // Optimistic UI
+      nota.items = allItems.map(it => Object.assign({}, it, { pic: resolveItemPic(it) || it.pic || '' }));
       state.history.unshift(nota);
       cacheLocal('history', state.history);
       state.cart = [];
@@ -3803,7 +3895,7 @@ function openNotaModal(nota, isHistory) {
         if (!requireServer()) return;
         nota.judul = $('#notaJudul').value.trim();
         const idx = state.history.findIndex(h => h.nomor === nota.nomor);
-        if (idx>=0) { state.history[idx].judul = nota.judul; cacheLocal('history', state.history); }
+        if (idx >= 0) { state.history[idx].judul = nota.judul; cacheLocal('history', state.history); }
         await cloudSaveNota(Object.assign({}, nota, { judul: nota.judul }));
         showToast('Judul disimpan ke server ☁');
         close();
