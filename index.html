@@ -3747,13 +3747,14 @@ function openNotaModal(nota, isHistory) {
     ];
     nota.items.forEach((c,i) => {
       const pic = resolveItemPic(c) || '-';
-      const kond = (c.kondisi||'Bad')==='Good' ? 'Bagus' : 'Jelek';
+      const sat = c.satuan || 'PCS';
       lines.push(`${i+1}. ${c.nama}`);
-      lines.push(`   Qty: ${c.qty} ${c.satuan||'PCS'} | ${kond} | Vendor: ${c.vendor||'-'} | PIC: ${pic}`);
-      if (c.alasan) lines.push(`   Alasan: ${c.alasan}`);
+      lines.push(`Qty: ${c.qty} ${sat} | Vendor: ${c.vendor||'-'} | PIC: ${pic}`);
+      if (c.alasan) lines.push(`Alasan: ${c.alasan}`);
+      if (c.catatan) lines.push(`Catatan: ${c.catatan}`);
+      lines.push('');
     });
-    lines.push('', `Total: ${nota.items.length} produk, qty ${totalQty}`);
-    lines.push(`🟢 Bagus: ${goodItems.length} item (qty ${goodQty}) · 🔴 Jelek: ${badItems.length} item (qty ${badQty})`);
+    lines.push(`Total: ${nota.items.length} Produk | Qty: ${totalQty} PCS`);
     lines.push('', 'Mohon diajukan retur ke vendor. Terima kasih.');
     navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Disalin ke clipboard')).catch(()=>showToast('Gagal salin'));
   };
