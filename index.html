@@ -60,6 +60,12 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  /* Sentuhan lebih ringan/responsif di HP: hilangkan efek highlight bawaan &
+     hindari delay 300ms sebelum tap terdaftar */
+  -webkit-tap-highlight-color: transparent;
+}
+button, .chip, .nav-item, .list-item .actions button {
+  touch-action: manipulation;
 }
 
 /* ========== LAYOUT ========== */
@@ -104,7 +110,7 @@ body {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 12px; border-radius: 8px;
   color: #94a3b8; font-size: 13.5px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left;
+  cursor: pointer; transition: background-color .15s, border-color .15s, color .15s, transform .15s; border: none; background: none; width: 100%; text-align: left;
 }
 .nav-item:hover { background: var(--bg-sidebar-hover); color: #e2e8f0; }
 .nav-item.active { background: rgba(13,148,136,0.2); color: #5eead4; }
@@ -215,7 +221,7 @@ textarea { resize: vertical; min-height: 70px; }
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 10px 16px; border-radius: var(--radius-sm); border: none;
   font-size: 13.5px; font-weight: 600; cursor: pointer;
-  transition: all 0.15s; font-family: inherit; white-space: nowrap;
+  transition: background-color .15s, border-color .15s, color .15s, transform .15s; font-family: inherit; white-space: nowrap;
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary { background: var(--primary); color: #fff; }
@@ -266,7 +272,7 @@ table.data-table .actions { display: flex; gap: 4px; }
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
   background: #f1f5f9; color: var(--text-muted); border: 1px solid var(--border);
-  cursor: pointer; transition: all 0.15s;
+  cursor: pointer; transition: background-color .15s, border-color .15s, color .15s, transform .15s;
 }
 .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -369,6 +375,10 @@ table.data-table .actions { display: flex; gap: 4px; }
 .list-item {
   display: flex; align-items: flex-start; gap: 12px;
   padding: 12px 0; border-bottom: 1px solid var(--border);
+  /* Ringankan render list panjang (ribuan produk/nota) — browser skip
+     paint/layout untuk baris yang belum kelihatan di layar (Android jadi lebih mulus) */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
 }
 .list-item:last-child { border-bottom: none; }
 .list-item .idx {
@@ -576,6 +586,7 @@ table.data-table .actions { display: flex; gap: 4px; }
       </div>
       <div class="topbar-right">
         <span class="badge badge-warning" id="serverBadge" title="Status server">… Server</span>
+        <span class="badge badge-danger" id="pendingSyncBadge" style="display:none;" title=""></span>
         <span class="badge badge-info" id="dcBadge">DC INDUK</span>
         <div class="export-menu" id="globalExportMenu">
           <button class="btn btn-outline btn-sm" id="globalExportBtn">📤 Export ▾</button>
@@ -1185,6 +1196,24 @@ const storage = {
   }
 };
 
+// Sesi login otomatis kedaluwarsa setelah sekian jam, supaya device yang dipakai
+// bergantian (mis. HP gudang bersama) tidak "nyangkut" login sebagai akun key/orang lain.
+const SESSION_TTL_HOURS = 2;
+function saveSession(user) {
+  storage.set('session', Object.assign({}, user, { _savedAt: Date.now() }));
+}
+function loadValidSession() {
+  const s = storage.get('session', null);
+  if (!s) return null;
+  const savedAt = s._savedAt || 0;
+  const ageHours = (Date.now() - savedAt) / 36e5;
+  if (!savedAt || ageHours > SESSION_TTL_HOURS) {
+    storage.set('session', null);
+    return null;
+  }
+  return s;
+}
+
 /** Tulis ke cache lokal TANPA menganggap itu sumber data utama */
 function cacheLocal(k, v) {
   storage.set(k, v);
@@ -1314,15 +1343,62 @@ function cloudSaveVendorPic(vendorKey, vendorLabel, pic) {
 
 /** Nota Retur — dokumen utama operasional */
 function cloudSaveNota(nota) {
-  if (!requireServer(true) || !nota || !nota.nomor) return Promise.resolve();
+  if (!requireServer(true) || !nota || !nota.nomor) return Promise.reject(new Error('Server tidak terhubung'));
   // Bersihkan field yang tidak bisa diserialisasi Firestore
   const clean = JSON.parse(JSON.stringify(nota));
   clean.updatedAt = tsNow();
   clean.updatedBy = actorName();
   clean.dcName = clean.dcName || state.dcName || '';
   return db.collection('notaRetur').doc(String(nota.nomor)).set(clean, { merge: true })
-    .catch(err => { console.warn('[server] nota', err); showToast('Gagal simpan nota ke server'); });
+    .then(() => { markSynced(nota.nomor); })
+    .catch(err => {
+      console.warn('[server] nota', err);
+      markPendingSync(nota.nomor);
+      throw err; // penting: lempar balik supaya caller tahu ini GAGAL, bukan pura-pura sukses
+    });
 }
+
+// -------------------- ANTRIAN SINKRON (retry otomatis kalau simpan ke server gagal) --------------------
+function markPendingSync(nomor) {
+  const pending = storage.get('pendingSync', {}) || {};
+  pending[nomor] = Date.now();
+  storage.set('pendingSync', pending);
+  updateSyncBadge();
+}
+function markSynced(nomor) {
+  const pending = storage.get('pendingSync', {}) || {};
+  if (pending[nomor]) { delete pending[nomor]; storage.set('pendingSync', pending); }
+  updateSyncBadge();
+}
+function updateSyncBadge() {
+  const pending = storage.get('pendingSync', {}) || {};
+  const n = Object.keys(pending).length;
+  const el = $('#pendingSyncBadge');
+  if (!el) return;
+  if (n > 0) {
+    el.style.display = 'inline-flex';
+    el.textContent = '⚠ ' + n + ' belum tersinkron';
+    el.title = 'Nota berikut gagal terkirim ke server dan akan dicoba lagi otomatis: ' + Object.keys(pending).join(', ');
+  } else {
+    el.style.display = 'none';
+  }
+}
+async function retryPendingSync() {
+  if (!firebaseReady || !db) return;
+  const pending = storage.get('pendingSync', {}) || {};
+  const nomors = Object.keys(pending);
+  if (!nomors.length) return;
+  for (const nomor of nomors) {
+    const nota = state.history.find(h => String(h.nomor) === nomor);
+    if (!nota) { delete pending[nomor]; continue; }
+    try { await cloudSaveNota(nota); }
+    catch (e) { /* masih gagal, coba lagi di siklus berikutnya */ }
+  }
+  storage.set('pendingSync', pending);
+  updateSyncBadge();
+}
+// Coba kirim ulang tiap 30 detik selagi ada nota yang belum tersinkron
+setInterval(retryPendingSync, 30000);
 
 function cloudDeleteNota(nomor) {
   if (!firebaseReady || !db || !nomor) {
@@ -1436,9 +1512,10 @@ function startCloudSync() {
   syncStatus('Terhubung ke server gudang ☁');
 
   const apply = (fn) => {
-    if (syncApplying) return;
-    syncApplying = true;
-    try { fn(); } finally { syncApplying = false; }
+    // Catatan: sebelumnya ada guard "jika sedang apply, lewati" yang bisa MEMBUANG
+    // update realtime dari anggota tim lain (nota baru dari HP lain jadi tidak muncul).
+    // Render bersifat idempotent, jadi aman dipanggil langsung tanpa guard tsb.
+    fn();
   };
 
   // Nota Retur (semua DC) — filter pendingDeletes agar hapus tidak "muncul lagi"
@@ -3237,7 +3314,7 @@ function openAddUserModal() {
       await auth.signOut();
       // Kembalikan session admin lokal (system key / session cache)
       state.user = adminSession;
-      storage.set('session', adminSession);
+      saveSession(adminSession);
       logActivity('CREATE', 'Master User', `${name} (${username}) · ${role}`);
       showToast('Akun dibuat. Jika Anda admin Firebase, login ulang mungkin diperlukan.');
       close();
@@ -3876,7 +3953,7 @@ function openNotaModal(nota, isHistory) {
         logActivity('CREATE', 'Retur', `Nota ${nota.nomor} · ${nota.items.length} item`);
         showToast('Nota tersimpan di server gudang ☁');
       } catch (e) {
-        showToast('Gagal simpan ke server');
+        showToast('⚠ Nota tersimpan LOKAL tapi belum sampai server — dicoba lagi otomatis tiap 30 detik');
       }
       close();
       navigate('riwayat-retur');
@@ -4644,7 +4721,7 @@ function bindEvents() {
         isSystemKey: true,
         uid: 'system-key-admin'
       };
-      storage.set('session', state.user);
+      saveSession(state.user);
       // Auth anonim opsional (tidak boleh gagalkan login key)
       if (firebaseReady && auth) {
         try {
@@ -4675,7 +4752,7 @@ function bindEvents() {
         isSystemKey: !!localUser.isSystemKey,
         uid: localUser.id
       };
-      storage.set('session', state.user);
+      saveSession(state.user);
       enterApp();
       logActivity('LOGIN', 'Sistem', localUser.name + ' masuk (lokal)');
       return;
@@ -4719,7 +4796,7 @@ function bindEvents() {
           role: role,
           isSystemKey: false
         };
-        storage.set('session', state.user);
+        saveSession(state.user);
         enterApp();
         logActivity('LOGIN', 'Sistem', state.user.name + ' masuk (Firebase) · ' + role);
         return;
@@ -5214,14 +5291,15 @@ function enterApp() {
   applyMenuVisibility();
   navigate('dashboard');
   startCloudSync();
+  updateSyncBadge();
   setTimeout(() => bootstrapServer(), 800);
 }
 
 function init() {
   loadState();
   bindEvents();
-  // Auto login if session exists
-  const session = storage.get('session', null);
+  // Auto login if session exists dan belum kedaluwarsa
+  const session = loadValidSession();
   if (session) {
     state.user = session;
     enterApp();
