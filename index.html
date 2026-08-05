@@ -1463,38 +1463,83 @@ function cloudSaveActivity(entry) {
     .catch(err => console.warn('[server] activity', err));
 }
 
-/** Seed produk ke server sekali (jika koleksi masih kosong) */
+/** Ambil daftar produk dari seed file (products-seed.js) — sumber 6000+ item */
+function getSeedProducts() {
+  const seed = (typeof window.GUDANGPRO_SEED !== 'undefined') ? window.GUDANGPRO_SEED : null;
+  return (seed && Array.isArray(seed.products)) ? seed.products : [];
+}
+
+/**
+ * Gabungkan produk: seed (lengkap) + lokal + cloud.
+ * Cloud/local menimpa field untuk kode yang sama; seed menjamin 6000+ selalu ada.
+ */
+function mergeProductLists() {
+  const map = {};
+  const apply = (arr) => {
+    (arr || []).forEach(p => {
+      if (!p || !p.kode) return;
+      const k = String(p.kode);
+      map[k] = Object.assign({}, map[k] || {}, p, { kode: k });
+    });
+  };
+  for (let i = 0; i < arguments.length; i++) apply(arguments[i]);
+  return Object.values(map);
+}
+
+/** Seed / backfill produk ke server (lengkapi jika cloud masih partial ~400) */
+let _productsBackfillRunning = false;
 async function ensureProductsOnServer() {
   if (!requireServer(true)) return;
+  if (_productsBackfillRunning) return;
   try {
-    const snap = await db.collection('products').limit(5).get();
-    if (!snap.empty) {
-      console.log('[server] products sudah ada di cloud');
+    const seedList = getSeedProducts().length ? getSeedProducts()
+      : ((state.products && state.products.length > 50) ? state.products : []);
+    if (!seedList.length) return;
+
+    const existingSnap = await db.collection('products').get();
+    const existing = new Set();
+    existingSnap.forEach(doc => existing.add(String(doc.id)));
+
+    const missing = seedList.filter(p => p && p.kode && !existing.has(String(p.kode)));
+    const cloudCount = existing.size;
+    const seedCount = seedList.filter(p => p && p.kode).length;
+
+    if (!missing.length) {
+      console.log('[server] products cloud lengkap:', cloudCount, '/ seed', seedCount);
       return;
     }
-    const seed = (typeof window.GUDANGPRO_SEED !== 'undefined') ? window.GUDANGPRO_SEED : null;
-    const list = (seed && seed.products) ? seed.products : (state.products || []);
-    if (!list.length) return;
-    showToast('Mengunggah master produk ke server…');
+    if (cloudCount >= 1000 && missing.length < seedCount * 0.05) {
+      console.log('[server] products hampir lengkap, skip:', missing.length);
+      return;
+    }
+
+    _productsBackfillRunning = true;
+    showToast('Melengkapi master produk ke server… (' + cloudCount + ' → ' + seedCount + ')');
+    console.log('[server] backfill products missing:', missing.length, 'cloud:', cloudCount);
+
     const BATCH = 400;
-    for (let i = 0; i < list.length; i += BATCH) {
+    for (let i = 0; i < missing.length; i += BATCH) {
       const batch = db.batch();
-      list.slice(i, i + BATCH).forEach(p => {
+      let n = 0;
+      missing.slice(i, i + BATCH).forEach(p => {
         if (!p || !p.kode) return;
-        const ref = db.collection('products').doc(String(p.kode));
-        batch.set(ref, {
+        batch.set(db.collection('products').doc(String(p.kode)), {
           kode: p.kode, barcode: p.barcode || '', barcodes: p.barcodes || [],
           nama: p.nama || '', kategori: p.kategori || '', vendor: p.vendor || '',
-          pic: p.pic || '', seeded: true, updatedAt: tsNow(), updatedBy: 'seed'
+          pic: p.pic || '', seeded: true, updatedAt: tsNow(), updatedBy: 'seed-backfill'
         }, { merge: true });
+        n++;
       });
-      await batch.commit();
+      if (n) await batch.commit();
     }
+    const seed = (typeof window.GUDANGPRO_SEED !== 'undefined') ? window.GUDANGPRO_SEED : null;
     if (seed && seed.categories) await cloudSaveCategories(seed.categories);
-    console.log('[server] Seed produk selesai:', list.length);
-    showToast('Master produk tersimpan di server (' + list.length + ' item)');
+    console.log('[server] Backfill selesai +', missing.length);
+    showToast('Master produk dilengkapi (+' + missing.length + ' → ~' + seedCount + ')');
   } catch (e) {
     console.warn('[server] ensureProducts', e);
+  } finally {
+    _productsBackfillRunning = false;
   }
 }
 
@@ -1551,22 +1596,32 @@ function startCloudSync() {
       if (state.page === 'laporan-master') renderLaporanMasterData();
     }), err => console.warn('[server] nota', err)));
 
-  // Products — ambil semua (paginate via multiple listeners jika perlu)
-  // Gunakan query tanpa limit ketat; Firestore onSnapshot default max reasonable
+  // Products — SELALU gabungkan seed 6000+ dengan cloud (jangan diganti partial ~400)
   syncUnsubs.push(db.collection('products')
     .onSnapshot(snap => apply(() => {
-      if (snap.empty && state.products.length) return; // jaga seed lokal sampai seed upload selesai
-      const list = [];
+      const cloudList = [];
       snap.forEach(doc => {
         const d = doc.data();
-        if (d && d.kode) list.push(d);
+        if (d && d.kode) cloudList.push(d);
       });
-      if (list.length) {
-        state.products = list;
+      const seedList = getSeedProducts();
+      if (!cloudList.length && !seedList.length && state.products.length) return;
+      state.products = mergeProductLists(seedList, state.products, cloudList);
+      cacheLocal('products', state.products);
+      if (state.page === 'master-produk') renderProduk();
+      if (state.page === 'dashboard') renderDashboard();
+      if (seedList.length > 500 && cloudList.length < seedList.length * 0.5) {
+        ensureProductsOnServer();
+      }
+    }), err => {
+      console.warn('[server] products', err);
+      const seedList = getSeedProducts();
+      if (seedList.length && (!state.products || state.products.length < seedList.length * 0.5)) {
+        state.products = mergeProductLists(seedList, state.products);
         cacheLocal('products', state.products);
         if (state.page === 'master-produk') renderProduk();
       }
-    }), err => console.warn('[server] products', err)));
+    }));
 
   // Vendor PIC
   syncUnsubs.push(db.collection('vendorPic')
@@ -2157,19 +2212,49 @@ function exportUsers(fmt) {
 }
 
 function exportLaporan(fmt) {
-  const data = collectLaporan();
-  if (!data.list.length) return showToast('Belum ada data laporan');
-  const meta = ExportEngine.getMeta('Laporan Analisa Retur', data.list.length, {
-    from: $('#lapFrom').value, to: $('#lapTo').value
+  // Format Template_Report_Retur.xlsx — semua baris item retur
+  const from = $('#lapFrom')?.value || '';
+  const to = $('#lapTo')?.value || '';
+  const term = ($('#lapSearch')?.value || '').toLowerCase();
+  const rows = [];
+  state.history.forEach(h => {
+    if (from && h.tanggal < from) return;
+    if (to && h.tanggal > to) return;
+    const tgl = h.tanggal || '';
+    let tglFmt = tgl;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(tgl)) {
+      const [y, m, d] = tgl.split('-');
+      tglFmt = d + '/' + m + '/' + y;
+    } else if (h.tanggalLabel) tglFmt = h.tanggalLabel;
+    (h.items || []).forEach(it => {
+      if (term && !(it.nama||'').toLowerCase().includes(term) && !(it.kode||'').toLowerCase().includes(term)
+          && !(it.vendor||'').toLowerCase().includes(term) && !(resolveItemPic(it)||'').toLowerCase().includes(term)) return;
+      const kondRaw = (it.kondisi || 'Bad');
+      const kondisi = (kondRaw === 'Good' || String(kondRaw).toLowerCase() === 'bagus') ? 'bagus' : 'jelek';
+      const keterangan = (it.catatan && String(it.catatan).trim()) ? String(it.catatan).trim() : (it.alasan || '');
+      rows.push([
+        rows.length + 1,
+        tglFmt,
+        it.nama || '',
+        it.qty,
+        (it.satuan || 'PCS').toString().toUpperCase(),
+        resolveItemPic(it) || '',
+        it.vendor || '',
+        kondisi,
+        keterangan
+      ]);
+    });
   });
-  const headers = ['No','Kode','Nama','Vendor','Total Qty','Satuan','Alasan','Nota'];
-  const rows = data.list.map((r,i) => [i+1, r.kode, r.nama, r.vendor, r.totalQty, r.satuanText, r.alasanText, r.notaCount]);
-  if (fmt==='xlsx') ExportEngine.toExcel(headers, rows, 'Laporan', meta);
-  else if (fmt==='csv') ExportEngine.toCSV(headers, rows, meta);
-  else if (fmt==='pdf') ExportEngine.toPDF('Analisa Retur', headers, rows, meta);
-  else if (fmt==='ringkas') {
-    const lines = [`*ANALISA RETUR — ${meta.dc}*`, `Periode: ${meta.filters.from||'…'} s/d ${meta.filters.to||'…'}`, ''];
-    data.list.slice(0,40).forEach((r,i) => lines.push(`${i+1}. ${r.nama} — ${r.satuanText||r.totalQty}`));
+  if (!rows.length) return showToast('Belum ada data laporan');
+  const meta = ExportEngine.getMeta('Report Retur', rows.length, { from, to, search: term || undefined });
+  const headers = ['No','Tanggal','Nama Produk','Qty','Satuan','PIC Purchasing','Nama Vendor','Kondisi Barang','Keterangan'];
+  if (fmt === 'xlsx') ExportEngine.toExcel(headers, rows, 'Report Retur', meta);
+  else if (fmt === 'csv') ExportEngine.toCSV(headers, rows, meta);
+  else if (fmt === 'pdf') ExportEngine.toPDF('Report Retur', headers, rows, meta);
+  else if (fmt === 'ringkas') {
+    const lines = [`*REPORT RETUR — ${meta.dc}*`, `Periode: ${from||'…'} s/d ${to||'…'}`, `Total: ${rows.length} baris`, ''];
+    rows.slice(0, 50).forEach(r => lines.push(r[0] + '. ' + r[2] + ' — ' + r[3] + ' ' + r[4] + ' · ' + r[7]));
+    if (rows.length > 50) lines.push('… dan ' + (rows.length - 50) + ' baris lainnya');
     ExportEngine.toRingkas(lines, meta);
   }
 }
@@ -4640,16 +4725,17 @@ function loadState() {
     console.warn('[GudangPro] Migrasi gagal (non-fatal):', e);
   }
 
-  // Prefer data already saved in localStorage (user may have imported/edited)
+  // SELALU pakai seed 6000+ sebagai basis, lalu gabung localStorage (edit/import user)
   const savedProducts = storage.get('products', null);
   const seed = (typeof window.GUDANGPRO_SEED !== 'undefined') ? window.GUDANGPRO_SEED : null;
+  const seedList = (seed && seed.products) ? seed.products : [];
 
-  if (savedProducts && savedProducts.length > 50) {
-    state.products = savedProducts;
-  } else if (seed && seed.products && seed.products.length) {
-    state.products = seed.products;
+  if (seedList.length) {
+    state.products = mergeProductLists(seedList, (savedProducts && savedProducts.length) ? savedProducts : []);
     storage.set('products', state.products);
-    console.log('[GudangPro] Loaded', state.products.length, 'products from seed database');
+    console.log('[GudangPro] Products ready:', state.products.length, '(seed', seedList.length, '+ local)');
+  } else if (savedProducts && savedProducts.length > 50) {
+    state.products = savedProducts;
   } else {
     state.products = SAMPLE_PRODUCTS;
   }
