@@ -828,18 +828,66 @@ table.data-table .actions { display: flex; gap: 4px; }
         <div class="card">
           <div class="card-header"><h2>1. Upload Data Referensi</h2></div>
           <div class="card-body">
-            <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Upload file Excel/CSV inventory sistem. Kolom wajib: Kode Produk, Nama, Qty.</p>
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+              Upload <b>Excel / CSV apa saja</b>. Sistem akan deteksi kolom otomatis — Anda tinggal pilih mana yang berisi kode/barcode, nama, dan qty. Bisa juga cocokkan ke Master Produk.
+            </p>
             <div id="bandingRefInfo" style="font-size:13px;margin-bottom:10px;"></div>
             <input type="file" id="bandingFile" accept=".xlsx,.xls,.csv" style="display:none;">
-            <button class="btn btn-outline" id="bandingUploadBtn">📥 Upload File Referensi</button>
+            <button class="btn btn-outline" id="bandingUploadBtn">📥 Upload File (Excel/CSV)</button>
             <button class="btn btn-danger-outline btn-sm" id="bandingResetBtn" style="display:none;margin-left:8px;">Reset</button>
           </div>
         </div>
+
+        <!-- Mapping kolom setelah upload -->
+        <div class="card" id="bandingMapCard" style="display:none;">
+          <div class="card-header"><h2>2. Petakan Kolom Excel</h2></div>
+          <div class="card-body">
+            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">
+              Sheet: <b id="bandingSheetName">-</b> · <span id="bandingRowCount">0</span> baris · Pilih kolom yang sesuai (opsional boleh dikosongkan kecuali minimal 1 identitas + qty).
+            </p>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Kolom Kode Produk</label>
+                <select id="mapColKode"><option value="">— tidak dipakai —</option></select>
+              </div>
+              <div class="form-group">
+                <label>Kolom Barcode</label>
+                <select id="mapColBarcode"><option value="">— tidak dipakai —</option></select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Kolom Nama Produk</label>
+                <select id="mapColNama"><option value="">— tidak dipakai —</option></select>
+              </div>
+              <div class="form-group">
+                <label>Kolom Qty / Stok <span style="color:var(--danger)">*</span></label>
+                <select id="mapColQty"><option value="">— pilih —</option></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Cocokkan ke Master Produk lewat</label>
+              <select id="mapMatchBy">
+                <option value="auto">Otomatis (kode → barcode → nama)</option>
+                <option value="kode">Kode saja</option>
+                <option value="barcode">Barcode saja</option>
+                <option value="nama">Nama saja</option>
+                <option value="none">Jangan cocokkan (pakai data Excel apa adanya)</option>
+              </select>
+            </div>
+            <div id="bandingPreviewSample" style="font-size:12px;color:var(--text-muted);margin:10px 0;max-height:120px;overflow:auto;background:#f8fafc;border-radius:8px;padding:10px;"></div>
+            <div class="btn-group">
+              <button class="btn btn-primary" id="bandingApplyMapBtn">✅ Terapkan & Muat Referensi</button>
+              <button class="btn btn-outline" id="bandingCancelMapBtn">Batal</button>
+            </div>
+          </div>
+        </div>
+
         <div class="card" id="bandingInputCard" style="display:none;">
-          <div class="card-header"><h2>2. Input Hasil Cek Fisik</h2></div>
+          <div class="card-header"><h2>3. Input Hasil Cek Fisik</h2></div>
           <div class="card-body">
             <div class="form-group" style="position:relative;">
-              <input type="text" id="bandingSearch" placeholder="Cari produk..." autocomplete="off">
+              <input type="text" id="bandingSearch" placeholder="Cari produk (dari referensi / master)..." autocomplete="off">
               <div class="suggest-list" id="bandingSuggest" style="display:none;"></div>
             </div>
             <div id="bandingSelected"></div>
@@ -853,7 +901,10 @@ table.data-table .actions { display: flex; gap: 4px; }
           </div>
         </div>
         <div class="card" id="bandingListCard" style="display:none;">
-          <div class="card-header"><h2>Sudah Diinput (<span id="bandingCount">0</span>)</h2></div>
+          <div class="card-header">
+            <h2>Sudah Diinput (<span id="bandingCount">0</span>)</h2>
+            <button class="btn btn-outline btn-sm" id="bandingAutoFillBtn" title="Isi semua item referensi dengan qty real = 0 dulu">Isi semua dari referensi</button>
+          </div>
           <div class="card-body" id="bandingList"></div>
         </div>
       </div>
@@ -929,9 +980,9 @@ table.data-table .actions { display: flex; gap: 4px; }
       <!-- ==================== MASTER RAK ==================== -->
       <div class="page" id="page-master-rak">
         <div class="toolbar">
-          <div class="search-box"><input type="text" id="rakSearch" placeholder="Cari kode / zona rak..."></div>
-          <button class="btn btn-primary btn-sm" id="addRakBtn">+ Tambah 1 Rak</button>
-          <button class="btn btn-outline btn-sm" id="bulkRakBtn">📋 Input Massal</button>
+          <div class="search-box"><input type="text" id="rakSearch" placeholder="Cari kode / zona / kolom / barang..."></div>
+          <button class="btn btn-primary btn-sm" id="addRakBtn">+ Tambah Rak</button>
+          <button class="btn btn-outline btn-sm" id="bulkRakBtn">📋 Input Massal Rak</button>
           <button class="btn btn-outline btn-sm" id="exportRakBtn">📤 Export</button>
         </div>
         <div class="card" id="bulkRakCard" style="display:none;margin-bottom:14px;">
@@ -941,9 +992,9 @@ table.data-table .actions { display: flex; gap: 4px; }
           <div class="card-body">
             <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;">
               Satu baris = satu rak. Format: <b>KODE</b> atau <b>KODE,ZONA,KAPASITAS</b><br>
-              Contoh: <code>A-01,Zona A,100</code> · <code>B-01,Zona B,80</code> · <code>C-01</code>
+              Contoh: <code>RAK 1,Zona A,100</code> · <code>RAK 2,Zona B,80</code>
             </p>
-            <textarea id="bulkRakText" rows="6" placeholder="A-01,Zona A,100&#10;A-02,Zona A,100&#10;B-01,Zona B,80" style="font-family:var(--mono);font-size:13px;"></textarea>
+            <textarea id="bulkRakText" rows="6" placeholder="RAK 1,Zona A,100&#10;RAK 2,Zona A,100&#10;RAK 3,Zona B,80" style="font-family:var(--mono);font-size:13px;"></textarea>
             <div class="btn-group" style="margin-top:10px;">
               <button class="btn btn-outline" id="bulkRakPreviewBtn">👁 Preview & Pilih</button>
               <button class="btn btn-outline" id="bulkRakClearBtn">Bersihkan</button>
@@ -961,16 +1012,56 @@ table.data-table .actions { display: flex; gap: 4px; }
             </div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <h2>Master Rak</h2>
-            <span class="badge badge-muted" id="rakCount">0 rak</span>
+
+        <!-- Daftar rak (kartu expandable) -->
+        <div id="rakListView">
+          <div class="card">
+            <div class="card-header">
+              <h2>Master Rak</h2>
+              <span class="badge badge-muted" id="rakCount">0 rak</span>
+            </div>
+            <div class="card-body" id="rakCards" style="padding:12px 14px;"></div>
           </div>
-          <div class="card-body table-wrap">
-            <table class="data-table">
-              <thead><tr><th>No</th><th>Kode</th><th>Zona</th><th>Kapasitas</th><th>Aksi</th></tr></thead>
-              <tbody id="rakTbody"></tbody>
-            </table>
+        </div>
+
+        <!-- Detail 1 rak: kolom + barang -->
+        <div id="rakDetailView" style="display:none;">
+          <div class="toolbar" style="margin-bottom:12px;">
+            <button class="btn btn-outline btn-sm" id="rakBackBtn">← Kembali ke daftar</button>
+            <span style="font-weight:700;font-size:15px;" id="rakDetailTitle">RAK 1</span>
+            <span class="badge badge-muted" id="rakDetailMeta"></span>
+          </div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-header">
+              <h2>Kolom di Rak ini</h2>
+              <button class="btn btn-primary btn-sm" id="addKolomBtn">+ Tambah Kolom</button>
+            </div>
+            <div class="card-body" id="kolomList" style="padding:10px 14px;"></div>
+          </div>
+          <!-- Panel tambah barang ke kolom -->
+          <div class="card" id="kolomItemPanel" style="display:none;">
+            <div class="card-header">
+              <h2 id="kolomItemTitle">Barang di Kolom</h2>
+              <button class="btn btn-outline btn-sm" id="kolomItemCloseBtn">Tutup</button>
+            </div>
+            <div class="card-body">
+              <div class="form-group" style="position:relative;">
+                <label>Cari & tambah barang (bisa banyak)</label>
+                <input type="text" id="kolomItemSearch" placeholder="Ketik nama / kode / barcode..." autocomplete="off">
+                <div class="suggest-list" id="kolomItemSuggest" style="display:none;"></div>
+              </div>
+              <div class="form-row" style="margin-top:8px;">
+                <div class="form-group">
+                  <label>Qty (opsional)</label>
+                  <input type="number" id="kolomItemQty" min="0" step="any" placeholder="0">
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;">
+                  <button class="btn btn-primary" id="kolomItemAddBtn" style="width:100%;">+ Tambah ke Kolom</button>
+                </div>
+              </div>
+              <div id="kolomItemSelected" style="margin-bottom:10px;"></div>
+              <div id="kolomItemList"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1242,6 +1333,10 @@ const state = {
   selectedProduct: null,
   selectedAudit: null,
   selectedBanding: null,
+  selectedKolomProduct: null,
+  activeRakId: null,
+  activeKolomId: null,
+  _bandingPending: null,
   /** Nomor nota yang sedang/ sudah dihapus — cegah onSnapshot mengembalikan lagi */
   pendingDeletes: {}
 };
@@ -1675,6 +1770,7 @@ function startCloudSync() {
     .onSnapshot(doc => apply(() => {
       if (doc.exists && Array.isArray(doc.data().list)) {
         state.racks = doc.data().list;
+        normalizeAllRacks();
         cacheLocal('racks', state.racks);
         if (state.page === 'master-rak') renderRak();
       }
@@ -1770,10 +1866,30 @@ const DEFAULT_WAREHOUSES = [
   { id:'w3', name:'DC FROZEN', code:'DCF', address:'' }
 ];
 const DEFAULT_RACKS = [
-  { id:'r1', code:'A-01', zone:'Zona A', capacity:100 },
-  { id:'r2', code:'A-02', zone:'Zona A', capacity:100 },
-  { id:'r3', code:'B-01', zone:'Zona B', capacity:80 }
+  { id:'r1', code:'RAK 1', zone:'Zona A', capacity:100, columns: [
+    { id:'c1a', name:'Kolom 1', items: [] },
+    { id:'c1b', name:'Kolom 2', items: [] }
+  ]},
+  { id:'r2', code:'RAK 2', zone:'Zona A', capacity:100, columns: [
+    { id:'c2a', name:'Kolom 1', items: [] }
+  ]},
+  { id:'r3', code:'RAK 3', zone:'Zona B', capacity:80, columns: [] }
 ];
+
+/** Pastikan struktur rak punya array columns */
+function normalizeRack(r) {
+  if (!r) return r;
+  if (!Array.isArray(r.columns)) r.columns = [];
+  r.columns.forEach(c => {
+    if (!c.id) c.id = uid();
+    if (!c.name) c.name = 'Kolom';
+    if (!Array.isArray(c.items)) c.items = [];
+  });
+  return r;
+}
+function normalizeAllRacks() {
+  state.racks = (state.racks || []).map(normalizeRack);
+}
 
 // Sample products (akan diganti saat import Excel)
 const SAMPLE_PRODUCTS = []; // loaded from products-seed.js
@@ -2178,13 +2294,34 @@ function exportVendor(fmt) {
 }
 
 function exportRak(fmt) {
+  normalizeAllRacks();
   const list = state.racks;
   const meta = ExportEngine.getMeta('Master Rak', list.length);
-  const headers = ['No','Kode Rak','Zona','Kapasitas'];
-  const rows = list.map((r,i) => [i+1, r.code, r.zone, r.capacity]);
+  // Flat export: one row per item (or empty kolom)
+  const headers = ['No','Kode Rak','Zona','Kapasitas','Kolom','Kode Produk','Barcode','Nama Produk','Qty'];
+  const rows = [];
+  let no = 0;
+  list.forEach(r => {
+    const cols = r.columns || [];
+    if (!cols.length) {
+      no++; rows.push([no, r.code, r.zone, r.capacity, '', '', '', '', '']);
+      return;
+    }
+    cols.forEach(c => {
+      const items = c.items || [];
+      if (!items.length) {
+        no++; rows.push([no, r.code, r.zone, r.capacity, c.name, '', '', '', '']);
+      } else {
+        items.forEach(it => {
+          no++;
+          rows.push([no, r.code, r.zone, r.capacity, c.name, it.kode||'', it.barcode||'', it.nama||'', it.qty!=null?it.qty:'']);
+        });
+      }
+    });
+  });
   if (fmt==='xlsx') ExportEngine.toExcel(headers, rows, 'Rak', meta);
   else if (fmt==='csv') ExportEngine.toCSV(headers, rows, meta);
-  else if (fmt==='pdf') ExportEngine.toPDF('Master Rak', headers, rows, meta);
+  else if (fmt==='pdf') ExportEngine.toPDF('Master Rak (detail)', headers, rows, meta);
   else showToast('Gunakan Excel/CSV/PDF');
 }
 
@@ -2719,16 +2856,148 @@ function renderAuditHistory() {
   `).join('');
 }
 
+
+/** Deteksi otomatis kolom dari header Excel */
+function guessBandingColumns(keys) {
+  const lower = keys.map(k => ({ k, l: String(k).toLowerCase().trim() }));
+  const find = (preds) => {
+    for (const p of preds) {
+      const hit = lower.find(x => p(x.l));
+      if (hit) return hit.k;
+    }
+    return '';
+  };
+  const kode = find([
+    l => l === 'kode' || l === 'kode produk' || l === 'kode_produk' || l === 'product code' || l === 'item code',
+    l => l.includes('kode') && !l.includes('barcode'),
+    l => l === 'code' || l.includes('sku') || l === 'plu'
+  ]);
+  const barcode = find([
+    l => l === 'barcode' || l === 'bar code' || l === 'ean' || l === 'upc',
+    l => l.includes('barcode') || l.includes('bar code')
+  ]);
+  const nama = find([
+    l => l === 'nama' || l === 'nama produk' || l === 'product name' || l === 'item name' || l === 'description',
+    l => l.includes('nama') || l.includes('name') || l.includes('desc')
+  ]);
+  const qty = find([
+    l => l === 'qty' || l === 'quantity' || l === 'stok' || l === 'stock' || l === 'jumlah' || l === 'qty sistem' || l === 'on hand',
+    l => l.includes('qty') || l.includes('stok') || l.includes('stock') || l.includes('jumlah') || l.includes('quantity')
+  ]);
+  return { kode, barcode, nama, qty };
+}
+
+function fillMapSelect(selId, keys, preferred) {
+  const sel = $(selId);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— tidak dipakai —</option>' +
+    keys.map(k => `<option value="${esc(k)}" ${k===preferred?'selected':''}>${esc(k)}</option>`).join('');
+  if (preferred && keys.includes(preferred)) sel.value = preferred;
+}
+
+function openBandingMapper(keys, rows, sheetName) {
+  const guess = guessBandingColumns(keys);
+  fillMapSelect('#mapColKode', keys, guess.kode);
+  fillMapSelect('#mapColBarcode', keys, guess.barcode);
+  fillMapSelect('#mapColNama', keys, guess.nama);
+  fillMapSelect('#mapColQty', keys, guess.qty);
+  const qtySel = $('#mapColQty');
+  if (qtySel && !guess.qty) {
+    qtySel.innerHTML = '<option value="">— pilih kolom qty —</option>' +
+      keys.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('');
+  }
+  if ($('#bandingSheetName')) $('#bandingSheetName').textContent = sheetName || '-';
+  if ($('#bandingRowCount')) $('#bandingRowCount').textContent = rows.length;
+  const sample = rows.slice(0, 3).map((r,i) => {
+    const cells = keys.slice(0, 6).map(k => `${k}=${String(r[k]).slice(0,30)}`).join(' · ');
+    return `#${i+1}: ${cells}`;
+  }).join('<br>');
+  if ($('#bandingPreviewSample')) $('#bandingPreviewSample').innerHTML = '<b>Preview baris:</b><br>' + sample;
+  if ($('#bandingMapCard')) $('#bandingMapCard').style.display = 'block';
+  showToast('Pilih mapping kolom lalu klik Terapkan');
+}
+
+function applyBandingMapping() {
+  const pending = state._bandingPending;
+  if (!pending || !pending.rows) return showToast('Tidak ada data pending');
+  const colKode = $('#mapColKode')?.value || '';
+  const colBarcode = $('#mapColBarcode')?.value || '';
+  const colNama = $('#mapColNama')?.value || '';
+  const colQty = $('#mapColQty')?.value || '';
+  const matchBy = $('#mapMatchBy')?.value || 'auto';
+  if (!colQty) return showToast('Kolom Qty wajib dipilih');
+  if (!colKode && !colBarcode && !colNama) return showToast('Pilih minimal satu kolom identitas (kode / barcode / nama)');
+
+  const byKode = {};
+  const byBarcode = {};
+  const byNama = {};
+  (state.products || []).forEach(p => {
+    if (p.kode) byKode[String(p.kode).toUpperCase()] = p;
+    if (p.barcode) byBarcode[String(p.barcode).toUpperCase()] = p;
+    if (p.nama) byNama[String(p.nama).toUpperCase().trim()] = p;
+  });
+
+  const ref = {};
+  let matched = 0, unmatched = 0;
+  pending.rows.forEach(row => {
+    const rawKode = colKode ? String(row[colKode]||'').trim() : '';
+    const rawBarcode = colBarcode ? String(row[colBarcode]||'').trim() : '';
+    const rawNama = colNama ? String(row[colNama]||'').trim() : '';
+    const qty = parseFloat(String(row[colQty]).replace(/,/g,'')) || 0;
+    if (!rawKode && !rawBarcode && !rawNama) return;
+
+    let product = null;
+    if (matchBy !== 'none') {
+      const tryKode = () => rawKode && byKode[rawKode.toUpperCase()];
+      const tryBarcode = () => rawBarcode && byBarcode[rawBarcode.toUpperCase()];
+      const tryNama = () => rawNama && byNama[rawNama.toUpperCase()];
+      if (matchBy === 'auto') product = tryKode() || tryBarcode() || tryNama() || null;
+      else if (matchBy === 'kode') product = tryKode() || null;
+      else if (matchBy === 'barcode') product = tryBarcode() || null;
+      else if (matchBy === 'nama') product = tryNama() || null;
+    }
+
+    let kode, nama, barcode;
+    if (product) {
+      matched++;
+      kode = product.kode || rawKode || rawBarcode || rawNama;
+      nama = product.nama || rawNama || kode;
+      barcode = product.barcode || rawBarcode || '';
+    } else {
+      unmatched++;
+      kode = rawKode || rawBarcode || rawNama;
+      nama = rawNama || rawKode || rawBarcode;
+      barcode = rawBarcode || '';
+    }
+    const key = kode;
+    if (!key) return;
+    if (ref[key]) {
+      ref[key].qty = (parseFloat(ref[key].qty)||0) + qty;
+    } else {
+      ref[key] = { kode, nama, barcode, qty };
+    }
+  });
+
+  state.bandingRef = ref;
+  state.bandingList = [];
+  state._bandingPending = null;
+  if ($('#bandingMapCard')) $('#bandingMapCard').style.display = 'none';
+  renderBanding();
+  showToast(`Referensi dimuat: ${Object.keys(ref).length} item (cocok master: ${matched}, baru: ${unmatched})`);
+}
+
 function renderBanding() {
   if (state.bandingRef) {
     const count = Object.keys(state.bandingRef).length;
     $('#bandingRefInfo').innerHTML = `<span class="badge badge-success">Referensi aktif: ${count} produk</span>`;
     $('#bandingResetBtn').style.display = 'inline-flex';
     $('#bandingInputCard').style.display = 'block';
+    $('#bandingListCard').style.display = 'block';
   } else {
     $('#bandingRefInfo').innerHTML = '';
     $('#bandingResetBtn').style.display = 'none';
     $('#bandingInputCard').style.display = 'none';
+    if (!state.bandingList.length) $('#bandingListCard').style.display = 'none';
   }
   if (state.bandingList.length) {
     $('#bandingListCard').style.display = 'block';
@@ -2743,13 +3012,23 @@ function renderBanding() {
             <div class="nm">${esc(it.nama)}</div>
             <div class="meta">Sistem: ${sys} · Real: ${it.qtyReal} · Selisih: <b style="color:${diff===0?'var(--success)':diff<0?'var(--danger)':'var(--warning)'}">${diff}</b></div>
           </div>
+          <div class="actions">
+            <button class="btn btn-icon btn-outline btn-sm" onclick="removeBandingItem(${i})" title="Hapus">🗑</button>
+          </div>
         </div>
       `;
     }).join('');
+  } else if (state.bandingRef) {
+    $('#bandingCount').textContent = '0';
+    $('#bandingList').innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Belum ada input fisik. Cari produk di atas atau klik "Isi semua dari referensi".</div>';
   } else {
     $('#bandingListCard').style.display = 'none';
   }
 }
+window.removeBandingItem = function(idx) {
+  state.bandingList.splice(idx, 1);
+  renderBanding();
+};
 
 function renderProduk() {
   let list = state.products;
@@ -2923,44 +3202,245 @@ function handleImportVendorPic(file) {
   reader.readAsArrayBuffer(file);
 }
 
+function countRackItems(r) {
+  return (r.columns || []).reduce((s, c) => s + ((c.items || []).length), 0);
+}
+
 function renderRak() {
+  normalizeAllRacks();
+  const term = ($('#rakSearch')?.value || '').toLowerCase().trim();
   let list = state.racks.slice();
-  const term = ($('#rakSearch')?.value||'').toLowerCase().trim();
   if (term) {
-    list = list.filter(r =>
-      (r.code||'').toLowerCase().includes(term) ||
-      (r.zone||'').toLowerCase().includes(term)
-    );
+    list = list.filter(r => {
+      const inMeta = (r.code||'').toLowerCase().includes(term) || (r.zone||'').toLowerCase().includes(term);
+      if (inMeta) return true;
+      return (r.columns||[]).some(c =>
+        (c.name||'').toLowerCase().includes(term) ||
+        (c.items||[]).some(it =>
+          (it.nama||'').toLowerCase().includes(term) ||
+          (it.kode||'').toLowerCase().includes(term) ||
+          (it.barcode||'').toLowerCase().includes(term)
+        )
+      );
+    });
   }
   list.sort((a,b) => (a.code||'').localeCompare(b.code||'', undefined, {numeric:true}));
   if ($('#rakCount')) $('#rakCount').textContent = state.racks.length + ' rak';
-  const tbody = $('#rakTbody');
-  if (!tbody) return;
+
+  const box = $('#rakCards');
+  if (!box) return;
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">Belum ada rak</td></tr>';
-    return;
+    box.innerHTML = '<div class="empty-state"><div class="ico">🗂️</div><h3>Belum ada rak</h3><p>Tambah rak dulu, lalu isi kolom & barang di dalamnya.</p></div>';
+  } else {
+    box.innerHTML = list.map((r, i) => {
+      const nCol = (r.columns||[]).length;
+      const nItem = countRackItems(r);
+      return `
+        <div class="list-item" style="cursor:pointer;" onclick="openRakDetail('${esc(r.id)}')">
+          <div class="idx">${i+1}</div>
+          <div class="info">
+            <div class="nm">${esc(r.code)} <span class="badge badge-muted">${esc(r.zone||'-')}</span></div>
+            <div class="meta">${nCol} kolom · ${nItem} barang · kap ${r.capacity||'-'}</div>
+          </div>
+          <div class="actions" onclick="event.stopPropagation()">
+            ${can('edit')?`<button class="btn btn-icon btn-outline btn-sm" onclick="editRak('${esc(r.id)}')" title="Edit">✏️</button>`:''}
+            ${can('delete')?`<button class="btn btn-icon btn-outline btn-sm" onclick="deleteRak('${esc(r.id)}')" title="Hapus">🗑</button>`:''}
+            <button class="btn btn-outline btn-sm" onclick="openRakDetail('${esc(r.id)}')">Buka →</button>
+          </div>
+        </div>`;
+    }).join('');
   }
-  tbody.innerHTML = list.map((r,i) => `
-    <tr>
-      <td>${i+1}</td>
-      <td class="mono"><b>${esc(r.code)}</b></td>
-      <td>${esc(r.zone||'-')}</td>
-      <td>${r.capacity||'-'}</td>
-      <td class="actions">
-        ${can('edit')?`<button class="btn btn-icon btn-outline btn-sm" onclick="editRak('${esc(r.id)}')" title="Edit">✏️</button>`:''}
-        ${can('delete')?`<button class="btn btn-icon btn-outline btn-sm" onclick="deleteRak('${esc(r.id)}')" title="Hapus">🗑</button>`:''}
-      </td>
-    </tr>
-  `).join('');
+
+  // isi dropdown audit
   const sel = $('#auditRak');
   if (sel) {
     const cur = sel.value;
-    sel.innerHTML = '<option value="">— Pilih rak —</option>' +
-      state.racks.slice().sort((a,b)=>(a.code||'').localeCompare(b.code||'')).map(r =>
-        `<option value="${esc(r.code)}">${esc(r.code)} (${esc(r.zone||'-')})</option>`
-      ).join('');
+    const opts = [];
+    state.racks.slice().sort((a,b)=>(a.code||'').localeCompare(b.code||'')).forEach(r => {
+      opts.push(`<option value="${esc(r.code)}">${esc(r.code)} (${esc(r.zone||'-')})</option>`);
+      (r.columns||[]).forEach(c => {
+        opts.push(`<option value="${esc(r.code)} / ${esc(c.name)}">${esc(r.code)} › ${esc(c.name)}</option>`);
+      });
+    });
+    sel.innerHTML = '<option value="">— Pilih rak / kolom —</option>' + opts.join('');
     if (cur) sel.value = cur;
   }
+
+  // jika sedang di detail view, refresh juga
+  if (state.activeRakId && $('#rakDetailView')?.style.display !== 'none') {
+    renderRakDetail(state.activeRakId);
+  }
+}
+
+window.openRakDetail = function(id) {
+  state.activeRakId = id;
+  state.activeKolomId = null;
+  $('#rakListView').style.display = 'none';
+  $('#rakDetailView').style.display = 'block';
+  if ($('#kolomItemPanel')) $('#kolomItemPanel').style.display = 'none';
+  renderRakDetail(id);
+};
+
+window.closeRakDetail = function() {
+  state.activeRakId = null;
+  state.activeKolomId = null;
+  state.selectedKolomProduct = null;
+  $('#rakDetailView').style.display = 'none';
+  $('#rakListView').style.display = 'block';
+  renderRak();
+};
+
+function renderRakDetail(id) {
+  const r = state.racks.find(x => x.id === id);
+  if (!r) { closeRakDetail(); return; }
+  normalizeRack(r);
+  if ($('#rakDetailTitle')) $('#rakDetailTitle').textContent = r.code;
+  if ($('#rakDetailMeta')) $('#rakDetailMeta').textContent = (r.zone||'-') + ' · kap ' + (r.capacity||'-');
+
+  const cols = r.columns || [];
+  const box = $('#kolomList');
+  if (!box) return;
+  if (!cols.length) {
+    box.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="ico">📂</div><h3>Belum ada kolom</h3><p>Klik "+ Tambah Kolom" untuk mulai mengisi.</p></div>';
+    return;
+  }
+  box.innerHTML = cols.map((c, i) => {
+    const n = (c.items||[]).length;
+    const preview = (c.items||[]).slice(0,3).map(it => esc(it.nama||it.kode)).join(', ');
+    return `
+      <div class="list-item">
+        <div class="idx">${i+1}</div>
+        <div class="info" style="cursor:pointer;" onclick="openKolomItems('${esc(r.id)}','${esc(c.id)}')">
+          <div class="nm">${esc(c.name)}</div>
+          <div class="meta">${n} barang${preview ? ' · ' + preview + (n>3?'…':'') : ''}</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-outline btn-sm" onclick="openKolomItems('${esc(r.id)}','${esc(c.id)}')">Isi barang</button>
+          ${can('edit')?`<button class="btn btn-icon btn-outline btn-sm" onclick="renameKolom('${esc(r.id)}','${esc(c.id)}')" title="Rename">✏️</button>`:''}
+          ${can('delete')?`<button class="btn btn-icon btn-outline btn-sm" onclick="deleteKolom('${esc(r.id)}','${esc(c.id)}')" title="Hapus kolom">🗑</button>`:''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+window.openKolomItems = function(rackId, kolomId) {
+  state.activeRakId = rackId;
+  state.activeKolomId = kolomId;
+  state.selectedKolomProduct = null;
+  const r = state.racks.find(x => x.id === rackId);
+  const c = r && (r.columns||[]).find(x => x.id === kolomId);
+  if (!r || !c) return;
+  $('#kolomItemPanel').style.display = 'block';
+  $('#kolomItemTitle').textContent = r.code + ' › ' + c.name;
+  $('#kolomItemSelected').innerHTML = '';
+  $('#kolomItemQty').value = '';
+  $('#kolomItemSearch').value = '';
+  renderKolomItemList();
+  // scroll ke panel
+  setTimeout(() => $('#kolomItemPanel')?.scrollIntoView({behavior:'smooth', block:'nearest'}), 50);
+};
+
+function renderKolomItemList() {
+  const r = state.racks.find(x => x.id === state.activeRakId);
+  const c = r && (r.columns||[]).find(x => x.id === state.activeKolomId);
+  const box = $('#kolomItemList');
+  if (!box || !c) return;
+  const items = c.items || [];
+  if (!items.length) {
+    box.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Belum ada barang di kolom ini. Cari di atas lalu tambahkan.</div>';
+    return;
+  }
+  box.innerHTML = items.map((it, i) => `
+    <div class="list-item">
+      <div class="idx">${i+1}</div>
+      <div class="info">
+        <div class="nm">${esc(it.nama||it.kode)}</div>
+        <div class="meta">${esc(it.kode||'-')} · ${esc(it.barcode||'-')}${it.qty!=null && it.qty!=='' ? ' · qty '+it.qty : ''}</div>
+      </div>
+      <div class="actions">
+        ${can('delete')?`<button class="btn btn-icon btn-outline btn-sm" onclick="removeKolomItem('${esc(state.activeRakId)}','${esc(state.activeKolomId)}','${esc(it.kode||it.barcode||i)}')" title="Hapus">🗑</button>`:''}
+      </div>
+    </div>
+  `).join('');
+}
+
+window.addKolomToRack = function() {
+  if (!can('edit')) return showToast('Tidak punya hak edit');
+  const r = state.racks.find(x => x.id === state.activeRakId);
+  if (!r) return;
+  const name = prompt('Nama kolom (contoh: Kolom 1 / A / Depan):', 'Kolom ' + ((r.columns||[]).length + 1));
+  if (name === null || !name.trim()) return;
+  if (!Array.isArray(r.columns)) r.columns = [];
+  if (r.columns.some(c => (c.name||'').toUpperCase() === name.trim().toUpperCase())) {
+    return showToast('Nama kolom sudah ada di rak ini');
+  }
+  r.columns.push({ id: uid(), name: name.trim(), items: [] });
+  persistRacks();
+  renderRakDetail(r.id);
+  logActivity('CREATE', 'Master Rak', r.code + ' + kolom ' + name.trim());
+  showToast('Kolom ditambahkan');
+};
+
+window.renameKolom = function(rackId, kolomId) {
+  if (!can('edit')) return showToast('Tidak punya hak edit');
+  const r = state.racks.find(x => x.id === rackId);
+  const c = r && (r.columns||[]).find(x => x.id === kolomId);
+  if (!c) return;
+  const name = prompt('Nama kolom:', c.name);
+  if (name === null || !name.trim()) return;
+  if ((r.columns||[]).some(x => x.id !== kolomId && (x.name||'').toUpperCase() === name.trim().toUpperCase())) {
+    return showToast('Nama kolom sudah dipakai');
+  }
+  c.name = name.trim();
+  persistRacks();
+  renderRakDetail(rackId);
+  if (state.activeKolomId === kolomId) openKolomItems(rackId, kolomId);
+  showToast('Kolom diubah');
+};
+
+window.deleteKolom = function(rackId, kolomId) {
+  if (!can('delete')) return showToast('Tidak punya hak hapus');
+  const r = state.racks.find(x => x.id === rackId);
+  const c = r && (r.columns||[]).find(x => x.id === kolomId);
+  if (!c) return;
+  const n = (c.items||[]).length;
+  if (!confirm(`Hapus kolom "${c.name}"${n ? ' beserta '+n+' barang' : ''}?`)) return;
+  r.columns = (r.columns||[]).filter(x => x.id !== kolomId);
+  if (state.activeKolomId === kolomId) {
+    state.activeKolomId = null;
+    $('#kolomItemPanel').style.display = 'none';
+  }
+  persistRacks();
+  renderRakDetail(rackId);
+  logActivity('DELETE', 'Master Rak', r.code + ' hapus kolom ' + c.name);
+  showToast('Kolom dihapus');
+};
+
+window.removeKolomItem = function(rackId, kolomId, key) {
+  if (!can('delete')) return showToast('Tidak punya hak hapus');
+  const r = state.racks.find(x => x.id === rackId);
+  const c = r && (r.columns||[]).find(x => x.id === kolomId);
+  if (!c) return;
+  const before = (c.items||[]).length;
+  c.items = (c.items||[]).filter((it, i) => {
+    const k = it.kode || it.barcode || String(i);
+    return k !== key;
+  });
+  if (c.items.length === before) {
+    // fallback by index if key was numeric index
+    const idx = parseInt(key);
+    if (!isNaN(idx)) c.items.splice(idx, 1);
+  }
+  persistRacks();
+  renderKolomItemList();
+  renderRakDetail(rackId);
+  showToast('Barang dihapus dari kolom');
+};
+
+function persistRacks() {
+  normalizeAllRacks();
+  cacheLocal('racks', state.racks);
+  if (firebaseReady && db && typeof cloudSaveRacks === 'function') cloudSaveRacks(state.racks);
 }
 
 window.editRak = function(id) {
@@ -2974,7 +3454,6 @@ window.editRak = function(id) {
   if (zone === null) return;
   const cap = prompt('Kapasitas:', String(r.capacity||100));
   if (cap === null) return;
-  // Cek duplikat kode (kecuali diri sendiri)
   const newCode = code.trim();
   if (state.racks.some(x => x.id !== id && (x.code||'').toUpperCase() === newCode.toUpperCase())) {
     return showToast('Kode rak sudah dipakai');
@@ -2982,21 +3461,21 @@ window.editRak = function(id) {
   r.code = newCode;
   r.zone = (zone||'').trim() || 'Zona';
   r.capacity = parseInt(cap)||100;
-  cacheLocal('racks', state.racks);
-  if (firebaseReady && db && typeof cloudSaveRacks === 'function') cloudSaveRacks(state.racks);
+  persistRacks();
   renderRak();
   logActivity('UPDATE', 'Master Rak', r.code);
   showToast('Rak diperbarui');
 };
 
 window.deleteRak = function(id) {
-  if (!can('delete') && !can('edit')) return showToast('Tidak punya hak hapus');
+  if (!can('delete')) return showToast('Tidak punya hak hapus');
   const r = state.racks.find(x => x.id === id);
   if (!r) return;
-  if (!confirm('Hapus rak "' + (r.code||'') + '"?')) return;
+  const nItem = countRackItems(r);
+  if (!confirm(`Hapus rak "${r.code}"${nItem ? ' beserta '+nItem+' barang di dalamnya' : ''}?`)) return;
   state.racks = state.racks.filter(x => x.id !== id);
-  cacheLocal('racks', state.racks);
-  if (firebaseReady && db && typeof cloudSaveRacks === 'function') cloudSaveRacks(state.racks);
+  if (state.activeRakId === id) closeRakDetail();
+  persistRacks();
   renderRak();
   logActivity('DELETE', 'Master Rak', r.code || id);
   showToast('Rak dihapus');
@@ -3042,7 +3521,6 @@ function bulkRakPreview() {
       </span>
     </label>
   `).join('');
-  // simpan parsed di dataset
   box._bulkRows = rows;
   prev.style.display = 'block';
 }
@@ -3052,7 +3530,6 @@ function bulkSaveRacks() {
   const rows = box && box._bulkRows ? box._bulkRows : parseBulkRakLines($('#bulkRakText')?.value || '');
   if (!rows.length) return showToast('Tidak ada data');
 
-  // Ambil yang dicentang (atau semua yang belum exist jika belum preview)
   let selected = [];
   const cbs = box ? $$('#bulkRakCheckList .bulk-rak-cb') : [];
   if (cbs.length) {
@@ -3070,10 +3547,9 @@ function bulkSaveRacks() {
   if (!requireServer()) return;
 
   selected.forEach(r => {
-    state.racks.push({ id: uid(), code: r.code, zone: r.zone, capacity: r.capacity });
+    state.racks.push({ id: uid(), code: r.code, zone: r.zone, capacity: r.capacity, columns: [] });
   });
-  cacheLocal('racks', state.racks);
-  if (typeof cloudSaveRacks === 'function') cloudSaveRacks(state.racks);
+  persistRacks();
   renderRak();
   logActivity('CREATE', 'Master Rak', `Bulk +${selected.length} rak`);
   showToast(`Berhasil menambah ${selected.length} rak ke server ☁`);
@@ -4754,6 +5230,7 @@ function loadState() {
   state.vendors = storage.get('vendors', (seed && seed.vendors) ? seed.vendors : []);
   state.vendorPic = storage.get('vendorPic', {});
   state.racks = storage.get('racks', DEFAULT_RACKS);
+  normalizeAllRacks();
   state.warehouses = storage.get('warehouses', DEFAULT_WAREHOUSES);
   state.users = storage.get('users', DEFAULT_USERS);
   state.cart = storage.get('cart', []);
@@ -5119,7 +5596,8 @@ function bindEvents() {
     }
   };
 
-  // Banding
+  // Banding — upload fleksibel + mapping kolom
+  state._bandingPending = null;
   $('#bandingUploadBtn').onclick = () => $('#bandingFile').click();
   $('#bandingFile').addEventListener('change', function() {
     const file = this.files[0];
@@ -5128,29 +5606,43 @@ function bindEvents() {
     reader.onload = e => {
       try {
         const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-        const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+        const sheetName = wb.SheetNames[0];
+        const json = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {defval:''});
+        if (!json.length) return showToast('File kosong / tidak ada data');
         const keys = Object.keys(json[0]||{});
-        const colKode = keys.find(k=>k.toLowerCase().includes('kode')||k.toLowerCase().includes('code'));
-        const colNama = keys.find(k=>k.toLowerCase().includes('nama')||k.toLowerCase().includes('name'));
-        const colQty = keys.find(k=>k.toLowerCase().includes('qty')||k.toLowerCase().includes('jumlah')||k.toLowerCase().includes('stok'));
-        if (!colKode || !colQty) return showToast('Kolom Kode & Qty wajib ada');
-        const ref = {};
-        json.forEach(r => {
-          const kode = String(r[colKode]||'').trim();
-          if (!kode) return;
-          ref[kode] = { kode, nama: String(r[colNama]||kode), qty: parseFloat(r[colQty])||0 };
-        });
-        state.bandingRef = ref;
-        state.bandingList = [];
-        renderBanding();
-        showToast(`Referensi dimuat: ${Object.keys(ref).length} produk`);
-      } catch(err) { showToast('Gagal baca file'); }
+        if (!keys.length) return showToast('Tidak ada header kolom');
+        state._bandingPending = { rows: json, keys, sheetName, fileName: file.name };
+        openBandingMapper(keys, json, sheetName);
+      } catch(err) {
+        console.error(err);
+        showToast('Gagal baca file: ' + (err.message||''));
+      }
     };
     reader.readAsArrayBuffer(file);
+    this.value = '';
   });
   $('#bandingResetBtn').onclick = () => {
-    state.bandingRef=null; state.bandingList=[]; renderBanding();
+    state.bandingRef=null; state.bandingList=[]; state._bandingPending=null;
+    if ($('#bandingMapCard')) $('#bandingMapCard').style.display = 'none';
+    renderBanding();
   };
+  $('#bandingApplyMapBtn')?.addEventListener('click', applyBandingMapping);
+  $('#bandingCancelMapBtn')?.addEventListener('click', () => {
+    state._bandingPending = null;
+    if ($('#bandingMapCard')) $('#bandingMapCard').style.display = 'none';
+  });
+  $('#bandingAutoFillBtn')?.addEventListener('click', () => {
+    if (!state.bandingRef) return showToast('Belum ada referensi');
+    const existing = new Set(state.bandingList.map(x => x.kode));
+    let added = 0;
+    Object.values(state.bandingRef).forEach(it => {
+      if (existing.has(it.kode)) return;
+      state.bandingList.push({ kode: it.kode, nama: it.nama, barcode: it.barcode||'', qtyReal: 0 });
+      added++;
+    });
+    renderBanding();
+    showToast(added ? `Ditambahkan ${added} item (qty real = 0)` : 'Semua item sudah diinput');
+  });
   attachSearch('#bandingSearch', '#bandingSuggest', (p) => {
     state.selectedBanding = p;
     $('#bandingSelected').innerHTML = `<div style="font-weight:700;margin-top:8px;">${esc(p.nama)}</div>`;
@@ -5163,6 +5655,7 @@ function bindEvents() {
     state.bandingList.push({
       kode: state.selectedBanding.kode,
       nama: state.selectedBanding.nama,
+      barcode: state.selectedBanding.barcode || '',
       qtyReal: qty
     });
     state.selectedBanding = null;
@@ -5210,19 +5703,21 @@ function bindEvents() {
   // Rak
   $('#addRakBtn').onclick = () => {
     if (!can('edit')) return showToast('Tidak punya hak edit');
-    const code = prompt('Kode rak (contoh: C-01):');
+    const code = prompt('Kode / nama rak (contoh: RAK 1):');
     if (!code) return;
     const zone = prompt('Zona (contoh: Zona A):', 'Zona Baru') || 'Zona Baru';
     const cap = parseInt(prompt('Kapasitas:', '100')||'100') || 100;
     if (state.racks.some(r => (r.code||'').toUpperCase() === code.trim().toUpperCase())) {
       return showToast('Kode rak sudah ada');
     }
-    state.racks.push({ id:uid(), code: code.trim(), zone: zone.trim(), capacity: cap });
-    cacheLocal('racks', state.racks);
-    if (firebaseReady && db) cloudSaveRacks(state.racks);
+    const newRak = { id:uid(), code: code.trim(), zone: zone.trim(), capacity: cap, columns: [] };
+    state.racks.push(newRak);
+    persistRacks();
     renderRak();
     logActivity('CREATE', 'Master Rak', code.trim());
     showToast(firebaseReady ? 'Rak disimpan ☁' : 'Rak disimpan (lokal)');
+    // langsung buka detail agar bisa tambah kolom
+    openRakDetail(newRak.id);
   };
   $('#bulkRakBtn')?.addEventListener('click', () => {
     const card = $('#bulkRakCard');
@@ -5253,6 +5748,53 @@ function bindEvents() {
   $('#exportRakBtn')?.addEventListener('click', () => {
     if (typeof exportRak === 'function') exportRak('xlsx');
     else doExport('xlsx');
+  });
+  // Detail rak / kolom
+  $('#rakBackBtn')?.addEventListener('click', () => closeRakDetail());
+  $('#addKolomBtn')?.addEventListener('click', () => addKolomToRack());
+  $('#kolomItemCloseBtn')?.addEventListener('click', () => {
+    state.activeKolomId = null;
+    state.selectedKolomProduct = null;
+    if ($('#kolomItemPanel')) $('#kolomItemPanel').style.display = 'none';
+  });
+  attachSearch('#kolomItemSearch', '#kolomItemSuggest', (p) => {
+    state.selectedKolomProduct = p;
+    $('#kolomItemSelected').innerHTML = `
+      <div style="background:#f0fdfa;border:1.5px dashed var(--primary);border-radius:10px;padding:10px;margin-top:6px;">
+        <div style="font-weight:700;">${esc(p.nama)}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${esc(p.kode)} · ${esc(p.barcode||'-')}</div>
+      </div>`;
+  });
+  $('#kolomItemAddBtn')?.addEventListener('click', () => {
+    if (!can('edit')) return showToast('Tidak punya hak edit');
+    const p = state.selectedKolomProduct;
+    if (!p) return showToast('Pilih produk dulu dari pencarian');
+    const r = state.racks.find(x => x.id === state.activeRakId);
+    const c = r && (r.columns||[]).find(x => x.id === state.activeKolomId);
+    if (!c) return showToast('Kolom tidak aktif');
+    if (!Array.isArray(c.items)) c.items = [];
+    const exists = c.items.some(it =>
+      (it.kode && p.kode && it.kode === p.kode) ||
+      (it.barcode && p.barcode && it.barcode === p.barcode)
+    );
+    if (exists) return showToast('Produk sudah ada di kolom ini');
+    const qtyRaw = $('#kolomItemQty')?.value;
+    const qty = qtyRaw === '' || qtyRaw == null ? null : parseFloat(qtyRaw);
+    c.items.push({
+      kode: p.kode || '',
+      barcode: p.barcode || '',
+      nama: p.nama || '',
+      kategori: p.kategori || '',
+      qty: (qty != null && !isNaN(qty)) ? qty : null
+    });
+    persistRacks();
+    state.selectedKolomProduct = null;
+    $('#kolomItemSelected').innerHTML = '';
+    $('#kolomItemSearch').value = '';
+    $('#kolomItemQty').value = '';
+    renderKolomItemList();
+    renderRakDetail(r.id);
+    showToast('Barang ditambahkan ke ' + c.name);
   });
 
   // Gudang
