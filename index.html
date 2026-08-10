@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <!-- Libraries -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -436,21 +436,57 @@ table.data-table .actions { display: flex; gap: 4px; }
 .receipt .rline .sub { color: #78716c; font-size: 11.5px; margin-top: 2px; }
 .receipt .totals { display: flex; justify-content: space-between; font-weight: 800; margin-top: 8px; }
 
-/* Mobile */
+/* Checkbox pilih export */
+.sel-check {
+  width: 20px; height: 20px; margin-top: 4px; flex-shrink: 0;
+  accent-color: #0f766e; cursor: pointer;
+}
+.sel-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+}
+.sel-bar label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text); }
+.sel-count { font-size: 12px; color: var(--text-muted); }
+
+/* Mobile — tampilan HP (tidak mengubah @media print / A4) */
 @media (max-width: 900px) {
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
   .main { margin-left: 0; }
   .menu-toggle { display: block; }
   .form-row { grid-template-columns: 1fr; }
-  .content { padding: 14px 14px 80px; }
+  .content { padding: 12px 12px 88px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .dash-grid-2 { grid-template-columns: 1fr !important; }
   #gridCardsContainer { grid-template-columns: 1fr !important; }
   .modal-sheet[style*="900px"] { max-width: 100% !important; }
+  .toolbar { gap: 8px; }
+  .toolbar .search-box { min-width: 100%; flex: 1 1 100%; }
+  .toolbar input[type=date], .toolbar select { flex: 1 1 auto; min-width: 0; font-size: 13px; }
+  .card-header { padding: 12px 14px; gap: 8px; }
+  .card-body { padding: 12px 14px; }
+  .list-item { gap: 8px; padding: 10px 0; }
+  .list-item .actions { flex-wrap: wrap; max-width: 42%; justify-content: flex-end; }
+  .list-item .actions .btn { padding: 6px 8px; font-size: 11.5px; }
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 36px; padding: 8px 12px; }
+  .btn-icon { width: 38px; height: 38px; min-height: 38px; }
+  .modal-sheet { border-radius: 16px 16px 0 0; max-height: 94vh; }
+  .topbar { padding: 10px 12px; }
 }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
+  .content { padding: 10px 10px 96px; }
+  .card-header h2 { font-size: 13.5px; }
+  .list-item .nm { font-size: 13px; }
+  .list-item .meta { font-size: 11.5px; }
+  .list-item .actions { max-width: 48%; }
+  .list-item .actions .btn-sm { padding: 6px 7px; font-size: 11px; }
+  .stat-card .value { font-size: 20px; }
+  .toolbar input[type=date] { min-width: 0; flex: 1; }
+  .chip { padding: 6px 12px; font-size: 12.5px; min-height: 34px; }
+  input[type=text], input[type=number], input[type=date], input[type=email], input[type=password],
+  textarea, select { font-size: 16px; padding: 11px 12px; }
 }
 .overlay {
   display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90;
@@ -817,6 +853,7 @@ table.data-table .actions { display: flex; gap: 4px; }
           <div class="card-body" id="histList"></div>
         </div>
       </div>
+	
 
       <!-- ==================== AUDIT EXP ==================== -->
       <div class="page" id="page-audit">
@@ -1965,8 +2002,100 @@ const ExportEngine = {
 
   toExcel(headers, rows, sheetName, meta) {
     const wb = XLSX.utils.book_new();
-    // Meta sheet
-    const metaRows = [
+    const title = meta.module || 'Export';
+    // Header nota-style di sheet yang sama (bukan polos)
+    const aoa = [
+      [meta.system || 'GudangPro'],
+      [title],
+      [`DC: ${meta.dc || '-'}  ·  ${meta.tanggal || ''} ${meta.jam || ''}  ·  ${meta.user || ''} (${meta.role || ''})  ·  ${meta.count || 0} data`],
+      [],
+      headers,
+      ...rows
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const colCount = headers.length;
+    // Merge judul
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: Math.max(colCount - 1, 0) } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: Math.max(colCount - 1, 0) } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: Math.max(colCount - 1, 0) } }
+    ];
+    // Lebar kolom
+    ws['!cols'] = headers.map((h, i) => {
+      let max = String(h).length;
+      rows.forEach(r => { const l = String(r[i] ?? '').length; if (l > max) max = l; });
+      return { wch: Math.min(Math.max(max + 2, 10), 42) };
+    });
+    // Style header baris 0–2 + header kolom (baris 4)
+    const teal = '0F766E';
+    const amber = 'F59E0B';
+    const slate = '0F172A';
+    const light = 'F0FDFA';
+    const border = { style: 'thin', color: { rgb: 'CBD5E1' } };
+    const thinAll = { top: border, bottom: border, left: border, right: border };
+
+    function styleCell(addr, opts) {
+      if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+      ws[addr].s = Object.assign({}, ws[addr].s || {}, opts);
+    }
+
+    // Judul sistem
+    styleCell('A1', {
+      font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: teal } },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    });
+    // Subtitle modul
+    styleCell('A2', {
+      font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: teal } },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    });
+    // Meta baris
+    styleCell('A3', {
+      font: { sz: 9, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: teal } },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    });
+    // Isi merge dengan warna yang sama
+    for (let c = 1; c < colCount; c++) {
+      const col = XLSX.utils.encode_col(c);
+      styleCell(col + '1', { fill: { fgColor: { rgb: teal } }, font: { color: { rgb: 'FFFFFF' } } });
+      styleCell(col + '2', { fill: { fgColor: { rgb: teal } }, font: { color: { rgb: 'FFFFFF' } } });
+      styleCell(col + '3', { fill: { fgColor: { rgb: teal } }, font: { color: { rgb: 'FFFFFF' } } });
+    }
+    // Garis aksen (baris kosong 4 → pakai border bawah amber di baris 3)
+    // Header kolom (row index 4 → Excel row 5)
+    for (let c = 0; c < colCount; c++) {
+      const addr = XLSX.utils.encode_cell({ r: 4, c });
+      styleCell(addr, {
+        font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: slate } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: thinAll
+      });
+    }
+    // Data rows + border kotak
+    rows.forEach((r, ri) => {
+      const excelRow = 5 + ri;
+      const bg = ri % 2 === 0 ? light : 'FFFFFF';
+      for (let c = 0; c < colCount; c++) {
+        const addr = XLSX.utils.encode_cell({ r: excelRow, c });
+        if (!ws[addr]) ws[addr] = { t: 's', v: String(r[c] ?? '') };
+        styleCell(addr, {
+          font: { sz: 9 },
+          fill: { fgColor: { rgb: bg } },
+          border: thinAll,
+          alignment: { vertical: 'center', wrapText: true }
+        });
+      }
+    });
+    // Tinggi baris header
+    ws['!rows'] = [{ hpt: 22 }, { hpt: 18 }, { hpt: 16 }, { hpt: 6 }, { hpt: 20 }];
+
+    XLSX.utils.book_append_sheet(wb, ws, (sheetName || 'Data').substring(0, 31));
+    // Sheet info ringkas
+    const infoAoa = [
       ['Nama Sistem', meta.system],
       ['Modul', meta.module],
       ['Tanggal Export', meta.tanggal],
@@ -1974,26 +2103,13 @@ const ExportEngine = {
       ['User', meta.user],
       ['Role', meta.role],
       ['DC / Gudang', meta.dc],
-      ['Jumlah Data', meta.count],
-      ['Filter', JSON.stringify(meta.filters)]
+      ['Jumlah Data', meta.count]
     ];
-    const wsMeta = XLSX.utils.aoa_to_sheet(metaRows);
-    XLSX.utils.book_append_sheet(wb, wsMeta, 'Info');
-
-    // Data sheet
-    const data = [headers, ...rows];
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    // Auto width
-    const colWidths = headers.map((h,i) => {
-      let max = String(h).length;
-      rows.forEach(r => { const l = String(r[i]??'').length; if(l>max) max=l; });
-      return { wch: Math.min(Math.max(max+2, 10), 40) };
-    });
-    ws['!cols'] = colWidths;
-    XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Data');
-    XLSX.writeFile(wb, `${meta.module.replace(/\s+/g,'_')}_${meta.tanggal}.xlsx`);
-    logActivity('EXPORT', meta.module, `Excel · ${meta.count} data`, { format:'xlsx', count:meta.count });
-    showToast('Export Excel berhasil');
+    const wsInfo = XLSX.utils.aoa_to_sheet(infoAoa);
+    XLSX.utils.book_append_sheet(wb, wsInfo, 'Info');
+    XLSX.writeFile(wb, `${meta.module.replace(/\s+/g, '_')}_${meta.tanggal}.xlsx`);
+    logActivity('EXPORT', meta.module, `Excel · ${meta.count} data`, { format: 'xlsx', count: meta.count });
+    showToast('Export Excel berhasil (format nota)');
   },
 
   toCSV(headers, rows, meta) {
@@ -2067,13 +2183,251 @@ const ExportEngine = {
     logActivity('EXPORT', meta.module, `Ringkas · ${meta.count} data`, { format:'text', count:meta.count });
   },
 
-  /** PNG nota A4 — desain header teal + footer, bukan tabel polos */
+  /** Bangun HTML receipt sama persis tampilan nota di riwayat */
+  buildReceiptHtml(nota, itemsOverride) {
+    const items = itemsOverride || (nota.items || []);
+    const totalQty = items.reduce((s, c) => s + parseFloat(c.qty || 0), 0);
+    const goodItems = items.filter(c => (c.kondisi || 'Bad') === 'Good');
+    const badItems = items.filter(c => (c.kondisi || 'Bad') !== 'Good');
+    const goodQty = goodItems.reduce((s, c) => s + parseFloat(c.qty || 0), 0);
+    const badQty = badItems.reduce((s, c) => s + parseFloat(c.qty || 0), 0);
+    const lines = items.map((c, i) => {
+      const pic = (typeof resolveItemPic === 'function' ? resolveItemPic(c) : null) || c.pic || '-';
+      const kond = (c.kondisi || 'Bad') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
+      return `<div style="padding:8px 0;border-bottom:1px dotted #e7e5e4;">
+        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:13px;gap:8px;">
+          <span>${i + 1}. ${String(c.nama || '').replace(/</g,'&lt;')}</span>
+          <span style="white-space:nowrap;">${String(c.qty ?? '').replace(/</g,'&lt;')} ${String(c.satuan || 'PCS').replace(/</g,'&lt;')}</span>
+        </div>
+        <div style="color:#78716c;font-size:11.5px;margin-top:3px;">Kode: ${String(c.kode || '-').replace(/</g,'&lt;')} · Vendor: ${String(c.vendor || '-').replace(/</g,'&lt;')} · <b>${kond}</b></div>
+        <div style="font-weight:700;color:#0f766e;font-size:11.5px;margin-top:2px;">PIC Purchasing: ${String(pic).replace(/</g,'&lt;')}</div>
+        ${c.alasan ? `<div style="color:#78716c;font-size:11.5px;margin-top:2px;">Alasan: ${String(c.alasan).replace(/</g,'&lt;')}</div>` : ''}
+        ${c.catatan ? `<div style="color:#dc2626;font-size:11.5px;margin-top:2px;">Catatan: ${String(c.catatan).replace(/</g,'&lt;')}</div>` : ''}
+      </div>`;
+    }).join('');
+    return `<div style="background:#fefce8;border-radius:8px;padding:22px 18px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;box-sizing:border-box;">
+      <div style="text-align:center;margin-bottom:12px;">
+        <div style="font-weight:800;font-size:16px;letter-spacing:0.5px;">${String(nota.judul || 'NOTA PENGAJUAN RETUR').replace(/</g,'&lt;')}</div>
+        <div style="font-size:12px;color:#78716c;margin-top:3px;">${String(nota.dcName || state.dcName || '').replace(/</g,'&lt;')}</div>
+      </div>
+      <div style="border:none;border-top:1.5px dashed #d6d3d1;margin:10px 0;"></div>
+      <div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12.5px;"><span>No</span><b>${String(nota.nomor || '-').replace(/</g,'&lt;')}</b></div>
+      <div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12.5px;"><span>Tanggal</span><b>${String(nota.tanggalLabel || nota.tanggal || '-').replace(/</g,'&lt;')}</b></div>
+      <div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12.5px;"><span>Item</span><b>${items.length} produk</b></div>
+      <div style="border:none;border-top:1.5px dashed #d6d3d1;margin:10px 0;"></div>
+      ${lines || '<div style="padding:12px 0;color:#78716c;text-align:center;">Tidak ada item</div>'}
+      <div style="border:none;border-top:1.5px dashed #d6d3d1;margin:10px 0;"></div>
+      <div style="display:flex;justify-content:space-between;font-weight:800;margin-top:6px;font-size:14px;"><span>TOTAL QTY</span><span>${totalQty}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12.5px;"><span>🟢 Bagus</span><b>${goodItems.length} item · qty ${goodQty}</b></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:12.5px;"><span>🔴 Jelek</span><b>${badItems.length} item · qty ${badQty}</b></div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:#78716c;">Status: Diajukan · ${String(nota.createdByName || '').replace(/</g,'&lt;')}</div>
+    </div>`;
+  },
+
+  /** PNG dari elemen DOM (mis. #printArea di modal) */
+  async captureElementPNG(el, filename) {
+    if (!window.html2canvas) {
+      showToast('Library gambar belum siap, coba lagi sebentar');
+      return;
+    }
+    if (!el) return showToast('Area nota tidak ditemukan');
+    showToast('Membuat PNG nota…');
+    try {
+      const canvas = await html2canvas(el, {
+        backgroundColor: '#fefce8',
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      canvas.toBlob(blob => {
+        if (blob) {
+          saveAs(blob, filename || `Nota_${todayStr()}.png`);
+          showToast('Export PNG berhasil');
+        } else showToast('Gagal membuat PNG');
+      }, 'image/png');
+    } catch (e) {
+      console.error(e);
+      showToast('Gagal membuat PNG');
+    }
+  },
+
+  /** Receipt style untuk sesi audit (mirip nota retur) */
+  buildAuditReceiptHtml(session) {
+    const items = session.items || [];
+    const lines = items.map((it, i) => {
+      const s = typeof getExpStatus === 'function' ? getExpStatus(it.expDate) : { label: it.expDate || '-' };
+      return `<div style="padding:8px 0;border-bottom:1px dotted #e7e5e4;">
+        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:13px;gap:8px;">
+          <span>${i + 1}. ${String(it.nama || '').replace(/</g,'&lt;')}</span>
+          <span style="white-space:nowrap;">${String(it.qty ?? '').replace(/</g,'&lt;')} ${String(it.satuan || 'PCS').replace(/</g,'&lt;')}</span>
+        </div>
+        <div style="color:#78716c;font-size:11.5px;margin-top:3px;">Kode: ${String(it.kode || '-').replace(/</g,'&lt;')} · Exp: ${String(it.expDate || '-').replace(/</g,'&lt;')}${it.rak ? ' · Rak ' + String(it.rak).replace(/</g,'&lt;') : ''}</div>
+        <div style="font-size:11.5px;margin-top:2px;font-weight:700;color:#0f766e;">${String(s.label || '').replace(/</g,'&lt;')} · ${(it.kondisi || 'Good')}</div>
+        ${it.catatan ? `<div style="color:#dc2626;font-size:11.5px;margin-top:2px;">Catatan: ${String(it.catatan).replace(/</g,'&lt;')}</div>` : ''}
+      </div>`;
+    }).join('');
+    const qty = items.reduce((s, c) => s + parseFloat(c.qty || 0), 0);
+    return `<div style="background:#fefce8;border-radius:8px;padding:22px 18px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;box-sizing:border-box;">
+      <div style="text-align:center;margin-bottom:12px;">
+        <div style="font-weight:800;font-size:16px;letter-spacing:0.5px;">NOTA AUDIT EXP</div>
+        <div style="font-size:12px;color:#78716c;margin-top:3px;">${String(session.dcName || state.dcName || '').replace(/</g,'&lt;')}</div>
+      </div>
+      <div style="border:none;border-top:1.5px dashed #d6d3d1;margin:10px 0;"></div>
+      <div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12.5px;"><span>Sesi</span><b>${String(session.tanggalLabel || session.tanggal || '-').replace(/</g,'&lt;')}</b></div>
+      <div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12.5px;"><span>Item</span><b>${items.length} produk · qty ${qty}</b></div>
+      <div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12.5px;"><span>User</span><b>${String(session.user || '-').replace(/</g,'&lt;')}</b></div>
+      <div style="border:none;border-top:1.5px dashed #d6d3d1;margin:10px 0;"></div>
+      ${lines || '<div style="padding:12px 0;color:#78716c;text-align:center;">Tidak ada item</div>'}
+      <div style="border:none;border-top:1.5px dashed #d6d3d1;margin:10px 0;"></div>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:#78716c;">Audit EXP · ${String(session.tanggalLabel || '').replace(/</g,'&lt;')}</div>
+    </div>`;
+  },
+
+  async toAuditPNG(session) {
+    if (!window.html2canvas) {
+      showToast('Library gambar belum siap, coba lagi sebentar');
+      return;
+    }
+    showToast('Membuat PNG audit…');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:420px;background:#fff;padding:16px;box-sizing:border-box;';
+    wrap.innerHTML = this.buildAuditReceiptHtml(session);
+    document.body.appendChild(wrap);
+    try {
+      const canvas = await html2canvas(wrap.firstElementChild || wrap, {
+        backgroundColor: '#fefce8',
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      const name = `Audit_${String(session.tanggal || session.id || todayStr()).replace(/[^\w.-]+/g, '_')}.png`;
+      canvas.toBlob(blob => {
+        if (blob) {
+          saveAs(blob, name);
+          logActivity('EXPORT', 'Nota Audit EXP', `PNG · ${session.id || ''}`, { format: 'png' });
+          showToast('Export PNG berhasil');
+        } else showToast('Gagal membuat PNG');
+      }, 'image/png');
+    } catch (e) {
+      console.error(e);
+      showToast('Gagal membuat PNG');
+    } finally {
+      document.body.removeChild(wrap);
+    }
+  },
+
+  async toAuditListPNG(sessions) {
+    if (!window.html2canvas) {
+      showToast('Library gambar belum siap, coba lagi sebentar');
+      return;
+    }
+    if (!sessions || !sessions.length) return showToast('Tidak ada sesi');
+    showToast('Membuat PNG audit…');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:440px;background:#e7e5e4;padding:16px;box-sizing:border-box;';
+    wrap.innerHTML = sessions.map(s =>
+      `<div style="margin-bottom:16px;">${this.buildAuditReceiptHtml(s)}</div>`
+    ).join('');
+    document.body.appendChild(wrap);
+    try {
+      const canvas = await html2canvas(wrap, {
+        backgroundColor: '#e7e5e4',
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      canvas.toBlob(blob => {
+        if (blob) {
+          saveAs(blob, `Audit_EXP_${todayStr()}.png`);
+          logActivity('EXPORT', 'Riwayat Audit', `PNG · ${sessions.length} sesi`, { format: 'png', count: sessions.length });
+          showToast('Export PNG berhasil');
+        } else showToast('Gagal membuat PNG');
+      }, 'image/png');
+    } catch (e) {
+      console.error(e);
+      showToast('Gagal membuat PNG');
+    } finally {
+      document.body.removeChild(wrap);
+    }
+  },
+
+  /** PNG 1 nota — tampilan receipt sama seperti di riwayat */
+  async toNotaPNG(nota, itemsOverride) {
+    if (!window.html2canvas) {
+      showToast('Library gambar belum siap, coba lagi sebentar');
+      return;
+    }
+    showToast('Membuat PNG nota…');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:420px;background:#fff;padding:16px;box-sizing:border-box;';
+    wrap.innerHTML = this.buildReceiptHtml(nota, itemsOverride);
+    document.body.appendChild(wrap);
+    try {
+      const canvas = await html2canvas(wrap.firstElementChild || wrap, {
+        backgroundColor: '#fefce8',
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      const name = `Nota_${String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_')}.png`;
+      canvas.toBlob(blob => {
+        if (blob) {
+          saveAs(blob, name);
+          logActivity('EXPORT', 'Nota Retur', `PNG · ${nota.nomor}`, { format: 'png' });
+          showToast('Export PNG berhasil');
+        } else showToast('Gagal membuat PNG');
+      }, 'image/png');
+    } catch (e) {
+      console.error(e);
+      showToast('Gagal membuat PNG');
+    } finally {
+      document.body.removeChild(wrap);
+    }
+  },
+
+  /** PNG beberapa nota — stacked receipt (sama tampilan riwayat) */
+  async toNotaListPNG(notas) {
+    if (!window.html2canvas) {
+      showToast('Library gambar belum siap, coba lagi sebentar');
+      return;
+    }
+    if (!notas || !notas.length) return showToast('Tidak ada nota');
+    showToast('Membuat PNG nota…');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:440px;background:#e7e5e4;padding:16px;box-sizing:border-box;';
+    wrap.innerHTML = notas.map(n =>
+      `<div style="margin-bottom:16px;">${this.buildReceiptHtml(n)}</div>`
+    ).join('');
+    document.body.appendChild(wrap);
+    try {
+      const canvas = await html2canvas(wrap, {
+        backgroundColor: '#e7e5e4',
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      canvas.toBlob(blob => {
+        if (blob) {
+          saveAs(blob, `Nota_Retur_${todayStr()}.png`);
+          logActivity('EXPORT', 'Riwayat Retur', `PNG · ${notas.length} nota`, { format: 'png', count: notas.length });
+          showToast('Export PNG berhasil');
+        } else showToast('Gagal membuat PNG');
+      }, 'image/png');
+    } catch (e) {
+      console.error(e);
+      showToast('Gagal membuat PNG');
+    } finally {
+      document.body.removeChild(wrap);
+    }
+  },
+
+  /** Fallback tabel (untuk data non-nota) */
   async toPNG(title, headers, rows, meta) {
     if (!window.html2canvas) {
       showToast('Library gambar belum siap, coba lagi sebentar');
       return;
     }
-    showToast('Membuat PNG nota A4…');
+    showToast('Membuat PNG…');
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;';
     const thCells = headers.map(h => `<th style="background:#0f172a;color:#fff;padding:8px 10px;font-size:11px;text-align:left;border:1px solid #e2e8f0;">${String(h).replace(/</g,'&lt;')}</th>`).join('');
@@ -2083,21 +2437,18 @@ const ExportEngine = {
       return `<tr>${tds}</tr>`;
     }).join('');
     wrap.innerHTML = `
-      <div style="width:794px;min-height:1123px;box-sizing:border-box;padding:0 0 48px;">
+      <div style="width:794px;min-height:400px;box-sizing:border-box;padding:0 0 48px;position:relative;">
         <div style="background:#0f766e;color:#fff;padding:18px 24px 14px;">
-          <div style="font-size:18px;font-weight:700;letter-spacing:0.2px;">${(meta.system || 'GudangPro').replace(/</g,'&lt;')}</div>
-          <div style="font-size:13px;margin-top:4px;opacity:0.95;">${String(title || '').replace(/</g,'&lt;')}</div>
-          <div style="font-size:11px;margin-top:8px;opacity:0.9;">DC: ${(meta.dc || '-').replace(/</g,'&lt;')}  ·  ${meta.tanggal || ''} ${meta.jam || ''}  ·  ${(meta.user || '').replace(/</g,'&lt;')} (${(meta.role || '').replace(/</g,'&lt;')})  ·  ${meta.count || 0} data</div>
+          <div style="font-size:18px;font-weight:700;">${(meta.system || 'GudangPro').replace(/</g,'&lt;')}</div>
+          <div style="font-size:13px;margin-top:4px;">${String(title || '').replace(/</g,'&lt;')}</div>
+          <div style="font-size:11px;margin-top:8px;opacity:0.9;">DC: ${(meta.dc || '-').replace(/</g,'&lt;')}  ·  ${meta.tanggal || ''} · ${meta.count || 0} data</div>
         </div>
         <div style="height:4px;background:#f59e0b;"></div>
-        <div style="padding:16px 20px 8px;">
+        <div style="padding:16px 20px;">
           <table style="width:100%;border-collapse:collapse;">
             <thead><tr>${thCells}</tr></thead>
-            <tbody>${bodyRows || '<tr><td colspan="'+headers.length+'" style="padding:16px;text-align:center;color:#64748b;">Tidak ada data</td></tr>'}</tbody>
+            <tbody>${bodyRows}</tbody>
           </table>
-        </div>
-        <div style="position:absolute;bottom:0;left:0;right:0;background:#f1f5f9;padding:10px 20px;font-size:11px;color:#64748b;text-align:center;border-top:1px solid #e2e8f0;">
-          ${(meta.system || 'GudangPro').replace(/</g,'&lt;')} · Nota resmi · ${meta.tanggal || ''} · Export PNG A4
         </div>
       </div>`;
     document.body.appendChild(wrap);
@@ -2164,8 +2515,25 @@ function exportCart(fmt) {
 }
 
 function exportHistory(fmt) {
-  const list = state.history;
-  if (!list.length) return showToast('Riwayat kosong');
+  let list = state.history.slice();
+  // Terapkan filter UI yang sama
+  const term = ($('#histSearch')?.value||'').toLowerCase();
+  const from = $('#histFrom')?.value;
+  const to = $('#histTo')?.value;
+  const kondFilter = $('#histKondisi')?.value || '';
+  if (term) list = list.filter(h =>
+    (h.nomor||'').toLowerCase().includes(term) ||
+    (h.judul||'').toLowerCase().includes(term) ||
+    (h.dcName||'').toLowerCase().includes(term) ||
+    h.items.some(it => (it.nama||'').toLowerCase().includes(term) || (it.kode||'').toLowerCase().includes(term))
+  );
+  if (from) list = list.filter(h => h.tanggal >= from);
+  if (to) list = list.filter(h => h.tanggal <= to);
+  if (kondFilter) list = list.filter(h => h.items.some(it => (it.kondisi||'Bad') === kondFilter));
+  // Jika ada yang dicentang → hanya yang dipilih
+  const selected = getSelectedHistNomors();
+  if (selected.length) list = list.filter(h => selected.includes(String(h.nomor)));
+  if (!list.length) return showToast(selected.length ? 'Tidak ada nota yang dipilih' : 'Riwayat kosong');
   const meta = ExportEngine.getMeta('Riwayat Retur', list.length);
   if (fmt==='grid') {
     openGridNotaModal(list);
@@ -2180,7 +2548,6 @@ function exportHistory(fmt) {
     ExportEngine.toRingkas(lines, meta);
     return;
   }
-  // Flatten items
   const headers = ['No Nota','Tanggal','Judul','Kode','Nama','Qty','Satuan','Vendor','PIC','Alasan','User'];
   const rows = [];
   list.forEach(h => {
@@ -2192,7 +2559,11 @@ function exportHistory(fmt) {
   if (fmt==='xlsx') ExportEngine.toExcel(headers, rows, 'Riwayat', meta);
   else if (fmt==='csv') ExportEngine.toCSV(headers, rows, meta);
   else if (fmt==='pdf') ExportEngine.toPDF('Riwayat Nota Retur', headers, rows, meta);
-  else if (fmt==='png') ExportEngine.toPNG('Riwayat Nota Retur', headers, rows, meta);
+  else if (fmt==='png') {
+    // PNG = tampilan receipt sama seperti modal riwayat (bukan tabel)
+    if (list.length === 1) ExportEngine.toNotaPNG(list[0]);
+    else ExportEngine.toNotaListPNG(list);
+  }
 }
 
 function exportAuditList(fmt) {
@@ -2215,7 +2586,7 @@ function exportAuditList(fmt) {
 }
 
 function exportAuditHistory(fmt) {
-  let list = state.auditHistory || [];
+  let list = (state.auditHistory || []).slice();
   if (!list.length) return showToast('Riwayat audit kosong');
   const term = ($('#auditHistSearch')?.value || '').toLowerCase();
   const from = $('#auditHistFrom')?.value;
@@ -2227,6 +2598,9 @@ function exportAuditHistory(fmt) {
   );
   if (from) list = list.filter(h => (h.tanggal||'') >= from);
   if (to) list = list.filter(h => (h.tanggal||'') <= to);
+  const selected = getSelectedAuditIds();
+  if (selected.length) list = list.filter(h => selected.includes(String(h.id)));
+  if (!list.length) return showToast(selected.length ? 'Tidak ada sesi yang dipilih' : 'Riwayat audit kosong');
   const meta = ExportEngine.getMeta('Nota Audit EXP', list.length);
   if (fmt==='ringkas') {
     const lines = [`*RIWAYAT AUDIT EXP — ${meta.dc}*`, ''];
@@ -2236,7 +2610,6 @@ function exportAuditHistory(fmt) {
     ExportEngine.toRingkas(lines, meta);
     return;
   }
-  // Flatten detail like nota
   const headers = ['Sesi','Tanggal','Kode','Nama','Exp Date','Qty','Satuan','Kondisi','Rak','Status','User'];
   const rows = [];
   list.forEach(h => {
@@ -2249,7 +2622,10 @@ function exportAuditHistory(fmt) {
   if (fmt==='xlsx') ExportEngine.toExcel(headers, rows, 'Nota_Audit', meta);
   else if (fmt==='csv') ExportEngine.toCSV(headers, rows, meta);
   else if (fmt==='pdf') ExportEngine.toPDF('Nota Audit EXP (A4)', headers, rows, meta);
-  else if (fmt==='png') ExportEngine.toPNG('Nota Audit EXP (A4)', headers, rows, meta);
+  else if (fmt==='png') {
+    if (list.length === 1) ExportEngine.toAuditPNG(list[0]);
+    else ExportEngine.toAuditListPNG(list);
+  }
   else showToast('Gunakan Excel/CSV/PDF/PNG');
 }
 
@@ -2661,6 +3037,37 @@ function removeCartItem(id) {
   showToast('Item dihapus');
 }
 
+function getSelectedHistNomors() {
+  return Array.from(document.querySelectorAll('.hist-sel:checked')).map(el => el.value);
+}
+function getSelectedAuditIds() {
+  return Array.from(document.querySelectorAll('.audit-sel:checked')).map(el => el.value);
+}
+function updateHistSelCount() {
+  const n = getSelectedHistNomors().length;
+  const el = $('#histSelCount');
+  if (el) el.textContent = n ? n + ' dipilih' : 'Semua (jika tidak centang)';
+  const all = $('#histSelAll');
+  if (all) {
+    const boxes = document.querySelectorAll('.hist-sel');
+    all.checked = boxes.length > 0 && n === boxes.length;
+    all.indeterminate = n > 0 && n < boxes.length;
+  }
+}
+function updateAuditSelCount() {
+  const n = getSelectedAuditIds().length;
+  const el = $('#auditSelCount');
+  if (el) el.textContent = n ? n + ' dipilih' : 'Semua (jika tidak centang)';
+  const all = $('#auditSelAll');
+  if (all) {
+    const boxes = document.querySelectorAll('.audit-sel');
+    all.checked = boxes.length > 0 && n === boxes.length;
+    all.indeterminate = n > 0 && n < boxes.length;
+  }
+}
+window.updateHistSelCount = updateHistSelCount;
+window.updateAuditSelCount = updateAuditSelCount;
+
 function renderHistory() {
   let list = state.history.slice();
   const term = ($('#histSearch')?.value||'').toLowerCase();
@@ -2678,16 +3085,17 @@ function renderHistory() {
   if (kondFilter) {
     list = list.filter(h => h.items.some(it => (it.kondisi||'Bad') === kondFilter));
   }
-  // Sort newest first
   list.sort((a,b) => (b.tanggal||'').localeCompare(a.tanggal||'') || (b.nomor||'').localeCompare(a.nomor||''));
   $('#histCount').textContent = list.length + ' nota';
   if (!list.length) {
     $('#histList').innerHTML = '<div class="empty-state"><div class="ico">📁</div><h3>Belum ada nota</h3></div>';
     return;
   }
-  // Group by date for cleaner display
   let lastDate = '';
-  let html = '';
+  let html = `<div class="sel-bar">
+    <label><input type="checkbox" id="histSelAll" class="sel-check"> Pilih semua</label>
+    <span class="sel-count" id="histSelCount">Semua (jika tidak centang)</span>
+  </div>`;
   list.forEach((h) => {
     if (h.tanggal !== lastDate) {
       lastDate = h.tanggal;
@@ -2700,6 +3108,7 @@ function renderHistory() {
     const picLabel = pics.length ? pics.slice(0,2).join(', ') + (pics.length>2?' +'+(pics.length-2):'') : '-';
     html += `
       <div class="list-item">
+        <input type="checkbox" class="sel-check hist-sel" value="${esc(h.nomor)}" onchange="updateHistSelCount()">
         <div class="info">
           <div class="nm">${esc(h.nomor)}${h.judul?' — '+esc(h.judul):''}</div>
           <div class="meta">${h.items.length} item · qty ${qty}${h.createdByName?' · oleh '+esc(h.createdByName):''}${h.dcName?' · '+esc(h.dcName):''}</div>
@@ -2718,6 +3127,11 @@ function renderHistory() {
     `;
   });
   $('#histList').innerHTML = html;
+  const all = $('#histSelAll');
+  if (all) all.onchange = () => {
+    document.querySelectorAll('.hist-sel').forEach(c => { c.checked = all.checked; });
+    updateHistSelCount();
+  };
 }
 
 function renderAuditList() {
@@ -2828,7 +3242,10 @@ function renderAuditHistory() {
     return;
   }
   let lastDate = '';
-  let html = '';
+  let html = `<div class="sel-bar">
+    <label><input type="checkbox" id="auditSelAll" class="sel-check"> Pilih semua</label>
+    <span class="sel-count" id="auditSelCount">Semua (jika tidak centang)</span>
+  </div>`;
   list.forEach((h) => {
     if (h.tanggal !== lastDate) {
       lastDate = h.tanggal;
@@ -2843,6 +3260,7 @@ function renderAuditHistory() {
     });
     html += `
       <div class="list-item">
+        <input type="checkbox" class="sel-check audit-sel" value="${esc(h.id)}" onchange="updateAuditSelCount()">
         <div class="info">
           <div class="nm">Sesi Audit · ${esc(h.tanggalLabel || h.tanggal)}</div>
           <div class="meta">${(h.items || []).length} item · qty ${qty}${h.user ? ' · oleh ' + esc(h.user) : ''}${h.dcName ? ' · ' + esc(h.dcName) : ''}</div>
@@ -2861,6 +3279,11 @@ function renderAuditHistory() {
       </div>`;
   });
   $('#auditHistList').innerHTML = html;
+  const all = $('#auditSelAll');
+  if (all) all.onchange = () => {
+    document.querySelectorAll('.audit-sel').forEach(c => { c.checked = all.checked; });
+    updateAuditSelCount();
+  };
 }
 
 window.viewAuditSession = function(id) {
@@ -2914,7 +3337,7 @@ window.exportOneAuditSession = function(id, fmt) {
   });
   if (fmt === 'xlsx') ExportEngine.toExcel(headers, rows, 'Audit_Sesi', meta);
   else if (fmt === 'pdf') ExportEngine.toPDF('Nota Audit EXP — ' + (h.tanggalLabel||''), headers, rows, meta);
-  else if (fmt === 'png') ExportEngine.toPNG('Nota Audit EXP — ' + (h.tanggalLabel||''), headers, rows, meta);
+  else if (fmt === 'png') ExportEngine.toAuditPNG(h);
   else showToast('Format tidak dikenali');
 };
 
@@ -4221,16 +4644,21 @@ function openNotaModal(nota, isHistory) {
   };
 
   $('#notaPng').onclick = () => {
+    // Samakan dengan tampilan receipt di modal (#printArea)
     const items = filteredItems();
-    const meta = ExportEngine.getMeta('Nota Retur', items.length);
-    const headers = ['No', 'Nama', 'Qty', 'Satuan', 'Kondisi', 'Vendor', 'PIC', 'Alasan'];
-    const rows = items.map((c, i) => [
-      i + 1, c.nama, c.qty, c.satuan || 'PCS',
-      ((c.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek'),
-      c.vendor || '', resolveItemPic(c) || c.pic || '-', c.alasan || ''
-    ]);
-    const title = ($('#notaJudul')?.value || nota.judul || 'Nota Pengajuan Retur') + (activePic ? ' · PIC ' + activePic : '');
-    ExportEngine.toPNG(title, headers, rows, meta);
+    const judul = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim();
+    const snap = Object.assign({}, nota, {
+      judul: judul + (activePic ? ' · PIC ' + activePic : ''),
+      items: items
+    });
+    // Capture elemen receipt yang sedang tampil agar 100% sama
+    const area = $('#printArea');
+    if (area) {
+      ExportEngine.captureElementPNG(area, `Nota_${String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_')}.png`);
+      logActivity('EXPORT', 'Nota Retur', `PNG · ${nota.nomor}`, { format: 'png' });
+    } else {
+      ExportEngine.toNotaPNG(snap, items);
+    }
   };
 
   $('#notaPrint').onclick = () => window.print();
