@@ -421,20 +421,65 @@ table.data-table .actions { display: flex; gap: 4px; }
 .list-item .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .list-item .actions { display: flex; gap: 4px; flex-shrink: 0; }
 
-/* Receipt / Nota */
+/* Receipt / Nota — densitas otomatis menyesuaikan jumlah item (pas A4) */
 .receipt {
   background: #fefce8; border-radius: 8px; padding: 20px 16px;
   font-size: 13px; position: relative;
+  --r-title: 15px; --r-body: 13px; --r-meta: 12px; --r-sub: 11.5px;
+  --r-pad: 20px 16px; --r-rline-pad: 6px 0; --r-gap: 12px; --r-hr: 10px;
 }
-.receipt .brand { text-align: center; margin-bottom: 12px; }
-.receipt .brand .title { font-weight: 800; font-size: 15px; letter-spacing: 0.5px; }
-.receipt .brand .sub { font-size: 11.5px; color: #78716c; margin-top: 2px; }
-.receipt hr { border: none; border-top: 1.5px dashed #d6d3d1; margin: 10px 0; }
-.receipt .meta-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: 12px; }
-.receipt .rline { padding: 6px 0; border-bottom: 1px dotted #e7e5e4; }
-.receipt .rline .top { display: flex; justify-content: space-between; font-weight: 700; }
-.receipt .rline .sub { color: #78716c; font-size: 11.5px; margin-top: 2px; }
-.receipt .totals { display: flex; justify-content: space-between; font-weight: 800; margin-top: 8px; }
+.receipt.density-xl { /* 1–3 item: diperbesar mengisi A4 */
+  --r-title: 22px; --r-body: 16px; --r-meta: 14px; --r-sub: 13px;
+  --r-pad: 28px 22px; --r-rline-pad: 14px 0; --r-gap: 18px; --r-hr: 14px;
+  font-size: var(--r-body); padding: var(--r-pad);
+}
+.receipt.density-lg { /* 4–7 item */
+  --r-title: 18px; --r-body: 14.5px; --r-meta: 13px; --r-sub: 12px;
+  --r-pad: 24px 18px; --r-rline-pad: 10px 0; --r-gap: 14px; --r-hr: 12px;
+  font-size: var(--r-body); padding: var(--r-pad);
+}
+.receipt.density-md { /* 8–14 item — default */
+  --r-title: 15px; --r-body: 13px; --r-meta: 12px; --r-sub: 11.5px;
+  --r-pad: 20px 16px; --r-rline-pad: 6px 0; --r-gap: 12px; --r-hr: 10px;
+  font-size: var(--r-body); padding: var(--r-pad);
+}
+.receipt.density-sm { /* 15–24 item */
+  --r-title: 13px; --r-body: 11.5px; --r-meta: 10.5px; --r-sub: 10px;
+  --r-pad: 14px 12px; --r-rline-pad: 4px 0; --r-gap: 8px; --r-hr: 7px;
+  font-size: var(--r-body); padding: var(--r-pad);
+}
+.receipt.density-xs { /* 25+ item: diperkecil agar muat 1 halaman */
+  --r-title: 12px; --r-body: 10px; --r-meta: 9.5px; --r-sub: 9px;
+  --r-pad: 10px 10px; --r-rline-pad: 3px 0; --r-gap: 6px; --r-hr: 5px;
+  font-size: var(--r-body); padding: var(--r-pad);
+}
+.receipt .brand { text-align: center; margin-bottom: var(--r-gap, 12px); }
+.receipt .brand .title { font-weight: 800; font-size: var(--r-title, 15px); letter-spacing: 0.5px; }
+.receipt .brand .sub { font-size: var(--r-sub, 11.5px); color: #78716c; margin-top: 2px; }
+.receipt hr { border: none; border-top: 1.5px dashed #d6d3d1; margin: var(--r-hr, 10px) 0; }
+.receipt .meta-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: var(--r-meta, 12px); }
+.receipt .rline { padding: var(--r-rline-pad, 6px 0); border-bottom: 1px dotted #e7e5e4; }
+.receipt .rline .top { display: flex; justify-content: space-between; font-weight: 700; gap: 8px; }
+.receipt .rline .sub { color: #78716c; font-size: var(--r-sub, 11.5px); margin-top: 2px; }
+.receipt .totals { display: flex; justify-content: space-between; font-weight: 800; margin-top: 8px; font-size: var(--r-body, 13px); }
+
+/* Panel pilih item nota (tidak ikut dicetak) */
+.nota-item-picker {
+  border: 1.5px solid var(--border); border-radius: 10px; background: #f8fafc;
+  padding: 10px 12px; margin-bottom: 12px; max-height: 220px; overflow-y: auto;
+}
+.nota-item-picker .picker-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  flex-wrap: wrap; margin-bottom: 8px; position: sticky; top: 0; background: #f8fafc; z-index: 1; padding-bottom: 6px;
+}
+.nota-item-picker .picker-row {
+  display: flex; align-items: flex-start; gap: 8px; padding: 6px 0;
+  border-bottom: 1px solid #e2e8f0; font-size: 12.5px;
+}
+.nota-item-picker .picker-row:last-child { border-bottom: none; }
+.nota-item-picker .picker-row input { margin-top: 3px; accent-color: #0f766e; width: 16px; height: 16px; flex-shrink: 0; }
+.nota-item-picker .picker-row .nm { font-weight: 600; }
+.nota-item-picker .picker-row .meta { color: var(--text-muted); font-size: 11.5px; }
 
 /* Checkbox pilih export */
 .sel-check {
@@ -493,11 +538,13 @@ table.data-table .actions { display: flex; gap: 4px; }
 }
 .overlay.show { display: block; }
 
-/* Print */
+/* Print — A4, panel pilih item disembunyikan, densitas mengikuti class receipt */
 @media print {
   @page { size: A4; margin: 10mm; }
   .sidebar, .topbar, .btn, .toolbar, .modal-footer, .no-print,
-  .modal-header, .modal-sheet .handle, .overlay { display: none !important; }
+  .modal-header, .modal-sheet .handle, .overlay,
+  .nota-item-picker, #notaPicFilter, label[for="notaPicFilter"],
+  .form-group:has(#notaJudul), .form-group:has(#notaPicFilter) { display: none !important; }
   .main { margin-left: 0; }
   body { background: #fff; }
 
@@ -523,7 +570,16 @@ table.data-table .actions { display: flex; gap: 4px; }
     break-inside: avoid; page-break-inside: avoid;
   }
 
-  /* Nota tunggal: 1 lembar, tidak terpotong */
+  /* Nota tunggal: muat 1 lembar A4, ukuran mengikuti density-* */
+  #printArea.receipt {
+    background: #fff !important;
+    border: 1px solid #d6d3d1 !important;
+    border-radius: 0 !important;
+    min-height: 0 !important;
+    max-width: 190mm;
+    margin: 0 auto;
+    box-shadow: none !important;
+  }
   .receipt { break-inside: avoid; page-break-inside: avoid; }
 }
 
@@ -1595,6 +1651,34 @@ function cloudSaveActivity(entry) {
     .catch(err => console.warn('[server] activity', err));
 }
 
+// -------------------- DRAFT REALTIME (cart + auditList) --------------------
+// Draft dibagikan per DC agar browser/HP berbeda melihat daftar yang sama.
+let draftApplying = false;
+function draftDocId(kind) {
+  const dc = String(state.dcName || 'DC').replace(/[^\w.-]+/g, '_').slice(0, 48) || 'DC';
+  return kind + '_' + dc;
+}
+function cloudSaveCart() {
+  if (!requireServer(true) || draftApplying) return Promise.resolve();
+  const clean = JSON.parse(JSON.stringify(state.cart || []));
+  return db.collection('drafts').doc(draftDocId('cart')).set({
+    items: clean,
+    dcName: state.dcName || '',
+    updatedAt: tsNow(),
+    updatedBy: actorName()
+  }, { merge: true }).catch(err => console.warn('[server] cart draft', err));
+}
+function cloudSaveAuditList() {
+  if (!requireServer(true) || draftApplying) return Promise.resolve();
+  const clean = JSON.parse(JSON.stringify(state.auditList || []));
+  return db.collection('drafts').doc(draftDocId('audit')).set({
+    items: clean,
+    dcName: state.dcName || '',
+    updatedAt: tsNow(),
+    updatedBy: actorName()
+  }, { merge: true }).catch(err => console.warn('[server] audit draft', err));
+}
+
 /** Seed produk ke server sekali (jika koleksi masih kosong) */
 async function ensureProductsOnServer() {
   if (!requireServer(true)) return;
@@ -1800,7 +1884,41 @@ function startCloudSync() {
       if (state.page === 'master-user') paintUsers(getUsersList());
     }), err => console.warn('[server] users', err)));
 
-  console.log('[GudangPro] Server listeners aktif');
+
+  // Draft keranjang retur (per DC) — realtime antar browser/HP
+  syncUnsubs.push(db.collection('drafts').doc(draftDocId('cart'))
+    .onSnapshot(doc => apply(() => {
+      if (!doc.exists) return;
+      const d = doc.data() || {};
+      const items = Array.isArray(d.items) ? d.items : [];
+      try {
+        if (JSON.stringify(items) === JSON.stringify(state.cart || [])) return;
+      } catch (e) {}
+      draftApplying = true;
+      state.cart = items;
+      cacheLocal('cart', state.cart);
+      try { if (typeof renderCart === 'function') renderCart(); } catch (e) {}
+      draftApplying = false;
+    }), err => console.warn('[server] cart draft', err)));
+
+  // Draft list audit aktif (per DC) — realtime antar browser/HP
+  syncUnsubs.push(db.collection('drafts').doc(draftDocId('audit'))
+    .onSnapshot(doc => apply(() => {
+      if (!doc.exists) return;
+      const d = doc.data() || {};
+      const items = Array.isArray(d.items) ? d.items : [];
+      try {
+        if (JSON.stringify(items) === JSON.stringify(state.auditList || [])) return;
+      } catch (e) {}
+      draftApplying = true;
+      state.auditList = items;
+      cacheLocal('auditList', state.auditList);
+      try { if (typeof renderAuditList === 'function') renderAuditList(); } catch (e) {}
+      draftApplying = false;
+    }), err => console.warn('[server] audit draft', err)));
+
+  console.log('[GudangPro] Server listeners aktif (termasuk draft cart & audit)');
+
 }
 
 function stopCloudSync() {
@@ -1833,6 +1951,15 @@ async function bootstrapServer() {
       for (const w of DEFAULT_WAREHOUSES) await cloudSaveWarehouse(w);
     } else {
       for (const w of state.warehouses) await cloudSaveWarehouse(w);
+    }
+    // Seed draft lokal ke cloud jika dokumen draft belum ada
+    try {
+      const cartDoc = await db.collection('drafts').doc(draftDocId('cart')).get();
+      if (!cartDoc.exists && (state.cart || []).length) await cloudSaveCart();
+      const auditDoc = await db.collection('drafts').doc(draftDocId('audit')).get();
+      if (!auditDoc.exists && (state.auditList || []).length) await cloudSaveAuditList();
+    } catch (e2) {
+      console.warn('[server] seed drafts', e2);
     }
   } catch (e) {
     console.warn('[server] bootstrap', e);
@@ -3026,6 +3153,7 @@ window.editCartItem = function(id) {
     else if (k === 'jelek' || k === 'bad' || k === 'j' || k === 'rusak') it.kondisi = 'Bad';
   }
   storage.set('cart', state.cart);
+  cloudSaveCart();
   renderCart();
   showToast('Item diperbarui');
 };
@@ -3033,6 +3161,7 @@ window.editCartItem = function(id) {
 function removeCartItem(id) {
   state.cart = state.cart.filter(c => c.id !== id);
   storage.set('cart', state.cart);
+  cloudSaveCart();
   renderCart();
   showToast('Item dihapus');
 }
@@ -3196,6 +3325,7 @@ function renderAuditList() {
 function removeAuditItem(id) {
   state.auditList = state.auditList.filter(a => a.id !== id);
   storage.set('auditList', state.auditList);
+  cloudSaveAuditList();
   renderAuditList();
 }
 
@@ -3214,6 +3344,7 @@ function saveAuditSession() {
   cacheLocal('auditHistory', state.auditHistory);
   state.auditList = [];
   cacheLocal('auditList', []);
+  cloudSaveAuditList();
   renderAuditList();
   cloudSaveAuditSession(session);
   logActivity('CREATE', 'Audit EXP', `Sesi audit ${session.items.length} item`);
@@ -4459,6 +4590,9 @@ function openNotaModal(nota, isHistory) {
 
   // Daftar PIC unik di nota ini
   const allItems = (nota.items || []).slice();
+  // Set item yang dipilih untuk tampil/cetak (default: semua)
+  const selectedIds = new Set(allItems.map((it, i) => String(it.id || ('idx-' + i))));
+
   const picSet = [];
   allItems.forEach(it => {
     const p = (resolveItemPic(it) || it.pic || '').trim();
@@ -4469,12 +4603,39 @@ function openNotaModal(nota, isHistory) {
 
   let activePic = ''; // '' = semua
 
+  function itemKey(it, i) {
+    return String(it.id || ('idx-' + i));
+  }
+
   function filteredItems() {
-    if (!activePic) return allItems;
-    return allItems.filter(it => {
-      const p = (resolveItemPic(it) || it.pic || '').trim() || '(Tanpa PIC)';
-      return p === activePic;
+    let list = allItems;
+    if (activePic) {
+      list = list.filter(it => {
+        const p = (resolveItemPic(it) || it.pic || '').trim() || '(Tanpa PIC)';
+        return p === activePic;
+      });
+    }
+    // Hanya item yang dicentang
+    return list.filter((it, i) => {
+      // index dalam allItems untuk key stabil
+      const idx = allItems.indexOf(it);
+      return selectedIds.has(itemKey(it, idx >= 0 ? idx : i));
     });
+  }
+
+  function densityClass(n) {
+    if (n <= 3) return 'density-xl';
+    if (n <= 7) return 'density-lg';
+    if (n <= 14) return 'density-md';
+    if (n <= 24) return 'density-sm';
+    return 'density-xs';
+  }
+
+  function applyDensity(n) {
+    const area = $('#printArea');
+    if (!area) return;
+    area.classList.remove('density-xl', 'density-lg', 'density-md', 'density-sm', 'density-xs');
+    area.classList.add(densityClass(n));
   }
 
   function buildItemsHtml(items) {
@@ -4501,8 +4662,39 @@ function openNotaModal(nota, isHistory) {
     return { totalQty, goodItems, badItems, goodQty, badQty };
   }
 
+  function buildPickerHtml() {
+    if (!allItems.length) return '';
+    const rows = allItems.map((it, i) => {
+      const key = itemKey(it, i);
+      const pic = (resolveItemPic(it) || it.pic || '-').trim();
+      const kond = (it.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek';
+      const checked = selectedIds.has(key) ? 'checked' : '';
+      return `<label class="picker-row">
+        <input type="checkbox" class="nota-item-cb" data-key="${esc(key)}" ${checked}>
+        <div>
+          <div class="nm">${esc(it.nama)}</div>
+          <div class="meta">${esc(it.qty)} ${esc(it.satuan || 'PCS')} · ${kond} · PIC: ${esc(pic)}</div>
+        </div>
+      </label>`;
+    }).join('');
+    return `
+      <div class="nota-item-picker no-print" id="notaItemPicker">
+        <div class="picker-head">
+          <div>
+            <strong style="font-size:13px;">Pilih item ditampilkan / dicetak</strong>
+            <div class="sel-count" id="notaSelCount">${selectedIds.size} / ${allItems.length} dipilih</div>
+          </div>
+          <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline" id="notaSelAll">Semua</button>
+            <button type="button" class="btn btn-sm btn-outline" id="notaSelNone">Kosongkan</button>
+          </div>
+        </div>
+        ${rows}
+      </div>`;
+  }
+
   const picFilterHtml = picSet.length > 1 ? `
-    <div class="form-group" style="margin-bottom:12px;">
+    <div class="form-group no-print" style="margin-bottom:12px;">
       <label>Filter PIC Purchasing</label>
       <select id="notaPicFilter" style="width:100%;">
         <option value="">Semua PIC (${allItems.length} item)</option>
@@ -4511,8 +4703,11 @@ function openNotaModal(nota, isHistory) {
           return `<option value="${esc(p)}">${esc(p)} (${cnt} item)</option>`;
         }).join('')}
       </select>
-      <p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Pilih PIC untuk menampilkan / salin / cetak hanya item purchasing tersebut.</p>
+      <p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Filter PIC + centang item menentukan isi nota yang dicetak / diexport.</p>
     </div>` : '';
+
+  const initItems = filteredItems();
+  const initDens = densityClass(initItems.length);
 
   root.innerHTML = `
     <div class="modal-backdrop" id="notaBackdrop">
@@ -4523,12 +4718,13 @@ function openNotaModal(nota, isHistory) {
           <button class="btn btn-icon btn-outline" id="notaClose">✕</button>
         </div>
         <div class="modal-body">
-          <div class="form-group">
+          <div class="form-group no-print">
             <label>Judul Laporan (opsional)</label>
             <input type="text" id="notaJudul" value="${esc(nota.judul || '')}" placeholder="Contoh: Retur Vendor ABC Minggu 1">
           </div>
           ${picFilterHtml}
-          <div class="receipt" id="printArea">
+          ${buildPickerHtml()}
+          <div class="receipt ${initDens}" id="printArea">
             <div class="brand">
               <div class="title">${esc(nota.judul || 'NOTA PENGAJUAN RETUR')}</div>
               <div class="sub">${esc(nota.dcName)}</div>
@@ -4536,22 +4732,22 @@ function openNotaModal(nota, isHistory) {
             <hr>
             <div class="meta-row"><span>No</span><b>${esc(nota.nomor)}</b></div>
             <div class="meta-row"><span>Tanggal</span><b>${esc(nota.tanggalLabel)}</b></div>
-            <div class="meta-row"><span>Item</span><b id="notaItemCount">${allItems.length} produk</b></div>
+            <div class="meta-row"><span>Item</span><b id="notaItemCount">${initItems.length} produk</b></div>
             <div class="meta-row" id="notaPicMeta" style="display:none;"><span>PIC</span><b id="notaPicMetaVal"></b></div>
             <hr>
-            <div id="notaItemsBody">${buildItemsHtml(allItems)}</div>
+            <div id="notaItemsBody">${buildItemsHtml(initItems)}</div>
             <hr>
-            <div class="totals"><span>TOTAL QTY</span><span id="notaTotalQty">${buildTotalsHtml(allItems).totalQty}</span></div>
-            <div class="meta-row" style="margin-top:6px;"><span>🟢 Bagus</span><b id="notaGoodSum">${buildTotalsHtml(allItems).goodItems.length} item · qty ${buildTotalsHtml(allItems).goodQty}</b></div>
-            <div class="meta-row"><span>🔴 Jelek</span><b id="notaBadSum">${buildTotalsHtml(allItems).badItems.length} item · qty ${buildTotalsHtml(allItems).badQty}</b></div>
-            <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;">Status: Diajukan · ${esc(nota.createdByName || '')}</div>
+            <div class="totals"><span>TOTAL QTY</span><span id="notaTotalQty">${buildTotalsHtml(initItems).totalQty}</span></div>
+            <div class="meta-row" style="margin-top:6px;"><span>🟢 Bagus</span><b id="notaGoodSum">${buildTotalsHtml(initItems).goodItems.length} item · qty ${buildTotalsHtml(initItems).goodQty}</b></div>
+            <div class="meta-row"><span>🔴 Jelek</span><b id="notaBadSum">${buildTotalsHtml(initItems).badItems.length} item · qty ${buildTotalsHtml(initItems).badQty}</b></div>
+            <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;" id="notaFooterStatus">Status: Diajukan · ${esc(nota.createdByName || '')}</div>
           </div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
           <button class="btn btn-primary" id="notaCopy">📋 Salin WA</button>
           <button class="btn btn-outline" id="notaPdf">📑 PDF</button>
           <button class="btn btn-outline" id="notaPng">🖼 PNG</button>
-          <button class="btn btn-outline" id="notaPrint">🖨 Cetak</button>
+          <button class="btn btn-outline" id="notaPrint">🖨 Cetak A4</button>
           ${!isHistory ? `<button class="btn btn-primary" id="notaSave">✅ Simpan & Selesai</button>` : ''}
           ${isHistory && can('edit') ? `<button class="btn btn-primary" id="notaEditFromView">✏️ Edit Qty</button>` : ''}
           ${isHistory ? `<button class="btn btn-outline" id="notaSaveJudul">💾 Simpan Judul</button>` : ''}
@@ -4566,7 +4762,7 @@ function openNotaModal(nota, isHistory) {
     const body = $('#notaItemsBody');
     if (body) body.innerHTML = items.length
       ? buildItemsHtml(items)
-      : '<div class="sub" style="padding:8px 0;color:var(--text-muted);">Tidak ada item untuk PIC ini</div>';
+      : '<div class="sub" style="padding:8px 0;color:var(--text-muted);">Tidak ada item dipilih</div>';
     if ($('#notaItemCount')) $('#notaItemCount').textContent = items.length + ' produk';
     if ($('#notaTotalQty')) $('#notaTotalQty').textContent = t.totalQty;
     if ($('#notaGoodSum')) $('#notaGoodSum').textContent = t.goodItems.length + ' item · qty ' + t.goodQty;
@@ -4581,6 +4777,16 @@ function openNotaModal(nota, isHistory) {
         meta.style.display = 'none';
       }
     }
+    const selCount = $('#notaSelCount');
+    if (selCount) selCount.textContent = selectedIds.size + ' / ' + allItems.length + ' dipilih';
+    // Auto-scale ukuran nota sesuai jumlah item terpilih (A4)
+    applyDensity(items.length);
+    // Update judul di receipt bila diisi
+    const judulEl = $('#printArea .brand .title');
+    if (judulEl) {
+      const j = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim();
+      judulEl.textContent = j || 'NOTA PENGAJUAN RETUR';
+    }
   }
 
   const close = () => { root.innerHTML = ''; };
@@ -4591,12 +4797,45 @@ function openNotaModal(nota, isHistory) {
   if (picSel) {
     picSel.onchange = () => {
       activePic = picSel.value || '';
+      // Saat filter PIC, centang otomatis hanya item PIC tersebut
+      if (activePic) {
+        selectedIds.clear();
+        allItems.forEach((it, i) => {
+          const p = (resolveItemPic(it) || it.pic || '').trim() || '(Tanpa PIC)';
+          if (p === activePic) selectedIds.add(itemKey(it, i));
+        });
+        $$('.nota-item-cb').forEach(cb => {
+          cb.checked = selectedIds.has(cb.dataset.key);
+        });
+      }
       refreshView();
     };
   }
 
+  // Checkbox pilih item
+  $$('.nota-item-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const key = cb.dataset.key;
+      if (cb.checked) selectedIds.add(key);
+      else selectedIds.delete(key);
+      refreshView();
+    });
+  });
+  $('#notaSelAll')?.addEventListener('click', () => {
+    allItems.forEach((it, i) => selectedIds.add(itemKey(it, i)));
+    $$('.nota-item-cb').forEach(cb => { cb.checked = true; });
+    refreshView();
+  });
+  $('#notaSelNone')?.addEventListener('click', () => {
+    selectedIds.clear();
+    $$('.nota-item-cb').forEach(cb => { cb.checked = false; });
+    refreshView();
+  });
+  $('#notaJudul')?.addEventListener('input', () => refreshView());
+
   $('#notaCopy').onclick = () => {
     const items = filteredItems();
+    if (!items.length) return showToast('Pilih minimal 1 item');
     const t = buildTotalsHtml(items);
     const lines = [
       `🧾 *${($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim() || 'NOTA PENGAJUAN RETUR'}*`,
@@ -4632,6 +4871,7 @@ function openNotaModal(nota, isHistory) {
 
   $('#notaPdf').onclick = () => {
     const items = filteredItems();
+    if (!items.length) return showToast('Pilih minimal 1 item');
     const meta = ExportEngine.getMeta('Nota Retur', items.length);
     const headers = ['No', 'Nama', 'Qty', 'Satuan', 'Kondisi', 'Vendor', 'PIC', 'Alasan'];
     const rows = items.map((c, i) => [
@@ -4644,14 +4884,13 @@ function openNotaModal(nota, isHistory) {
   };
 
   $('#notaPng').onclick = () => {
-    // Samakan dengan tampilan receipt di modal (#printArea)
     const items = filteredItems();
+    if (!items.length) return showToast('Pilih minimal 1 item');
     const judul = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim();
     const snap = Object.assign({}, nota, {
       judul: judul + (activePic ? ' · PIC ' + activePic : ''),
       items: items
     });
-    // Capture elemen receipt yang sedang tampil agar 100% sama
     const area = $('#printArea');
     if (area) {
       ExportEngine.captureElementPNG(area, `Nota_${String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_')}.png`);
@@ -4661,18 +4900,22 @@ function openNotaModal(nota, isHistory) {
     }
   };
 
-  $('#notaPrint').onclick = () => window.print();
+  $('#notaPrint').onclick = () => {
+    if (!filteredItems().length) return showToast('Pilih minimal 1 item');
+    window.print();
+  };
 
   if (!isHistory) {
     $('#notaSave').onclick = async () => {
       if (!requireServer()) return;
-      // Simpan SELALU semua item (filter hanya untuk tampilan/export)
+      // Simpan SELALU semua item (filter/centang hanya untuk tampilan/export)
       nota.judul = $('#notaJudul').value.trim();
       nota.items = allItems.map(it => Object.assign({}, it, { pic: resolveItemPic(it) || it.pic || '' }));
       state.history.unshift(nota);
       cacheLocal('history', state.history);
       state.cart = [];
       cacheLocal('cart', []);
+      if (typeof cloudSaveCart === 'function') cloudSaveCart();
       renderCart();
       try {
         await cloudSaveNota(nota);
@@ -4706,13 +4949,11 @@ function openNotaModal(nota, isHistory) {
       };
     }
   }
+
+  // Initial density
+  applyDensity(initItems.length);
 }
 
-/**
- * Modal Grid Nota — tampilkan banyak nota retur sekaligus dalam grid 2x3
- * (mirip fitur "Grid Nota" di GudangPro versi React). Bisa dicetak,
- * diexport ke Excel, atau disimpan sebagai gambar.
- */
 function openGridNotaModal(notas) {
   const root = $('#modalRoot');
   if (!root || !notas || !notas.length) return;
@@ -5805,6 +6046,7 @@ function bindEvents() {
       qty, satuan, alasan, kondisi, catatan: $('#returCatatan').value.trim()
     });
     storage.set('cart', state.cart);
+    cloudSaveCart();
     state.selectedProduct = null;
     $('#returSelected').innerHTML = '';
     $('#returDetailCard').style.display = 'none';
@@ -5818,7 +6060,7 @@ function bindEvents() {
   $('#clearCartBtn').onclick = () => {
     if (!state.cart.length) return;
     if (confirm('Kosongkan daftar retur?')) {
-      state.cart = []; storage.set('cart',[]); renderCart();
+      state.cart = []; storage.set('cart',[]); cloudSaveCart(); renderCart();
     }
   };
   $('#buatNotaBtn').onclick = () => {
@@ -5870,6 +6112,7 @@ function bindEvents() {
       catatan: $('#auditCatatan').value.trim()
     });
     storage.set('auditList', state.auditList);
+    cloudSaveAuditList();
     state.selectedAudit = null;
     $('#auditSelected').innerHTML = '';
     $('#auditDetailCard').style.display = 'none';
@@ -5882,7 +6125,7 @@ function bindEvents() {
   if (_addAuditBot) _addAuditBot.onclick = doAddAudit;
   $('#clearAuditBtn').onclick = () => {
     if (confirm('Kosongkan list audit?')) {
-      state.auditList=[]; storage.set('auditList',[]); renderAuditList();
+      state.auditList=[]; storage.set('auditList',[]); cloudSaveAuditList(); renderAuditList();
     }
   };
 
@@ -6096,11 +6339,17 @@ function bindEvents() {
   // Settings
   $('#saveSettingsBtn').onclick = () => {
     if (!requireServer()) return;
+    const prevDc = state.dcName;
     state.dcName = $('#setDcName').value.trim() || 'DC INDUK';
     state.sysName = $('#setSysName').value.trim() || 'GudangPro';
     cacheLocal('dcName', state.dcName);
     cacheLocal('sysName', state.sysName);
     cloudSaveSettings({ dcName: state.dcName, sysName: state.sysName });
+    if (prevDc !== state.dcName) {
+      startCloudSync();
+      cloudSaveCart();
+      cloudSaveAuditList();
+    }
     $('#dcBadge').textContent = state.dcName;
     showToast('Pengaturan disimpan ke server ☁');
     logActivity('UPDATE', 'Pengaturan', 'DC: '+state.dcName);
