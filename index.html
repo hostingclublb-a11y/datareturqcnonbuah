@@ -465,21 +465,130 @@ table.data-table .actions { display: flex; gap: 4px; }
 
 /* Panel pilih item nota (tidak ikut dicetak) */
 .nota-item-picker {
-  border: 1.5px solid var(--border); border-radius: 10px; background: #f8fafc;
-  padding: 10px 12px; margin-bottom: 12px; max-height: 220px; overflow-y: auto;
+  border: 1.5px solid var(--border); border-radius: 12px; background: #fff;
+  padding: 12px; margin-bottom: 12px; box-shadow: var(--shadow);
 }
 .nota-item-picker .picker-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  flex-wrap: wrap; margin-bottom: 8px; position: sticky; top: 0; background: #f8fafc; z-index: 1; padding-bottom: 6px;
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 8px; position: sticky; top: 0; background: #fff; z-index: 1; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.nota-item-picker .picker-head-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+}
+.nota-item-picker .picker-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.nota-item-picker .picker-actions .btn {
+  min-height: 34px; padding: 6px 12px; font-size: 12px; border-radius: 8px;
+}
+.nota-item-picker .picker-search {
+  position: relative; width: 100%;
+}
+.nota-item-picker .picker-search input {
+  width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-size: 13.5px; background: #f8fafc;
+}
+.nota-item-picker .picker-search::before {
+  content: '🔍'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; pointer-events: none;
+}
+.nota-item-picker .picker-list {
+  max-height: 200px; overflow-y: auto; margin-top: 4px;
 }
 .nota-item-picker .picker-row {
-  display: flex; align-items: flex-start; gap: 8px; padding: 6px 0;
-  border-bottom: 1px solid #e2e8f0; font-size: 12.5px;
+  display: flex; align-items: flex-start; gap: 10px; padding: 8px 6px;
+  border-bottom: 1px solid #f1f5f9; font-size: 12.5px; border-radius: 8px;
+  cursor: pointer;
 }
+.nota-item-picker .picker-row:hover { background: #f0fdfa; }
 .nota-item-picker .picker-row:last-child { border-bottom: none; }
-.nota-item-picker .picker-row input { margin-top: 3px; accent-color: #0f766e; width: 16px; height: 16px; flex-shrink: 0; }
-.nota-item-picker .picker-row .nm { font-weight: 600; }
-.nota-item-picker .picker-row .meta { color: var(--text-muted); font-size: 11.5px; }
+.nota-item-picker .picker-row.hidden { display: none; }
+.nota-item-picker .picker-row input { margin-top: 2px; accent-color: #0f766e; width: 18px; height: 18px; flex-shrink: 0; }
+.nota-item-picker .picker-row .nm { font-weight: 600; line-height: 1.3; }
+.nota-item-picker .picker-row .meta { color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }
+
+/* Plakat A4 — label besar untuk ditempel kardus (gaya karantina) */
+.plakat-sheet {
+  display: none;
+  background: #fff;
+}
+.plakat-card {
+  border: 3px solid #111;
+  background: #fff;
+  overflow: hidden;
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
+}
+.plakat-card:last-child { page-break-after: auto; break-after: auto; }
+.plakat-head {
+  background: #ffe600;
+  border-bottom: 3px solid #111;
+  padding: 10px 14px;
+  text-align: center;
+}
+.plakat-head .pt { font-size: 13px; font-weight: 700; text-align: left; margin-bottom: 2px; }
+.plakat-head .title {
+  font-weight: 900; letter-spacing: 1px; line-height: 1.15;
+  text-transform: uppercase;
+}
+.plakat-body { padding: 10px 14px 14px; }
+.plakat-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 32%) 12px 1fr;
+  gap: 4px 6px;
+  align-items: baseline;
+  margin: 0 0 6px;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 5px;
+}
+.plakat-row:last-child { border-bottom: none; margin-bottom: 0; }
+.plakat-row .lbl { font-weight: 600; }
+.plakat-row .sep { font-weight: 700; }
+.plakat-row .val { font-weight: 800; word-break: break-word; }
+.plakat-foot {
+  margin-top: 8px; padding-top: 6px; border-top: 2px dashed #999;
+  font-size: 11px; color: #444; text-align: center;
+}
+
+/* densitas plakat otomatis (1–10 item) */
+.plakat-sheet.p-dens-1 .plakat-card { min-height: 260mm; }
+.plakat-sheet.p-dens-1 .plakat-head .title { font-size: 42px; }
+.plakat-sheet.p-dens-1 .plakat-row { font-size: 22px; margin-bottom: 14px; padding-bottom: 12px; }
+.plakat-sheet.p-dens-1 .plakat-row .lbl { font-size: 18px; }
+.plakat-sheet.p-dens-1 .plakat-head { padding: 18px 20px; }
+.plakat-sheet.p-dens-1 .plakat-body { padding: 18px 20px 22px; }
+
+.plakat-sheet.p-dens-2 .plakat-card { min-height: 130mm; }
+.plakat-sheet.p-dens-2 .plakat-head .title { font-size: 32px; }
+.plakat-sheet.p-dens-2 .plakat-row { font-size: 17px; margin-bottom: 8px; padding-bottom: 7px; }
+.plakat-sheet.p-dens-2 .plakat-row .lbl { font-size: 14px; }
+
+.plakat-sheet.p-dens-3 .plakat-card { min-height: 85mm; }
+.plakat-sheet.p-dens-3 .plakat-head .title { font-size: 26px; }
+.plakat-sheet.p-dens-3 .plakat-row { font-size: 14px; margin-bottom: 5px; padding-bottom: 4px; }
+.plakat-sheet.p-dens-3 .plakat-row .lbl { font-size: 12px; }
+
+.plakat-sheet.p-dens-4 .plakat-card { min-height: 62mm; }
+.plakat-sheet.p-dens-4 .plakat-head .title { font-size: 22px; }
+.plakat-sheet.p-dens-4 .plakat-row { font-size: 12.5px; margin-bottom: 3px; padding-bottom: 3px; }
+.plakat-sheet.p-dens-4 .plakat-row .lbl { font-size: 11px; }
+
+.plakat-sheet.p-dens-5 .plakat-card { min-height: 48mm; }
+.plakat-sheet.p-dens-5 .plakat-head .title { font-size: 18px; }
+.plakat-sheet.p-dens-5 .plakat-row { font-size: 11px; margin-bottom: 2px; padding-bottom: 2px; }
+.plakat-sheet.p-dens-5 .plakat-row .lbl { font-size: 10px; }
+.plakat-sheet.p-dens-5 .plakat-head { padding: 6px 10px; }
+.plakat-sheet.p-dens-5 .plakat-body { padding: 6px 10px 8px; }
+
+.plakat-sheet.p-dens-many .plakat-card { min-height: 38mm; }
+.plakat-sheet.p-dens-many .plakat-head .title { font-size: 15px; }
+.plakat-sheet.p-dens-many .plakat-row { font-size: 10px; margin-bottom: 1px; padding-bottom: 1px; }
+.plakat-sheet.p-dens-many .plakat-row .lbl { font-size: 9px; }
+.plakat-sheet.p-dens-many .plakat-head { padding: 4px 8px; }
+.plakat-sheet.p-dens-many .plakat-body { padding: 4px 8px 6px; }
+.plakat-sheet.p-dens-many .plakat-row { grid-template-columns: minmax(90px, 30%) 10px 1fr; }
 
 /* Checkbox pilih export */
 .sel-check {
@@ -544,7 +653,8 @@ table.data-table .actions { display: flex; gap: 4px; }
   .sidebar, .topbar, .btn, .toolbar, .modal-footer, .no-print,
   .modal-header, .modal-sheet .handle, .overlay,
   .nota-item-picker, #notaPicFilter, label[for="notaPicFilter"],
-  .form-group:has(#notaJudul), .form-group:has(#notaPicFilter) { display: none !important; }
+  .form-group:has(#notaJudul), .form-group:has(#notaPicFilter),
+  .no-print { display: none !important; }
   .main { margin-left: 0; }
   body { background: #fff; }
 
@@ -581,6 +691,28 @@ table.data-table .actions { display: flex; gap: 4px; }
     box-shadow: none !important;
   }
   .receipt { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Mode plakat: sembunyikan UI app + modal, hanya plakat A4 */
+  body.print-plakat .app-shell,
+  body.print-plakat #authScreen,
+  body.print-plakat .modal-backdrop,
+  body.print-plakat #printArea { display: none !important; }
+  body.print-plakat .plakat-sheet,
+  body.print-plakat #plakatPrintAreaLive {
+    display: block !important;
+    width: 100%;
+    position: static !important;
+  }
+  body.print-plakat .plakat-card {
+    border: 3px solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.print-plakat .plakat-head {
+    background: #ffe600 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 
 /* Auth Screen */
@@ -4588,9 +4720,7 @@ function openNotaModal(nota, isHistory) {
   const root = $('#modalRoot');
   if (!root) return;
 
-  // Daftar PIC unik di nota ini
   const allItems = (nota.items || []).slice();
-  // Set item yang dipilih untuk tampil/cetak (default: semua)
   const selectedIds = new Set(allItems.map((it, i) => String(it.id || ('idx-' + i))));
 
   const picSet = [];
@@ -4601,7 +4731,8 @@ function openNotaModal(nota, isHistory) {
   });
   picSet.sort((a, b) => a.localeCompare(b, 'id'));
 
-  let activePic = ''; // '' = semua
+  let activePic = '';
+  let pickerQuery = '';
 
   function itemKey(it, i) {
     return String(it.id || ('idx-' + i));
@@ -4615,11 +4746,9 @@ function openNotaModal(nota, isHistory) {
         return p === activePic;
       });
     }
-    // Hanya item yang dicentang
-    return list.filter((it, i) => {
-      // index dalam allItems untuk key stabil
+    return list.filter((it) => {
       const idx = allItems.indexOf(it);
-      return selectedIds.has(itemKey(it, idx >= 0 ? idx : i));
+      return selectedIds.has(itemKey(it, idx >= 0 ? idx : 0));
     });
   }
 
@@ -4636,6 +4765,15 @@ function openNotaModal(nota, isHistory) {
     if (!area) return;
     area.classList.remove('density-xl', 'density-lg', 'density-md', 'density-sm', 'density-xs');
     area.classList.add(densityClass(n));
+  }
+
+  function plakatDensityClass(n) {
+    if (n <= 1) return 'p-dens-1';
+    if (n === 2) return 'p-dens-2';
+    if (n === 3) return 'p-dens-3';
+    if (n === 4) return 'p-dens-4';
+    if (n <= 6) return 'p-dens-5';
+    return 'p-dens-many';
   }
 
   function buildItemsHtml(items) {
@@ -4662,35 +4800,97 @@ function openNotaModal(nota, isHistory) {
     return { totalQty, goodItems, badItems, goodQty, badQty };
   }
 
-  function buildPickerHtml() {
-    if (!allItems.length) return '';
-    const rows = allItems.map((it, i) => {
+  function itemSearchText(it) {
+    return [
+      it.nama, it.kode, it.barcode, it.vendor,
+      resolveItemPic(it) || it.pic, it.alasan, it.catatan, it.kondisi
+    ].map(x => String(x || '').toLowerCase()).join(' ');
+  }
+
+  function buildPickerRowsHtml() {
+    const q = (pickerQuery || '').trim().toLowerCase();
+    return allItems.map((it, i) => {
       const key = itemKey(it, i);
       const pic = (resolveItemPic(it) || it.pic || '-').trim();
       const kond = (it.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek';
       const checked = selectedIds.has(key) ? 'checked' : '';
-      return `<label class="picker-row">
+      const match = !q || itemSearchText(it).includes(q);
+      const hide = match ? '' : ' hidden';
+      // sembunyikan juga jika filter PIC aktif dan item bukan PIC itu
+      let picHide = '';
+      if (activePic) {
+        const p = (resolveItemPic(it) || it.pic || '').trim() || '(Tanpa PIC)';
+        if (p !== activePic) picHide = ' hidden';
+      }
+      return `<label class="picker-row${hide}${picHide}" data-key="${esc(key)}">
         <input type="checkbox" class="nota-item-cb" data-key="${esc(key)}" ${checked}>
         <div>
           <div class="nm">${esc(it.nama)}</div>
-          <div class="meta">${esc(it.qty)} ${esc(it.satuan || 'PCS')} · ${kond} · PIC: ${esc(pic)}</div>
+          <div class="meta">${esc(it.qty)} ${esc(it.satuan || 'PCS')} · ${kond} · ${esc(it.kode || '-')} · PIC: ${esc(pic)}</div>
         </div>
       </label>`;
     }).join('');
+  }
+
+  function buildPickerHtml() {
+    if (!allItems.length) return '';
     return `
       <div class="nota-item-picker no-print" id="notaItemPicker">
         <div class="picker-head">
-          <div>
-            <strong style="font-size:13px;">Pilih item ditampilkan / dicetak</strong>
-            <div class="sel-count" id="notaSelCount">${selectedIds.size} / ${allItems.length} dipilih</div>
+          <div class="picker-head-top">
+            <div>
+              <strong style="font-size:13px;">Pilih item ditampilkan / dicetak</strong>
+              <div class="sel-count" id="notaSelCount">${selectedIds.size} / ${allItems.length} dipilih</div>
+            </div>
+            <div class="picker-actions">
+              <button type="button" class="btn btn-sm btn-outline" id="notaSelAll">✓ Semua</button>
+              <button type="button" class="btn btn-sm btn-outline" id="notaSelNone">✕ Kosong</button>
+              <button type="button" class="btn btn-sm btn-outline" id="notaSelVisible">✓ Hasil cari</button>
+            </div>
           </div>
-          <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-outline" id="notaSelAll">Semua</button>
-            <button type="button" class="btn btn-sm btn-outline" id="notaSelNone">Kosongkan</button>
+          <div class="picker-search">
+            <input type="text" id="notaItemSearch" placeholder="Cari nama, kode, barcode, vendor, PIC…" autocomplete="off">
           </div>
         </div>
-        ${rows}
+        <div class="picker-list" id="notaPickerList">${buildPickerRowsHtml()}</div>
       </div>`;
+  }
+
+  function buildPlakatHtml(items) {
+    const n = items.length;
+    const dens = plakatDensityClass(n);
+    const dc = nota.dcName || state.dcName || 'DC';
+    const tgl = nota.tanggalLabel || nota.tanggal || '';
+    const nomor = nota.nomor || '';
+    const cards = items.map((it, i) => {
+      const pic = (resolveItemPic(it) || it.pic || '-').trim() || '-';
+      const vendor = (it.vendor || '-').trim() || '-';
+      const kond = (it.kondisi || 'Bad') === 'Good' ? 'BAGUS' : 'JELEK';
+      const alasan = (it.alasan || '').trim();
+      const qty = `${it.qty || 0} ${it.satuan || 'PCS'}`;
+      const title = (it.kondisi || 'Bad') === 'Good' ? 'RETUR' : 'KARANTINA';
+      return `
+        <div class="plakat-card">
+          <div class="plakat-head">
+            <div class="pt">${esc(dc)}</div>
+            <div class="title">${esc(title)}</div>
+          </div>
+          <div class="plakat-body">
+            <div class="plakat-row"><span class="lbl">Nama Bahan</span><span class="sep">:</span><span class="val">${esc(it.nama || '-')}</span></div>
+            <div class="plakat-row"><span class="lbl">Kode Bahan</span><span class="sep">:</span><span class="val">${esc(it.kode || '-')}</span></div>
+            <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(it.barcode || '-')}</span></div>
+            <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val">${esc(qty)}</span></div>
+            <div class="plakat-row"><span class="lbl">Vendor</span><span class="sep">:</span><span class="val">${esc(vendor)}</span></div>
+            <div class="plakat-row"><span class="lbl">PIC Purchasing</span><span class="sep">:</span><span class="val">${esc(pic)}</span></div>
+            <div class="plakat-row"><span class="lbl">Kondisi</span><span class="sep">:</span><span class="val">${esc(kond)}${alasan ? ' · ' + esc(alasan) : ''}</span></div>
+            <div class="plakat-row"><span class="lbl">No. Nota Retur</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
+            <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
+            ${it.catatan ? `<div class="plakat-row"><span class="lbl">Catatan</span><span class="sep">:</span><span class="val">${esc(it.catatan)}</span></div>` : ''}
+            <div class="plakat-foot">${i + 1} / ${n} · ${esc(dc)} · Tempel di kardus</div>
+          </div>
+        </div>`;
+    }).join('');
+    return `<div class="plakat-sheet ${dens}" id="plakatPrintArea">${cards}</div>`;
   }
 
   const picFilterHtml = picSet.length > 1 ? `
@@ -4703,7 +4903,6 @@ function openNotaModal(nota, isHistory) {
           return `<option value="${esc(p)}">${esc(p)} (${cnt} item)</option>`;
         }).join('')}
       </select>
-      <p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Filter PIC + centang item menentukan isi nota yang dicetak / diexport.</p>
     </div>` : '';
 
   const initItems = filteredItems();
@@ -4742,12 +4941,14 @@ function openNotaModal(nota, isHistory) {
             <div class="meta-row"><span>🔴 Jelek</span><b id="notaBadSum">${buildTotalsHtml(initItems).badItems.length} item · qty ${buildTotalsHtml(initItems).badQty}</b></div>
             <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;" id="notaFooterStatus">Status: Diajukan · ${esc(nota.createdByName || '')}</div>
           </div>
+          <div id="plakatHost" class="no-print" style="display:none;"></div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
           <button class="btn btn-primary" id="notaCopy">📋 Salin WA</button>
           <button class="btn btn-outline" id="notaPdf">📑 PDF</button>
           <button class="btn btn-outline" id="notaPng">🖼 PNG</button>
-          <button class="btn btn-outline" id="notaPrint">🖨 Cetak A4</button>
+          <button class="btn btn-outline" id="notaPrint">🖨 Cetak Nota</button>
+          <button class="btn btn-outline" id="notaPlakat" title="Label besar A4 untuk ditempel kardus (1–10 item)">🟨 Plakat A4</button>
           ${!isHistory ? `<button class="btn btn-primary" id="notaSave">✅ Simpan & Selesai</button>` : ''}
           ${isHistory && can('edit') ? `<button class="btn btn-primary" id="notaEditFromView">✏️ Edit Qty</button>` : ''}
           ${isHistory ? `<button class="btn btn-outline" id="notaSaveJudul">💾 Simpan Judul</button>` : ''}
@@ -4755,6 +4956,24 @@ function openNotaModal(nota, isHistory) {
       </div>
     </div>
   `;
+
+  function rebindPickerChecks() {
+    $$('.nota-item-cb').forEach(cb => {
+      cb.onchange = () => {
+        const key = cb.dataset.key;
+        if (cb.checked) selectedIds.add(key);
+        else selectedIds.delete(key);
+        refreshView();
+      };
+    });
+  }
+
+  function refreshPickerList() {
+    const list = $('#notaPickerList');
+    if (!list) return;
+    list.innerHTML = buildPickerRowsHtml();
+    rebindPickerChecks();
+  }
 
   function refreshView() {
     const items = filteredItems();
@@ -4779,9 +4998,7 @@ function openNotaModal(nota, isHistory) {
     }
     const selCount = $('#notaSelCount');
     if (selCount) selCount.textContent = selectedIds.size + ' / ' + allItems.length + ' dipilih';
-    // Auto-scale ukuran nota sesuai jumlah item terpilih (A4)
     applyDensity(items.length);
-    // Update judul di receipt bila diisi
     const judulEl = $('#printArea .brand .title');
     if (judulEl) {
       const j = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim();
@@ -4789,7 +5006,10 @@ function openNotaModal(nota, isHistory) {
     }
   }
 
-  const close = () => { root.innerHTML = ''; };
+  const close = () => {
+    document.body.classList.remove('print-plakat');
+    root.innerHTML = '';
+  };
   $('#notaClose').onclick = close;
   $('#notaBackdrop').addEventListener('click', e => { if (e.target.id === 'notaBackdrop') close(); });
 
@@ -4797,40 +5017,47 @@ function openNotaModal(nota, isHistory) {
   if (picSel) {
     picSel.onchange = () => {
       activePic = picSel.value || '';
-      // Saat filter PIC, centang otomatis hanya item PIC tersebut
       if (activePic) {
         selectedIds.clear();
         allItems.forEach((it, i) => {
           const p = (resolveItemPic(it) || it.pic || '').trim() || '(Tanpa PIC)';
           if (p === activePic) selectedIds.add(itemKey(it, i));
         });
-        $$('.nota-item-cb').forEach(cb => {
-          cb.checked = selectedIds.has(cb.dataset.key);
-        });
       }
+      refreshPickerList();
       refreshView();
     };
   }
 
-  // Checkbox pilih item
-  $$('.nota-item-cb').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const key = cb.dataset.key;
-      if (cb.checked) selectedIds.add(key);
-      else selectedIds.delete(key);
-      refreshView();
-    });
-  });
+  rebindPickerChecks();
+
   $('#notaSelAll')?.addEventListener('click', () => {
     allItems.forEach((it, i) => selectedIds.add(itemKey(it, i)));
-    $$('.nota-item-cb').forEach(cb => { cb.checked = true; });
+    refreshPickerList();
     refreshView();
   });
   $('#notaSelNone')?.addEventListener('click', () => {
     selectedIds.clear();
-    $$('.nota-item-cb').forEach(cb => { cb.checked = false; });
+    refreshPickerList();
     refreshView();
   });
+  $('#notaSelVisible')?.addEventListener('click', () => {
+    // centang hanya baris yang terlihat (hasil cari + filter PIC)
+    $$('#notaPickerList .picker-row:not(.hidden)').forEach(row => {
+      const key = row.dataset.key;
+      if (key) selectedIds.add(key);
+    });
+    refreshPickerList();
+    refreshView();
+  });
+
+  let searchTimer = null;
+  $('#notaItemSearch')?.addEventListener('input', (e) => {
+    pickerQuery = e.target.value || '';
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => refreshPickerList(), 120);
+  });
+
   $('#notaJudul')?.addEventListener('input', () => refreshView());
 
   $('#notaCopy').onclick = () => {
@@ -4902,13 +5129,53 @@ function openNotaModal(nota, isHistory) {
 
   $('#notaPrint').onclick = () => {
     if (!filteredItems().length) return showToast('Pilih minimal 1 item');
+    document.body.classList.remove('print-plakat');
     window.print();
+  };
+
+  // Plakat A4 — label besar gaya karantina untuk ditempel kardus
+  $('#notaPlakat').onclick = () => {
+    const items = filteredItems();
+    if (!items.length) return showToast('Pilih minimal 1 item');
+    if (items.length > 10) {
+      if (!confirm(`Anda memilih ${items.length} item.\\nDisarankan max 10 agar plakat tetap besar dan terbaca.\\nLanjut cetak?`)) return;
+    }
+    const host = $('#plakatHost');
+    if (!host) return showToast('Gagal siapkan plakat');
+    host.innerHTML = buildPlakatHtml(items);
+    host.style.display = 'block';
+    // pindahkan plakat ke body agar layout print bersih
+    const sheet = host.querySelector('.plakat-sheet');
+    if (!sheet) return;
+    const clone = sheet.cloneNode(true);
+    clone.id = 'plakatPrintAreaLive';
+    clone.style.display = 'block';
+    // hapus clone lama jika ada
+    const old = document.getElementById('plakatPrintAreaLive');
+    if (old) old.remove();
+    document.body.appendChild(clone);
+    document.body.classList.add('print-plakat');
+
+    const cleanup = () => {
+      document.body.classList.remove('print-plakat');
+      const el = document.getElementById('plakatPrintAreaLive');
+      if (el) el.remove();
+      if (host) host.style.display = 'none';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(() => {
+      window.print();
+      // fallback cleanup (beberapa browser mobile tidak fire afterprint)
+      setTimeout(cleanup, 1500);
+    }, 80);
+    logActivity('EXPORT', 'Plakat Retur', `A4 · ${items.length} label · ${nota.nomor}`, { format: 'print-plakat' });
+    showToast('Mencetak plakat A4 (' + items.length + ' label)…');
   };
 
   if (!isHistory) {
     $('#notaSave').onclick = async () => {
       if (!requireServer()) return;
-      // Simpan SELALU semua item (filter/centang hanya untuk tampilan/export)
       nota.judul = $('#notaJudul').value.trim();
       nota.items = allItems.map(it => Object.assign({}, it, { pic: resolveItemPic(it) || it.pic || '' }));
       state.history.unshift(nota);
@@ -4950,7 +5217,6 @@ function openNotaModal(nota, isHistory) {
     }
   }
 
-  // Initial density
   applyDensity(initItems.length);
 }
 
