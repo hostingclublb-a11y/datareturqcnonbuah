@@ -538,44 +538,48 @@ table.data-table .actions { display: flex; gap: 4px; }
 
 /* ==================== PLAKAT A4 — STABLE PRINT ENGINE ==================== */
 .plakat-sheet{display:none;background:#fff;color:#111;box-sizing:border-box;width:100%;}
-.plakat-page{box-sizing:border-box;width:100%;height:277mm;min-height:277mm;display:flex;flex-direction:column;gap:0;page-break-after:always;break-after:page;background:#fff;overflow:hidden;}
+.plakat-page{box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:0;page-break-after:always;break-after:page;background:#fff;}
 .plakat-page:last-child{page-break-after:auto;break-after:auto;}
-.plakat-page.full-page{height:277mm;min-height:277mm;}
-.plakat-card{border:2px solid #111;background:#fff;overflow:hidden;box-sizing:border-box;flex:1 1 50%;min-height:0;display:flex;flex-direction:column;border-radius:0;}
+.plakat-card{border:2px solid #111;background:#fff;overflow:hidden;box-sizing:border-box;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:0;}
 .plakat-page.full-page .plakat-card{flex:1 1 100%;}
 .plakat-cut{height:0;flex:0 0 0;border-top:2px dashed #777;position:relative;margin:0;}
 .plakat-cut::after{content:'✂  POTONG DI SINI';position:absolute;left:50%;top:-8px;transform:translateX(-50%);background:#fff;color:#555;font-size:9px;padding:0 8px;font-weight:700;letter-spacing:.4px;white-space:nowrap;}
-.plakat-head{background:#ffbd00;border-bottom:2px solid #111;padding:7px 10px;text-align:center;flex:0 0 auto;display:grid;grid-template-columns:1fr 1.5fr 1fr;align-items:center;min-height:38px;}
+.plakat-head{background:#ffbd00;border-bottom:2px solid #111;padding:8px 10px;text-align:center;flex:0 0 auto;display:grid;grid-template-columns:1fr 1.6fr 1fr;align-items:center;min-height:40px;}
 .plakat-head .pt{font-size:10px;font-weight:800;text-align:left;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.plakat-head .title{font-weight:950;letter-spacing:1.4px;line-height:1.05;text-transform:uppercase;font-size:20px;}
+.plakat-head .title{font-weight:950;letter-spacing:1.2px;line-height:1.1;text-transform:uppercase;font-size:18px;text-align:center;}
 .plakat-body{padding:8px 12px 7px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;min-height:0;}
-.plakat-row{display:grid;grid-template-columns:112px 10px minmax(0,1fr);gap:2px 5px;align-items:start;margin:0;border-bottom:1px solid #e3e3e3;padding:4px 0;font-size:12px;line-height:1.2;}
+.plakat-row{display:grid;grid-template-columns:112px 10px minmax(0,1fr);gap:2px 5px;align-items:start;margin:0;border-bottom:1px solid #e3e3e3;padding:4px 0;font-size:12px;line-height:1.25;}
 .plakat-row .lbl{font-weight:700;font-size:11px;}
 .plakat-row .sep{font-weight:800;}
 .plakat-row .val{font-weight:800;word-break:break-word;overflow-wrap:anywhere;min-width:0;}
-.plakat-foot{margin-top:auto;padding-top:5px;border-top:1px dashed #777;font-size:8.5px;color:#444;text-align:center;flex:0 0 auto;line-height:1.1;}
-.plakat-page.single .plakat-head .title{font-size:28px;}
-.plakat-page.single .plakat-row{font-size:15px;padding:6px 0;}
-.plakat-page.single .plakat-row .lbl{font-size:12px;}
-.plakat-page.single .plakat-head{padding:10px 14px;min-height:48px;}
-.plakat-page.single .plakat-body{padding:12px 16px 10px;}
-.plakat-page.full-page .plakat-head .title{font-size:42px;}
-.plakat-page.full-page .plakat-row{font-size:20px;padding:9px 0;}
-.plakat-page.full-page .plakat-row .lbl{font-size:16px;}
-.plakat-page.full-page .plakat-head{padding:14px 18px;min-height:66px;}
-.plakat-page.full-page .plakat-body{padding:18px 22px 14px;}
-.plakat-card.combo .plakat-items{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;overflow:hidden;}
-.plakat-card.combo .plakat-item-block{border:1px solid #333;border-radius:3px;padding:5px 7px;min-height:0;overflow:hidden;}
-.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:12px;margin-bottom:3px;line-height:1.15;overflow-wrap:anywhere;}
-.plakat-card.combo .plakat-item-block .imeta{font-size:9.5px;line-height:1.25;overflow-wrap:anywhere;}
-.plakat-card.all-items .plakat-item-block{padding:3px 5px;}
-.plakat-card.all-items .plakat-item-block .iname{font-size:10.5px;}
-.plakat-card.all-items .plakat-item-block .imeta{font-size:8.5px;}
-.plakat-card.all-items .plakat-items{gap:2px;}
-.plakat-card.all-items .plakat-row{font-size:10px;padding:3px 0;}
-.plakat-preview-frame{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:14px;overflow:auto;}
-.plakat-preview-frame .plakat-sheet{display:block!important;width:210mm;max-width:none;margin:0 auto;transform-origin:top center;}
-.plakat-preview-frame .plakat-page{box-shadow:0 2px 10px rgba(15,23,42,.12);margin-bottom:12px;}
+.plakat-foot{margin-top:auto;padding-top:5px;border-top:1px dashed #777;font-size:9px;color:#444;text-align:center;flex:0 0 auto;line-height:1.2;}
+.plakat-page.single .plakat-head .title{font-size:22px;}
+.plakat-page.single .plakat-row{font-size:13px;padding:5px 0;}
+.plakat-page.single .plakat-row .lbl{font-size:11.5px;}
+.plakat-page.single .plakat-head{padding:10px 12px;min-height:44px;}
+.plakat-page.single .plakat-body{padding:10px 14px 8px;}
+.plakat-page.full-page .plakat-head .title{font-size:28px;}
+.plakat-page.full-page .plakat-row{font-size:15px;padding:7px 0;}
+.plakat-page.full-page .plakat-row .lbl{font-size:13px;}
+.plakat-page.full-page .plakat-head{padding:12px 16px;min-height:52px;}
+.plakat-page.full-page .plakat-body{padding:14px 18px 12px;}
+.plakat-card.combo .plakat-items{flex:1;display:flex;flex-direction:column;gap:6px;min-height:0;}
+.plakat-card.combo .plakat-item-block{border:1px solid #333;border-radius:4px;padding:6px 8px;background:#fafafa;}
+.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:12.5px;margin-bottom:3px;line-height:1.2;overflow-wrap:anywhere;}
+.plakat-card.combo .plakat-item-block .imeta{font-size:11px;line-height:1.35;overflow-wrap:anywhere;color:#333;}
+.plakat-card.all-items .plakat-item-block{padding:5px 7px;}
+.plakat-card.all-items .plakat-item-block .iname{font-size:12px;}
+.plakat-card.all-items .plakat-item-block .imeta{font-size:10.5px;}
+.plakat-card.all-items .plakat-items{gap:5px;}
+.plakat-card.all-items .plakat-row{font-size:12px;padding:4px 0;}
+/* Preview di layar: jangan paksa tinggi A4 (itu yang bikin box kosong besar) */
+.plakat-preview-frame{background:#f1f5f9;border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:10px;overflow:auto;max-height:60vh;}
+.plakat-preview-frame .plakat-sheet{display:block!important;width:100%;max-width:480px;margin:0 auto;transform:none;}
+.plakat-preview-frame .plakat-page{height:auto!important;min-height:0!important;box-shadow:0 2px 12px rgba(15,23,42,.12);margin-bottom:12px;overflow:visible!important;border:1px solid #cbd5e1;border-radius:4px;}
+.plakat-preview-frame .plakat-card{flex:none!important;min-height:0!important;height:auto!important;overflow:visible!important;}
+.plakat-preview-frame .plakat-body{overflow:visible!important;}
+.plakat-preview-frame .plakat-items{overflow:visible!important;}
+.plakat-preview-frame .plakat-head{background:#ffbd00!important;}
 .plakat-control-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;}
 .plakat-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .plakat-toggle button{min-height:42px;border:1px solid #d1d5db;background:#fff;border-radius:10px;font-weight:800;color:#475569;cursor:pointer;}
@@ -585,9 +589,10 @@ table.data-table .actions { display: flex; gap: 4px; }
 @media print{
   body.print-plakat .plakat-card.all-items{min-height:0;}
   body.print-plakat .plakat-sheet{display:block!important;width:100%;}
-  body.print-plakat .plakat-page{height:277mm;min-height:277mm;}
+  body.print-plakat .plakat-page{height:277mm;min-height:277mm;overflow:hidden;}
   body.print-plakat .plakat-page.full-page{height:277mm;min-height:277mm;}
-  body.print-plakat .plakat-card{border:2px solid #000!important;border-radius:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body.print-plakat .plakat-card{border:2px solid #000!important;border-radius:0!important;flex:1 1 50%;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body.print-plakat .plakat-page.single .plakat-card{flex:1 1 100%;}
   body.print-plakat .plakat-head{background:#ffbd00!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body.print-plakat .plakat-cut::after{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
@@ -3786,13 +3791,15 @@ function openAuditModal(session) {
       const blocks = group.map((it,j) => {
         const s = getExpStatus(it.expDate);
         const bc = it.barcode || lookupBarcode(it.kode) || '-';
+        const kond = (it.kondisi||'Good')==='Good'?'BAGUS':'JELEK';
         return `<div class="plakat-item-block">
           <div class="iname">${startIdx+j+1}. ${esc(it.nama||'-')}</div>
           <div class="imeta">Kode: <b>${esc(it.kode||'-')}</b> · BC: ${esc(bc)} · Qty: <b>${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</b><br>
-          Exp: ${esc(it.expDate||'-')} (${esc(s.label)}) · Rak: ${esc(it.rak||'-')} · ${(it.kondisi||'Good')==='Good'?'BAGUS':'JELEK'}</div>
+          Exp: ${esc(it.expDate||'-')} (${esc(s.label)}) · Rak: ${esc(it.rak||'-')} · <b>${kond}</b></div>
         </div>`;
       }).join('');
-      return `<div class="plakat-card combo ${group.length===n?'all-items':''}">
+      const isFull = mode === 'all' || group.length === n;
+      return `<div class="plakat-card combo ${isFull?'all-items':''}">
         <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(judul)}</div><div></div></div>
         <div class="plakat-body">
           <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
@@ -3804,15 +3811,19 @@ function openAuditModal(session) {
 
     const pages = [];
     let idx = 0;
-    for (let i = 0; i < groups.length; i += 2) {
-      const g1 = groups[i], g2 = groups[i + 1];
-      let inner = (g1.length === 1 && mode === 'single') ? oneCard(g1[0], idx) : groupCard(g1, idx);
-      idx += g1.length;
-      if (g2) {
-        inner += '<div class="plakat-cut"></div>' + ((g2.length === 1 && mode === 'single') ? oneCard(g2[0], idx) : groupCard(g2, idx));
-        idx += g2.length;
+    if (mode === 'all') {
+      pages.push(`<div class="plakat-page single full-page">${groupCard(groups[0] || items, 0)}</div>`);
+    } else {
+      for (let i = 0; i < groups.length; i += 2) {
+        const g1 = groups[i], g2 = groups[i + 1];
+        let inner = (g1.length === 1) ? oneCard(g1[0], idx) : groupCard(g1, idx);
+        idx += g1.length;
+        if (g2) {
+          inner += '<div class="plakat-cut"></div>' + ((g2.length === 1) ? oneCard(g2[0], idx) : groupCard(g2, idx));
+          idx += g2.length;
+        }
+        pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
       }
-      pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
     }
     return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
   }
@@ -5371,12 +5382,13 @@ function openNotaModal(nota, isHistory) {
       const alasan = (it.alasan || '').trim();
       const qty = `${it.qty || 0} ${it.satuan || 'PCS'}`;
       const title = (it.kondisi || 'Bad') === 'Good' ? 'RETUR' : 'KARANTINA';
+      const bc = it.barcode || lookupBarcode(it.kode) || '-';
       return `<div class="plakat-card">
-        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div><div></div></div>
         <div class="plakat-body">
           <div class="plakat-row"><span class="lbl">Nama Barang</span><span class="sep">:</span><span class="val">${esc(it.nama || '-')}</span></div>
           <div class="plakat-row"><span class="lbl">Kode Barang</span><span class="sep">:</span><span class="val">${esc(it.kode || '-')}</span></div>
-          <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(it.barcode || '-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(bc)}</span></div>
           <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val">${esc(qty)}</span></div>
           <div class="plakat-row"><span class="lbl">Vendor</span><span class="sep">:</span><span class="val">${esc(vendor)}</span></div>
           <div class="plakat-row"><span class="lbl">PIC Purchasing</span><span class="sep">:</span><span class="val">${esc(pic)}</span></div>
@@ -5395,15 +5407,18 @@ function openNotaModal(nota, isHistory) {
         const vendor = (it.vendor || '-').trim() || '-';
         const kond = (it.kondisi || 'Bad') === 'Good' ? 'BAGUS' : 'JELEK';
         const qty = `${it.qty || 0} ${it.satuan || 'PCS'}`;
+        const bc = it.barcode || lookupBarcode(it.kode) || '-';
         return `<div class="plakat-item-block">
           <div class="iname">${startIdx + j + 1}. ${esc(it.nama || '-')}</div>
-          <div class="imeta">Kode Barang: <b>${esc(it.kode || '-')}</b> · Qty: <b>${esc(qty)}</b><br>Vendor: ${esc(vendor)} · PIC: ${esc(pic)} · ${esc(kond)}${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
+          <div class="imeta">Kode: <b>${esc(it.kode || '-')}</b> · BC: ${esc(bc)} · Qty: <b>${esc(qty)}</b><br>
+          Vendor: ${esc(vendor)} · PIC: ${esc(pic)} · <b>${esc(kond)}</b>${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
         </div>`;
       }).join('');
       const anyBad = group.some(it => (it.kondisi || 'Bad') !== 'Good');
       const title = anyBad ? 'KARANTINA' : 'RETUR';
-      return `<div class="plakat-card combo ${group.length === total ? 'all-items' : ''}>
-        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+      const isFull = mode === 'all' || group.length === total;
+      return `<div class="plakat-card combo ${isFull ? 'all-items' : ''}">
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div><div></div></div>
         <div class="plakat-body">
           <div class="plakat-row"><span class="lbl">No. Nota</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
           <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
@@ -5415,15 +5430,20 @@ function openNotaModal(nota, isHistory) {
 
     const pages = [];
     let idx = 0;
-    for (let i = 0; i < groups.length; i += 2) {
-      const g1 = groups[i], g2 = groups[i + 1];
-      let inner = g1.length === 1 && mode === 'single' ? oneCard(g1[0], idx) : groupCard(g1, idx);
-      idx += g1.length;
-      if (g2) {
-        inner += '<div class="plakat-cut"></div>' + (g2.length === 1 && mode === 'single' ? oneCard(g2[0], idx) : groupCard(g2, idx));
-        idx += g2.length;
+    // Mode "all" = 1 kartu penuh 1 halaman; mode single = 2 kartu per halaman
+    if (mode === 'all') {
+      pages.push(`<div class="plakat-page single full-page">${groupCard(groups[0] || items, 0)}</div>`);
+    } else {
+      for (let i = 0; i < groups.length; i += 2) {
+        const g1 = groups[i], g2 = groups[i + 1];
+        let inner = g1.length === 1 ? oneCard(g1[0], idx) : groupCard(g1, idx);
+        idx += g1.length;
+        if (g2) {
+          inner += '<div class="plakat-cut"></div>' + (g2.length === 1 ? oneCard(g2[0], idx) : groupCard(g2, idx));
+          idx += g2.length;
+        }
+        pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
       }
-      pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
     }
     return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
   }
@@ -7518,9 +7538,14 @@ function enterApp() {
   $('#authScreen').classList.add('hidden');
   $('#appShell').style.display = 'flex';
   if (state.user) state.user.role = normalizeRole(state.user.role);
-  $('#userName').textContent = state.user.name;
-  $('#userRole').textContent = currentRole();
-  $('#userAvatar').textContent = (state.user.name||'U')[0].toUpperCase();
+  // Tampilkan nama dari profil Firebase; jika kosong pakai username login
+  const displayName = (state.user.name || '').trim() || state.user.username || state.user.email || 'User';
+  const uname = (state.user.username || '').trim();
+  $('#userName').textContent = displayName;
+  // Role + username agar jelas akun mana yang login (mis. QCSNACKLBI)
+  const roleLabel = currentRole() + (uname ? ' · ' + uname : '');
+  $('#userRole').textContent = roleLabel;
+  $('#userAvatar').textContent = (displayName || 'U')[0].toUpperCase();
   $('#dcBadge').textContent = state.dcName;
   applyMenuVisibility();
   if (window.lucide) lucide.createIcons();
