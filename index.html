@@ -347,9 +347,37 @@ table.data-table .actions { display: flex; gap: 4px; }
   padding: 0 20px 12px;
 }
 .modal-header h3 { font-size: 16px; font-weight: 700; }
+.modal-header-dark {
+  background: #0f172a; color: #fff; margin: 0 -0px; padding: 14px 20px;
+  border-radius: 0; margin-bottom: 8px;
+}
+.modal-header-dark h3 { color: #fff; font-size: 15px; }
+.modal-sheet-wide { max-width: 720px; }
 .modal-body { padding: 0 20px; }
 .modal-footer {
   padding: 16px 20px 0; display: flex; gap: 8px; flex-wrap: wrap;
+}
+.view-tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin: 12px 0 14px;
+}
+.view-tab {
+  padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+  color: var(--text-muted); transition: all .15s; font-family: inherit;
+}
+.view-tab.active {
+  background: #0f766e; color: #fff; border-color: #0f766e;
+}
+.view-tab[data-view="plakat"].active {
+  background: #f59e0b; color: #111; border-color: #f59e0b;
+}
+.plakat-format-bar {
+  background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 12px;
+}
+.plakat-format-label {
+  font-size: 12.5px; font-weight: 700; color: #92400e; margin-bottom: 8px;
 }
 @media (min-width: 700px) {
   .modal-backdrop { align-items: center; padding: 20px; }
@@ -508,107 +536,60 @@ table.data-table .actions { display: flex; gap: 4px; }
 .nota-item-picker .picker-row .nm { font-weight: 600; line-height: 1.3; }
 .nota-item-picker .picker-row .meta { color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }
 
-/* Plakat A4 — default 2 plakat / 1 kertas (potong di garis putus) */
-.plakat-sheet {
-  display: none;
-  background: #fff;
-}
-.plakat-page {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 277mm; /* A4 - margin ~10mm */
-  display: flex;
-  flex-direction: column;
-  page-break-after: always;
-  break-after: page;
-}
-.plakat-page:last-child { page-break-after: auto; break-after: auto; }
-.plakat-card {
-  border: 3px solid #111;
-  background: #fff;
-  overflow: hidden;
-  box-sizing: border-box;
-  flex: 1 1 50%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.plakat-page.single .plakat-card { flex: 1 1 100%; }
-.plakat-cut {
-  flex: 0 0 auto;
-  height: 0;
-  border: none;
-  border-top: 2px dashed #666;
-  margin: 3mm 0;
-  position: relative;
-}
-.plakat-cut::after {
-  content: '✂ potong di sini';
-  position: absolute;
-  left: 50%;
-  top: -0.7em;
-  transform: translateX(-50%);
-  background: #fff;
-  color: #666;
-  font-size: 10px;
-  padding: 0 8px;
-  letter-spacing: 0.3px;
-}
-.plakat-head {
-  background: #ffe600;
-  border-bottom: 3px solid #111;
-  padding: 8px 12px;
-  text-align: center;
-  flex: 0 0 auto;
-}
-.plakat-head .pt { font-size: 12px; font-weight: 700; text-align: left; margin-bottom: 2px; }
-.plakat-head .title {
-  font-weight: 900; letter-spacing: 1px; line-height: 1.15;
-  text-transform: uppercase; font-size: 28px;
-}
-.plakat-body {
-  padding: 10px 14px 12px;
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-evenly;
-}
-.plakat-row {
-  display: grid;
-  grid-template-columns: minmax(100px, 30%) 12px 1fr;
-  gap: 2px 6px;
-  align-items: baseline;
-  margin: 0;
-  border-bottom: 1px solid #e5e5e5;
-  padding: 4px 0;
-  font-size: 15px;
-}
-.plakat-row:last-of-type { border-bottom: none; }
-.plakat-row .lbl { font-weight: 600; font-size: 13px; }
-.plakat-row .sep { font-weight: 700; }
-.plakat-row .val { font-weight: 800; word-break: break-word; }
-.plakat-foot {
-  margin-top: 6px; padding-top: 4px; border-top: 2px dashed #999;
-  font-size: 10px; color: #444; text-align: center; flex: 0 0 auto;
-}
-
-/* 1 item saja di kertas → font lebih besar */
-.plakat-page.single .plakat-head .title { font-size: 40px; }
-.plakat-page.single .plakat-row { font-size: 20px; padding: 8px 0; }
-.plakat-page.single .plakat-row .lbl { font-size: 16px; }
-.plakat-page.single .plakat-head { padding: 14px 18px; }
-.plakat-page.single .plakat-body { padding: 16px 18px; }
-
-/* Mode 2 item dalam 1 plakat (gabungan) */
-.plakat-card.combo .plakat-items { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.plakat-card.combo .plakat-item-block {
-  border: 1.5px solid #333; border-radius: 4px; padding: 6px 8px;
-}
-.plakat-card.combo .plakat-item-block .iname {
-  font-weight: 900; font-size: 16px; margin-bottom: 4px;
-}
-.plakat-card.combo .plakat-item-block .imeta {
-  font-size: 12px; line-height: 1.35;
+/* ==================== PLAKAT A4 — STABLE PRINT ENGINE ==================== */
+.plakat-sheet{display:none;background:#fff;color:#111;box-sizing:border-box;width:100%;}
+.plakat-page{box-sizing:border-box;width:100%;height:277mm;min-height:277mm;display:flex;flex-direction:column;gap:0;page-break-after:always;break-after:page;background:#fff;overflow:hidden;}
+.plakat-page:last-child{page-break-after:auto;break-after:auto;}
+.plakat-page.full-page{height:277mm;min-height:277mm;}
+.plakat-card{border:2px solid #111;background:#fff;overflow:hidden;box-sizing:border-box;flex:1 1 50%;min-height:0;display:flex;flex-direction:column;border-radius:0;}
+.plakat-page.full-page .plakat-card{flex:1 1 100%;}
+.plakat-cut{height:0;flex:0 0 0;border-top:2px dashed #777;position:relative;margin:0;}
+.plakat-cut::after{content:'✂  POTONG DI SINI';position:absolute;left:50%;top:-8px;transform:translateX(-50%);background:#fff;color:#555;font-size:9px;padding:0 8px;font-weight:700;letter-spacing:.4px;white-space:nowrap;}
+.plakat-head{background:#ffbd00;border-bottom:2px solid #111;padding:7px 10px;text-align:center;flex:0 0 auto;display:grid;grid-template-columns:1fr 1.5fr 1fr;align-items:center;min-height:38px;}
+.plakat-head .pt{font-size:10px;font-weight:800;text-align:left;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plakat-head .title{font-weight:950;letter-spacing:1.4px;line-height:1.05;text-transform:uppercase;font-size:20px;}
+.plakat-body{padding:8px 12px 7px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;min-height:0;}
+.plakat-row{display:grid;grid-template-columns:112px 10px minmax(0,1fr);gap:2px 5px;align-items:start;margin:0;border-bottom:1px solid #e3e3e3;padding:4px 0;font-size:12px;line-height:1.2;}
+.plakat-row .lbl{font-weight:700;font-size:11px;}
+.plakat-row .sep{font-weight:800;}
+.plakat-row .val{font-weight:800;word-break:break-word;overflow-wrap:anywhere;min-width:0;}
+.plakat-foot{margin-top:auto;padding-top:5px;border-top:1px dashed #777;font-size:8.5px;color:#444;text-align:center;flex:0 0 auto;line-height:1.1;}
+.plakat-page.single .plakat-head .title{font-size:28px;}
+.plakat-page.single .plakat-row{font-size:15px;padding:6px 0;}
+.plakat-page.single .plakat-row .lbl{font-size:12px;}
+.plakat-page.single .plakat-head{padding:10px 14px;min-height:48px;}
+.plakat-page.single .plakat-body{padding:12px 16px 10px;}
+.plakat-page.full-page .plakat-head .title{font-size:42px;}
+.plakat-page.full-page .plakat-row{font-size:20px;padding:9px 0;}
+.plakat-page.full-page .plakat-row .lbl{font-size:16px;}
+.plakat-page.full-page .plakat-head{padding:14px 18px;min-height:66px;}
+.plakat-page.full-page .plakat-body{padding:18px 22px 14px;}
+.plakat-card.combo .plakat-items{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;overflow:hidden;}
+.plakat-card.combo .plakat-item-block{border:1px solid #333;border-radius:3px;padding:5px 7px;min-height:0;overflow:hidden;}
+.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:12px;margin-bottom:3px;line-height:1.15;overflow-wrap:anywhere;}
+.plakat-card.combo .plakat-item-block .imeta{font-size:9.5px;line-height:1.25;overflow-wrap:anywhere;}
+.plakat-card.all-items .plakat-item-block{padding:3px 5px;}
+.plakat-card.all-items .plakat-item-block .iname{font-size:10.5px;}
+.plakat-card.all-items .plakat-item-block .imeta{font-size:8.5px;}
+.plakat-card.all-items .plakat-items{gap:2px;}
+.plakat-card.all-items .plakat-row{font-size:10px;padding:3px 0;}
+.plakat-preview-frame{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:14px;overflow:auto;}
+.plakat-preview-frame .plakat-sheet{display:block!important;width:210mm;max-width:none;margin:0 auto;transform-origin:top center;}
+.plakat-preview-frame .plakat-page{box-shadow:0 2px 10px rgba(15,23,42,.12);margin-bottom:12px;}
+.plakat-control-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;}
+.plakat-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.plakat-toggle button{min-height:42px;border:1px solid #d1d5db;background:#fff;border-radius:10px;font-weight:800;color:#475569;cursor:pointer;}
+.plakat-toggle button.active{background:#ffb800;border-color:#f59e0b;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.08);}
+.plakat-toggle.teal button.active{background:#0f8b83;border-color:#0f766e;color:#fff;}
+.plakat-helper{font-size:11px;color:var(--text-muted);margin-top:6px;}
+@media print{
+  body.print-plakat .plakat-card.all-items{min-height:0;}
+  body.print-plakat .plakat-sheet{display:block!important;width:100%;}
+  body.print-plakat .plakat-page{height:277mm;min-height:277mm;}
+  body.print-plakat .plakat-page.full-page{height:277mm;min-height:277mm;}
+  body.print-plakat .plakat-card{border:2px solid #000!important;border-radius:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body.print-plakat .plakat-head{background:#ffbd00!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body.print-plakat .plakat-cut::after{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
 
 /* Checkbox pilih export */
@@ -752,13 +733,40 @@ table.data-table .actions { display: flex; gap: 4px; }
 /* Auth Screen */
 #authScreen {
   position: fixed; inset: 0; z-index: 500;
-  background: linear-gradient(145deg, #0f172a 0%, #0f766e 100%);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(15, 118, 110, 0.75)), 
+              url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><pattern id="warehouse" patternUnits="userSpaceOnUse" width="1200" height="800"><rect width="1200" height="800" fill="%230f172a"/></pattern></defs><rect width="1200" height="800" fill="url(%23warehouse)"/></svg>');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  display: flex; align-items: center; justify-content: center; 
+  padding: 20px; min-height: 100vh;
+  font-family: var(--font);
 }
+
+/* Background image untuk desktop — dilokalisir di folder yang sama dengan index.html */
+@supports (background-image: url('warehouse-bg.png')) {
+  #authScreen {
+    background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.72), rgba(15, 118, 110, 0.68)), 
+                      url('warehouse-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+}
+
 #authScreen.hidden { display: none; }
+
 .auth-card {
   background: #fff; border-radius: 16px; padding: 28px 24px;
-  width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  width: 100%; max-width: 400px; 
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 0 100px rgba(15, 118, 110, 0.2);
+  backdrop-filter: blur(2px);
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .auth-card h1 { font-size: 20px; text-align: center; margin-bottom: 4px; }
 .auth-card .sub { text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
@@ -1142,6 +1150,7 @@ table.data-table .actions { display: flex; gap: 4px; }
                 <option value="soon">Soon ≤30h</option>
                 <option value="ok">OK</option>
               </select>
+              <button class="btn btn-outline btn-sm" id="auditCurrentPlakatBtn">🟨 Cetak Plakat</button>
               <button class="btn btn-danger-outline btn-sm" id="clearAuditBtn">Kosongkan</button>
             </div>
           </div>
@@ -1180,67 +1189,55 @@ table.data-table .actions { display: flex; gap: 4px; }
       <div class="page" id="page-cetak-plakat">
         <div class="card">
           <div class="card-header">
-            <h2>Cetak Plakat Serbaguna</h2>
-            <span class="badge badge-info">A4 · 2 plakat/kertas</span>
+            <div><h2>Cetak Plakat Barang Gudang Standar</h2><div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Pilih template, masukkan daftar barang, dan cetak plakat standar gudang (A4 Ready).</div></div>
+            <span class="badge badge-success">A4 Ready</span>
           </div>
           <div class="card-body">
-            <div class="form-row">
-              <div class="form-group">
-                <label>Template</label>
-                <select id="plkTemplate">
-                  <option value="karantina">Karantina / Retur</option>
-                  <option value="kedatangan">Kedatangan Barang</option>
-                  <option value="exp">Audit EXP</option>
-                  <option value="custom">Custom (bebas)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Judul Plakat (bisa diedit)</label>
-                <input type="text" id="plkTitle" value="KARANTINA" placeholder="Contoh: KARANTINA / KEDATANGAN / RETUR">
-              </div>
+            <div class="plakat-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-primary plk-template-tab active" data-template="karantina">Karantina</button>
+              <button type="button" class="btn btn-sm btn-outline plk-template-tab" data-template="kedatangan">Kedatangan</button>
+              <button type="button" class="btn btn-sm btn-outline plk-template-tab" data-template="exp">Audit EXP</button>
+              <button type="button" class="btn btn-sm btn-outline plk-template-tab" data-template="custom">Custom</button>
             </div>
+            <select id="plkTemplate" style="display:none;">
+              <option value="karantina">Karantina / Retur</option><option value="kedatangan">Kedatangan Barang</option><option value="exp">Audit EXP</option><option value="custom">Custom</option>
+            </select>
             <div class="form-row">
-              <div class="form-group">
-                <label>Sub judul / DC</label>
-                <input type="text" id="plkSub" placeholder="Nama DC / gudang">
-              </div>
-              <div class="form-group">
-                <label>Layout cetak</label>
-                <select id="plkLayout">
-                  <option value="pair">2 plakat per A4 (1 item = 1 label)</option>
-                  <option value="combo">2 item digabung 1 plakat</option>
-                  <option value="single">1 plakat penuh per A4</option>
-                </select>
-              </div>
+              <div class="form-group"><label>Judul Utama Plakat</label><input type="text" id="plkTitle" value="KARANTINA" placeholder="KARANTINA"></div>
+              <div class="form-group"><label>Sub Judul / Gudang DC</label><input type="text" id="plkSub" placeholder="DC INDUK"></div>
             </div>
+            <div class="plakat-control-card">
+              <label style="font-weight:800;display:block;margin-bottom:7px;">Format Tampilan Plakat</label>
+              <div class="plakat-toggle" id="plkFormatToggle">
+                <button type="button" data-mode="single" class="active">🏷️ Pisah (1 Plakat / Item)</button>
+                <button type="button" data-mode="all">📚 Gabung (1 Plakat All-Item)</button>
+              </div>
+              <div class="plakat-helper">Pisah = setiap item menjadi 1 plakat. Gabung = semua item menjadi 1 plakat.</div>
+            </div>
+            <div class="plakat-control-card">
+              <label style="font-weight:800;display:block;margin-bottom:7px;">Layout Kertas Cetak A4</label>
+              <div class="plakat-toggle teal" id="plkPaperToggle">
+                <button type="button" data-paper="half" class="active">📄 2 Plakat / Lembar A4</button>
+                <button type="button" data-paper="full">📄 1 Plakat Full / A4</button>
+              </div>
+              <div class="plakat-helper">Ukuran otomatis dikunci agar 1 item tidak melebar/acak saat dicetak.</div>
+            </div>
+            <input type="hidden" id="plkLayout" value="single">
+            <input type="hidden" id="plkPaperLayout" value="half">
             <div class="form-group">
-              <label>Cari & pilih produk dari master</label>
-              <div style="position:relative;">
-                <input type="text" id="plkSearch" placeholder="Ketik nama / kode / barcode…" autocomplete="off">
-                <div class="suggest-list" id="plkSuggest" style="display:none;"></div>
-              </div>
+              <label>Cari & Pilih Barang dari Master Data</label>
+              <div style="position:relative;"><input type="text" id="plkSearch" placeholder="Ketik nama barang, kode, barcode, atau vendor…" autocomplete="off"><div class="suggest-list" id="plkSuggest" style="display:none;"></div></div>
+              <div class="btn-group" style="margin-top:7px;"><button type="button" class="btn btn-outline btn-sm" id="plkPickMaster">☑ Pilih Banyak / Semua dari Master</button></div>
             </div>
             <div id="plkSelectedBox" class="nota-item-picker" style="margin-top:8px;">
-              <div class="picker-head">
-                <div class="picker-head-top">
-                  <div>
-                    <strong style="font-size:13px;">Item di plakat</strong>
-                    <div class="sel-count" id="plkCount">0 item</div>
-                  </div>
-                  <div class="picker-actions">
-                    <button type="button" class="btn btn-sm btn-outline" id="plkClear">✕ Kosongkan</button>
-                  </div>
-                </div>
-              </div>
-              <div id="plkItemList"><div class="empty-state" style="padding:20px;"><p>Pilih produk dari pencarian di atas</p></div></div>
+              <div class="picker-head"><div class="picker-head-top"><div><strong style="font-size:13px;">Daftar Barang Terpilih</strong><div class="sel-count" id="plkCount">0 barang</div></div><div class="picker-actions"><button type="button" class="btn btn-sm btn-outline" id="plkClear">✕ Kosongkan</button></div></div></div>
+              <div id="plkItemList"><div class="empty-state" style="padding:20px;"><p>Belum ada barang dipilih. Gunakan pencarian di atas untuk menambahkan barang ke plakat.</p></div></div>
             </div>
-            <div class="form-group" style="margin-top:12px;">
-              <label>Field tambahan (opsional, satu baris = satu field, format: Label|Nilai)</label>
-              <textarea id="plkExtra" rows="3" placeholder="Contoh:&#10;No. Surat Jalan|SJ-001&#10;Supir|Budi&#10;Keterangan|Segera proses"></textarea>
-            </div>
-            <div class="btn-group" style="margin-top:8px;flex-wrap:wrap;">
-              <button class="btn btn-primary" id="plkPrintBtn">🟨 Cetak Plakat A4</button>
-              <button class="btn btn-outline" id="plkPreviewBtn">👁 Pratinjau</button>
+            <div class="form-group" style="margin-top:12px;"><label>Catatan Tambahan (opsional)</label><textarea id="plkExtra" rows="2" placeholder="Contoh: Surat Jalan|SJ-001"></textarea></div>
+            <div class="btn-group" style="margin-top:8px;flex-wrap:wrap;"><button class="btn btn-primary" id="plkPrintBtn">🖨 Cetak Plakat A4</button><button class="btn btn-outline" id="plkPreviewBtn">👁 Pratinjau Layar</button></div>
+            <div class="plakat-preview-frame" id="plkLivePreviewWrap">
+              <div style="font-weight:800;font-size:13px;margin-bottom:8px;">👁 Live Pratinjau Standar Gudang (A4) <span style="font-weight:400;color:var(--text-muted);">Sesuai dengan hasil cetakan printer</span></div>
+              <div id="plkLivePreview"><div class="empty-state" style="padding:30px;"><div class="ico">📄</div><h3>Pratinjau Plakat Kosong</h3><p>Pilih barang di atas untuk melihat tampilan plakat standar gudang.</p></div></div>
             </div>
           </div>
         </div>
@@ -1671,12 +1668,10 @@ const state = {
   pendingDeletes: {}
 };
 
-// Default seed data + system key
-const SYSTEM_KEY_USERNAME = 'QCSNACKLBI';
-const SYSTEM_KEY_PASSWORD = 'snack10';
-const DEFAULT_USERS = [
-  { id:'u-admin', name:'QC Snack Admin', username: SYSTEM_KEY_USERNAME, password: SYSTEM_KEY_PASSWORD, role:'Administrator', status:'active', isSystemKey:true }
-];
+// Default seed data + admin Firebase
+const DEFAULT_USERS = [];
+// SECURITY: authentication is handled exclusively by Firebase Authentication.
+// Never place administrator credentials or passwords in client-side source code.
 
 // Firebase
 const firebaseConfig = {
@@ -1730,8 +1725,9 @@ function syncStatus(msg) {
 }
 
 function requireServer(silent) {
-  if (firebaseReady && db) return true;
-  if (!silent) showToast('⚠ Server Firebase tidak terhubung — login & internet wajib. Data tidak bisa disimpan.');
+  const ok = !!(firebaseReady && db && auth && auth.currentUser && state.user && !state.user.locked && currentRole() !== 'pending');
+  if (ok) return true;
+  if (!silent) showToast('⚠ Sesi Firebase tidak valid / server tidak terhubung. Silakan login ulang.');
   return false;
 }
 
@@ -2299,13 +2295,11 @@ function toFirestoreRole(role) {
 
 function currentRole() {
   if (!state.user) return 'pending';
-  if (state.user.isSystemKey) return 'Administrator';
   return normalizeRole(state.user.role);
 }
 
 function isAdmin() {
   if (!state.user || state.user.locked) return false;
-  if (state.user.isSystemKey) return true;
   return currentRole() === 'Administrator';
 }
 function isApproved() {
@@ -2314,14 +2308,12 @@ function isApproved() {
 
 function canAccessPage(page) {
   if (!state.user) return false;
-  if (state.user.isSystemKey) return true;
   const pages = ROLE_PAGES[currentRole()] || ROLE_PAGES['Viewer'];
   return pages.includes(page);
 }
 
 function can(action) {
   if (!state.user) return action === 'view';
-  if (state.user.isSystemKey) return true;
   if (state.user.locked || currentRole() === 'pending') return action === 'view';
   const r = ROLES[currentRole()] || ROLES['Viewer'];
   if (action === 'export') return r.canExport;
@@ -3636,23 +3628,43 @@ function renderAuditHistory() {
       if (s.days < 0) expired++;
       else if (s.days <= 7) urgent++;
     });
+    const itemsPreview = (h.items || []).slice(0, 4).map((it, idx) => {
+      const s = getExpStatus(it.expDate);
+      return `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <span><b>${idx+1}. ${esc(it.nama)}</b> <span style="color:var(--text-muted);font-size:11px;">(${esc(it.kode||'-')})</span></span>
+        <span style="white-space:nowrap;">${esc(it.qty||0)} ${esc(it.satuan||'PCS')} · ${it.rak ? 'Rak: '+esc(it.rak)+' · ' : ''}<span class="badge ${s.cls}">${s.label}</span></span>
+      </div>`;
+    }).join('');
+    const more = (h.items || []).length > 4 ? `<div style="font-size:11px;color:var(--text-muted);padding-top:4px;">+${(h.items||[]).length - 4} item lainnya…</div>` : '';
+    const safe = (h.items || []).filter(it => { const s = getExpStatus(it.expDate); return s.days > 7; }).length;
     html += `
-      <div class="list-item">
-        <input type="checkbox" class="sel-check audit-sel" value="${esc(h.id)}" onchange="updateAuditSelCount()">
-        <div class="info">
-          <div class="nm">Sesi Audit · ${esc(h.tanggalLabel || h.tanggal)}</div>
-          <div class="meta">${(h.items || []).length} item · qty ${qty}${h.user ? ' · oleh ' + esc(h.user) : ''}${h.dcName ? ' · ' + esc(h.dcName) : ''}</div>
-          <div class="meta" style="margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;">
-            ${expired ? `<span class="badge badge-danger">Expired ${expired}</span>` : ''}
-            ${urgent ? `<span class="badge badge-warning">Urgent ${urgent}</span>` : ''}
-            <span class="badge badge-muted">${(h.items || []).length} produk</span>
+      <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden;">
+        <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+          <input type="checkbox" class="sel-check audit-sel" value="${esc(h.id)}" onchange="updateAuditSelCount()" style="margin-top:4px;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <strong style="font-size:13.5px;">NOTA AUDIT EXP</strong>
+              <span class="badge badge-success">TERSIMPAN</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
+              📅 ${esc(h.tanggalLabel || h.tanggal)}${h.user ? ' · Auditor: ' + esc(h.user) : ''}${h.dcName ? ' · DC: ' + esc(h.dcName) : ''}
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="viewAuditSession('${esc(h.id)}')">👁 Pratinjau / Cetak</button>
+              <button class="btn btn-outline btn-sm" onclick="loadAuditToDraft('${esc(h.id)}')">⬇ Muat ke Draft</button>
+              <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','pdf')">📑 PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','xlsx')">📊 Excel</button>
+            </div>
           </div>
         </div>
-        <div class="actions" style="flex-wrap:wrap;">
-          <button class="btn btn-outline btn-sm" onclick="viewAuditSession('${esc(h.id)}')" title="Pratinjau & cetak">👁 Pratinjau</button>
-          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','pdf')" title="PDF A4">📑 PDF</button>
-          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','png')" title="PNG A4">🖼 PNG</button>
-          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','xlsx')" title="Excel">📊 Excel</button>
+        <div style="padding:10px 14px;background:#fafbfc;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <span class="badge badge-info">Total ${(h.items||[]).length} Produk</span>
+            ${safe ? `<span class="badge badge-success">${safe} Safe</span>` : ''}
+            ${urgent ? `<span class="badge badge-warning">Urgent ${urgent}</span>` : ''}
+            ${expired ? `<span class="badge badge-danger">Expired ${expired}</span>` : ''}
+          </div>
+          ${itemsPreview}${more}
         </div>
       </div>`;
   });
@@ -3666,17 +3678,26 @@ function renderAuditHistory() {
 
 
 /** Modal pratinjau sesi audit — setara openNotaModal (pilih item, cetak, plakat) */
+function lookupBarcode(kode) {
+  if (!kode) return '';
+  const k = String(kode).trim().toLowerCase();
+  const p = (state.products || []).find(x => String(x.kode || '').trim().toLowerCase() === k);
+  return p ? (p.barcode || (Array.isArray(p.barcodes) && p.barcodes[0]) || '') : '';
+}
+
 function openAuditModal(session) {
   const root = $('#modalRoot');
   if (!root || !session) return;
   const allItems = (session.items || []).slice();
   const selectedIds = new Set(allItems.map((it, i) => String(it.id || ('aidx-' + i))));
   let pickerQuery = '';
+  let viewMode = 'struk'; // 'struk' | 'plakat'
+  let plakatMode = 'single'; // 'single' | 'all'
 
   function itemKey(it, i) { return String(it.id || ('aidx-' + i)); }
 
   function filteredItems() {
-    return allItems.filter((it, i) => selectedIds.has(itemKey(it, allItems.indexOf(it) >= 0 ? allItems.indexOf(it) : i)));
+    return allItems.filter((it, i) => selectedIds.has(itemKey(it, i)));
   }
 
   function densityClass(n) {
@@ -3696,11 +3717,11 @@ function openAuditModal(session) {
   function buildItemsHtml(items) {
     return items.map((c, i) => {
       const s = getExpStatus(c.expDate);
-      const kond = (c.kondisi || 'Good') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
+      const kond = (c.kondisi || 'Good') === 'Good' ? 'Good' : 'Jelek';
       return `<div class="rline">
         <div class="top"><span>${i+1}. ${esc(c.nama)}</span><span>${esc(c.qty)} ${esc(c.satuan||'PCS')}</span></div>
         <div class="sub">Kode: ${esc(c.kode||'-')} · Exp: <b>${esc(c.expDate||'-')}</b> · <span class="badge ${s.cls}">${s.label}</span></div>
-        <div class="sub">${kond}${c.rak ? ' · Rak: ' + esc(c.rak) : ''}</div>
+        <div class="sub">Rak: ${esc(c.rak||'-')} · Kondisi: ${esc(kond)}</div>
         ${c.catatan ? `<div class="sub" style="color:var(--danger);">Catatan: ${esc(c.catatan)}</div>` : ''}
       </div>`;
     }).join('');
@@ -3721,74 +3742,77 @@ function openAuditModal(session) {
         <input type="checkbox" class="nota-item-cb" data-key="${esc(key)}" ${checked}>
         <div>
           <div class="nm">${esc(it.nama)}</div>
-          <div class="meta">${esc(it.qty)} ${esc(it.satuan||'PCS')} · Exp ${esc(it.expDate||'-')} · ${s.label}</div>
+          <div class="meta">${esc(it.qty)} ${esc(it.satuan||'PCS')} · Exp ${esc(it.expDate||'-')} · ${s.label}${it.rak ? ' · Rak: ' + esc(it.rak) : ''}</div>
         </div>
       </label>`;
     }).join('');
   }
 
-  // Reuse plakat builder pattern locally for audit
   function buildAuditPlakatHtml(items, mode) {
-    mode = mode || 'pair';
+    mode = mode || 'single';
+    const groups = getPlakatGroups(items, mode);
     const n = items.length;
     const dc = session.dcName || state.dcName || 'DC';
-    const tgl = session.tanggalLabel || session.tanggal || '';
-    const nomor = session.id || '';
+    const tgl = session.tanggalLabel || session.tanggal || todayStr();
+    const judul = ($('#auditJudul')?.value || session.judul || 'NOTA AUDIT EXP').trim() || 'NOTA AUDIT EXP';
 
-    function oneCard(it, i, total) {
+    function oneCard(it, i) {
       const s = getExpStatus(it.expDate);
       const kond = (it.kondisi || 'Good') === 'Good' ? 'BAGUS' : 'JELEK';
-      const title = s.days < 0 ? 'EXPIRED' : (s.days <= 7 ? 'URGENT EXP' : 'AUDIT EXP');
+      const bc = it.barcode || lookupBarcode(it.kode) || '-';
+      const expLabel = it.expDate ? `${esc(it.expDate)} (${esc(s.label)})` : '-';
       return `<div class="plakat-card">
-        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+        <div class="plakat-head">
+          <div class="pt">${esc(dc)}</div>
+          <div class="title">${esc(judul)}</div>
+          <div></div>
+        </div>
         <div class="plakat-body">
-          <div class="plakat-row"><span class="lbl">Nama Bahan</span><span class="sep">:</span><span class="val">${esc(it.nama||'-')}</span></div>
-          <div class="plakat-row"><span class="lbl">Kode Bahan</span><span class="sep">:</span><span class="val">${esc(it.kode||'-')}</span></div>
-          <div class="plakat-row"><span class="lbl">Tgl Expired</span><span class="sep">:</span><span class="val">${esc(it.expDate||'-')} (${esc(s.label)})</span></div>
+          <div class="plakat-row"><span class="lbl">Nama Barang</span><span class="sep">:</span><span class="val">${esc(it.nama||'-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Kode Barang</span><span class="sep">:</span><span class="val">${esc(it.kode||'-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(bc)}</span></div>
           <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val">${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</span></div>
-          <div class="plakat-row"><span class="lbl">Rak</span><span class="sep">:</span><span class="val">${esc(it.rak||'-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Lokasi Rak</span><span class="sep">:</span><span class="val">${esc(it.rak||'-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Tgl Expired</span><span class="sep">:</span><span class="val">${expLabel}</span></div>
           <div class="plakat-row"><span class="lbl">Kondisi</span><span class="sep">:</span><span class="val">${esc(kond)}</span></div>
-          <div class="plakat-row"><span class="lbl">Sesi Audit</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
+          <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
           ${it.catatan ? `<div class="plakat-row"><span class="lbl">Catatan</span><span class="sep">:</span><span class="val">${esc(it.catatan)}</span></div>` : ''}
-          <div class="plakat-foot">${i+1}/${total} · ${esc(dc)} · Tempel di kardus</div>
+          <div class="plakat-foot">${i+1} / ${n} · ${esc(dc)} · Tempel di kardus</div>
         </div>
       </div>`;
     }
 
-    function comboLike(pair, startIdx) {
-      const blocks = pair.map((it, j) => {
+    function groupCard(group, startIdx) {
+      const blocks = group.map((it,j) => {
         const s = getExpStatus(it.expDate);
+        const bc = it.barcode || lookupBarcode(it.kode) || '-';
         return `<div class="plakat-item-block">
           <div class="iname">${startIdx+j+1}. ${esc(it.nama||'-')}</div>
-          <div class="imeta">Kode: <b>${esc(it.kode||'-')}</b> · Qty: <b>${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</b><br>
-          Exp: ${esc(it.expDate||'-')} (${esc(s.label)}) · Rak: ${esc(it.rak||'-')}</div>
+          <div class="imeta">Kode: <b>${esc(it.kode||'-')}</b> · BC: ${esc(bc)} · Qty: <b>${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</b><br>
+          Exp: ${esc(it.expDate||'-')} (${esc(s.label)}) · Rak: ${esc(it.rak||'-')} · ${(it.kondisi||'Good')==='Good'?'BAGUS':'JELEK'}</div>
         </div>`;
       }).join('');
-      return `<div class="plakat-card combo">
-        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">AUDIT EXP</div></div>
+      return `<div class="plakat-card combo ${group.length===n?'all-items':''}">
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(judul)}</div><div></div></div>
         <div class="plakat-body">
-          <div class="plakat-row"><span class="lbl">Sesi</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
+          <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
           <div class="plakat-items">${blocks}</div>
-          <div class="plakat-foot">${pair.length} item · ${esc(dc)}</div>
+          <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
         </div>
       </div>`;
     }
+
     const pages = [];
-    if (mode === 'combo') {
-      const combos = [];
-      for (let i = 0; i < items.length; i += 2) combos.push({ pair: items.slice(i, i+2), start: i });
-      for (let i = 0; i < combos.length; i += 2) {
-        const c1 = combos[i], c2 = combos[i+1];
-        let inner = comboLike(c1.pair, c1.start);
-        if (c2) inner += '<div class="plakat-cut"></div>' + comboLike(c2.pair, c2.start);
-        pages.push(`<div class="plakat-page${c2?'':' single'}">${inner}</div>`);
+    let idx = 0;
+    for (let i = 0; i < groups.length; i += 2) {
+      const g1 = groups[i], g2 = groups[i + 1];
+      let inner = (g1.length === 1 && mode === 'single') ? oneCard(g1[0], idx) : groupCard(g1, idx);
+      idx += g1.length;
+      if (g2) {
+        inner += '<div class="plakat-cut"></div>' + ((g2.length === 1 && mode === 'single') ? oneCard(g2[0], idx) : groupCard(g2, idx));
+        idx += g2.length;
       }
-    } else {
-      for (let i = 0; i < items.length; i += 2) {
-        let inner = oneCard(items[i], i, n);
-        if (items[i+1]) inner += '<div class="plakat-cut"></div>' + oneCard(items[i+1], i+1, n);
-        pages.push(`<div class="plakat-page${items[i+1]?'':' single'}">${inner}</div>`);
-      }
+      pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
     }
     return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
   }
@@ -3796,59 +3820,77 @@ function openAuditModal(session) {
   const initItems = filteredItems();
   root.innerHTML = `
     <div class="modal-backdrop" id="auditBackdrop">
-      <div class="modal-sheet">
+      <div class="modal-sheet modal-sheet-wide">
         <div class="handle"></div>
-        <div class="modal-header">
-          <h3>Pratinjau Sesi Audit</h3>
-          <button class="btn btn-icon btn-outline" id="auditClose">✕</button>
+        <div class="modal-header modal-header-dark">
+          <h3>📋 Pratinjau Riwayat Sesi Audit EXP</h3>
+          <button class="btn btn-icon btn-outline" id="auditClose" style="color:#fff;border-color:rgba(255,255,255,.3);">✕</button>
         </div>
         <div class="modal-body">
           <div class="form-group no-print">
-            <label>Judul (opsional)</label>
+            <label>Judul Sesi Audit (opsional)</label>
             <input type="text" id="auditJudul" value="${esc(session.judul || 'NOTA AUDIT EXP')}" placeholder="NOTA AUDIT EXP">
           </div>
           <div class="nota-item-picker no-print" id="auditItemPicker">
             <div class="picker-head">
               <div class="picker-head-top">
                 <div>
-                  <strong style="font-size:13px;">Pilih item ditampilkan / dicetak</strong>
-                  <div class="sel-count" id="auditSelCountModal">${selectedIds.size} / ${allItems.length} dipilih</div>
+                  <strong style="font-size:13px;">Pilih item audit yang ingin dicetak / diexport</strong>
+                  <div class="sel-count" id="auditSelCountModal">${selectedIds.size} / ${allItems.length} item dipilih</div>
                 </div>
                 <div class="picker-actions">
                   <button type="button" class="btn btn-sm btn-outline" id="auditSelAllM">✓ Semua</button>
                   <button type="button" class="btn btn-sm btn-outline" id="auditSelNoneM">✕ Kosong</button>
-                  <button type="button" class="btn btn-sm btn-outline" id="auditSelVisM">✓ Hasil cari</button>
+                  <button type="button" class="btn btn-sm btn-outline" id="auditSelVisM">✓ Hasil Cari</button>
                 </div>
               </div>
               <div class="picker-search">
-                <input type="text" id="auditItemSearch" placeholder="Cari nama, kode, exp, rak…" autocomplete="off">
+                <input type="text" id="auditItemSearch" placeholder="Cari item di dalam sesi (nama, kode, rak)…" autocomplete="off">
               </div>
             </div>
             <div class="picker-list" id="auditPickerList">${buildPickerRowsHtml()}</div>
           </div>
-          <div class="receipt ${densityClass(initItems.length)}" id="printArea">
-            <div class="brand">
-              <div class="title" id="auditReceiptTitle">${esc(session.judul || 'NOTA AUDIT EXP')}</div>
-              <div class="sub">${esc(session.dcName || state.dcName || '')}</div>
-            </div>
-            <hr>
-            <div class="meta-row"><span>Sesi</span><b>${esc(session.tanggalLabel || session.tanggal || '')}</b></div>
-            <div class="meta-row"><span>Oleh</span><b>${esc(session.user || '')}</b></div>
-            <div class="meta-row"><span>Item</span><b id="auditItemCount">${initItems.length} produk</b></div>
-            <hr>
-            <div id="auditItemsBody">${buildItemsHtml(initItems)}</div>
-            <hr>
-            <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;">Audit EXP · ${esc(session.dcName || '')}</div>
+
+          <div class="view-tabs no-print" id="auditViewTabs">
+            <button type="button" class="view-tab active" data-view="struk">📄 Struk Nota</button>
+            <button type="button" class="view-tab" data-view="plakat" id="auditTabPlakat">🏷️ Plakat Audit (${initItems.length})</button>
           </div>
-          <div id="plakatHost" class="no-print" style="display:none;"></div>
+
+          <div id="auditStrukPane">
+            <div class="receipt ${densityClass(initItems.length)}" id="printArea">
+              <div class="brand">
+                <div class="title" id="auditReceiptTitle">${esc(session.judul || 'NOTA AUDIT EXP')}</div>
+                <div class="sub">${esc(session.dcName || state.dcName || '')}</div>
+              </div>
+              <hr>
+              <div class="meta-row"><span>Sesi Audit</span><b>${esc(session.tanggalLabel || session.tanggal || '')}</b></div>
+              <div class="meta-row"><span>Auditor</span><b>${esc(session.user || '')}</b></div>
+              <div class="meta-row"><span>Total Item</span><b id="auditItemCount">${initItems.length} produk</b></div>
+              <hr>
+              <div id="auditItemsBody">${buildItemsHtml(initItems)}</div>
+              <hr>
+              <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;">Audit EXP · ${esc(session.dcName || '')} · ${esc(session.user || '')}</div>
+            </div>
+          </div>
+
+          <div id="auditPlakatPane" style="display:none;">
+            <div class="plakat-format-bar no-print">
+              <div class="plakat-format-label">🏷️ Format Tampilan Plakat Warning:</div>
+              <div class="plakat-toggle" id="auditPlakatToggle">
+                <button type="button" data-mode="single" class="active">🏷️ Pisah (${initItems.length} Label)</button>
+                <button type="button" data-mode="all">📚 Gabung (1 Plakat)</button>
+              </div>
+            </div>
+            <div class="plakat-preview-frame" id="auditPlakatPreview"></div>
+          </div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
-          <button class="btn btn-primary" id="auditCopy">📋 Salin WA</button>
+          <button class="btn btn-outline" id="auditCopy">📋 Salin WA</button>
           <button class="btn btn-outline" id="auditPdf">📑 PDF</button>
           <button class="btn btn-outline" id="auditPng">🖼 PNG</button>
           <button class="btn btn-outline" id="auditPrint">🖨 Cetak Nota</button>
-          <button class="btn btn-outline" id="auditPlakat">🟨 2 Plakat/A4</button>
-          <button class="btn btn-outline" id="auditPlakatCombo">🟨 2 Item/Plakat</button>
+          <button class="btn btn-primary" id="auditPlakatPrint" style="background:#f59e0b;border-color:#f59e0b;">🏷️ Cetak Plakat (Pisah)</button>
+          <button class="btn btn-outline" id="auditClose2">Tutup</button>
         </div>
       </div>
     </div>`;
@@ -3865,20 +3907,54 @@ function openAuditModal(session) {
     const list = $('#auditPickerList');
     if (list) { list.innerHTML = buildPickerRowsHtml(); rebind(); }
   }
+  function refreshPlakatPreview() {
+    const items = filteredItems();
+    const host = $('#auditPlakatPreview');
+    if (!host) return;
+    if (!items.length) {
+      host.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="ico">📄</div><h3>Tidak ada item dipilih</h3></div>';
+      return;
+    }
+    const html = buildAuditPlakatHtml(items, plakatMode);
+    host.innerHTML = html.replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"');
+    const btn = $('#auditPlakatPrint');
+    if (btn) btn.textContent = plakatMode === 'single' ? `🏷️ Cetak Plakat (Pisah)` : `🏷️ Cetak Plakat (Gabung)`;
+    const tab = $('#auditTabPlakat');
+    if (tab) tab.textContent = `🏷️ Plakat Audit (${items.length})`;
+    // update toggle labels
+    const tog = $('#auditPlakatToggle');
+    if (tog) {
+      const b1 = tog.querySelector('[data-mode="single"]');
+      const b2 = tog.querySelector('[data-mode="all"]');
+      if (b1) b1.textContent = `🏷️ Pisah (${items.length} Label)`;
+      if (b2) b2.textContent = `📚 Gabung (1 Plakat)`;
+    }
+  }
   function refresh() {
     const items = filteredItems();
     const body = $('#auditItemsBody');
     if (body) body.innerHTML = items.length ? buildItemsHtml(items) : '<div class="sub" style="padding:8px 0;color:var(--text-muted);">Tidak ada item dipilih</div>';
     if ($('#auditItemCount')) $('#auditItemCount').textContent = items.length + ' produk';
-    if ($('#auditSelCountModal')) $('#auditSelCountModal').textContent = selectedIds.size + ' / ' + allItems.length + ' dipilih';
+    if ($('#auditSelCountModal')) $('#auditSelCountModal').textContent = selectedIds.size + ' / ' + allItems.length + ' item dipilih';
     applyDensity(items.length);
     const t = $('#auditJudul')?.value || 'NOTA AUDIT EXP';
     const te = $('#auditReceiptTitle');
     if (te) te.textContent = t;
+    if (viewMode === 'plakat') refreshPlakatPreview();
+    const tab = $('#auditTabPlakat');
+    if (tab) tab.textContent = `🏷️ Plakat Audit (${items.length})`;
+  }
+  function setView(v) {
+    viewMode = v;
+    $$('#auditViewTabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+    if ($('#auditStrukPane')) $('#auditStrukPane').style.display = v === 'struk' ? 'block' : 'none';
+    if ($('#auditPlakatPane')) $('#auditPlakatPane').style.display = v === 'plakat' ? 'block' : 'none';
+    if (v === 'plakat') refreshPlakatPreview();
   }
 
   const close = () => { document.body.classList.remove('print-plakat'); root.innerHTML = ''; };
   $('#auditClose').onclick = close;
+  $('#auditClose2').onclick = close;
   $('#auditBackdrop').onclick = e => { if (e.target.id === 'auditBackdrop') close(); };
   rebind();
   $('#auditSelAllM')?.addEventListener('click', () => { allItems.forEach((it,i)=>selectedIds.add(itemKey(it,i))); refreshPicker(); refresh(); });
@@ -3893,6 +3969,17 @@ function openAuditModal(session) {
     clearTimeout(st); st = setTimeout(refreshPicker, 120);
   });
   $('#auditJudul')?.addEventListener('input', refresh);
+
+  $$('#auditViewTabs .view-tab').forEach(btn => {
+    btn.addEventListener('click', () => setView(btn.dataset.view));
+  });
+  $$('#auditPlakatToggle button[data-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      plakatMode = btn.dataset.mode || 'single';
+      $$('#auditPlakatToggle button[data-mode]').forEach(b => b.classList.toggle('active', b === btn));
+      refreshPlakatPreview();
+    });
+  });
 
   $('#auditCopy').onclick = () => {
     const items = filteredItems();
@@ -3921,46 +4008,45 @@ function openAuditModal(session) {
   $('#auditPng').onclick = () => {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
-    const area = $('#printArea');
-    if (area) ExportEngine.captureElementPNG(area, `Audit_${String(session.id||todayStr()).replace(/[^\w.-]+/g,'_')}.png`);
-    else exportOneAuditSession(session.id, 'png', items);
+    if (viewMode === 'plakat') {
+      const host = $('#auditPlakatPreview');
+      if (host) ExportEngine.captureElementPNG(host, `Plakat_Audit_${String(session.id||todayStr()).replace(/[^\w.-]+/g,'_')}.png`);
+    } else {
+      const area = $('#printArea');
+      if (area) ExportEngine.captureElementPNG(area, `Audit_${String(session.id||todayStr()).replace(/[^\w.-]+/g,'_')}.png`);
+      else exportOneAuditSession(session.id, 'png', items);
+    }
   };
   $('#auditPrint').onclick = () => {
     if (!filteredItems().length) return showToast('Pilih minimal 1 item');
     document.body.classList.remove('print-plakat');
+    setView('struk');
     logPrint('Audit EXP', `Cetak sesi · ${session.id || ''} · ${filteredItems().length} item`, { sessionId: session.id, count: filteredItems().length });
-    window.print();
+    setTimeout(() => window.print(), 50);
   };
-  function doPlakat(mode) {
+  $('#auditPlakatPrint').onclick = () => {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
-    const host = $('#plakatHost');
-    if (!host) return;
-    host.innerHTML = buildAuditPlakatHtml(items, mode);
-    host.style.display = 'block';
-    const sheet = host.querySelector('.plakat-sheet');
+    const wrap = document.createElement('div');
+    wrap.innerHTML = buildAuditPlakatHtml(items, plakatMode);
+    const sheet = wrap.querySelector('.plakat-sheet');
     if (!sheet) return;
-    const clone = sheet.cloneNode(true);
-    clone.id = 'plakatPrintAreaLive';
-    clone.style.display = 'block';
     const old = document.getElementById('plakatPrintAreaLive');
     if (old) old.remove();
-    document.body.appendChild(clone);
+    sheet.id = 'plakatPrintAreaLive';
+    sheet.style.display = 'block';
+    document.body.appendChild(sheet);
     document.body.classList.add('print-plakat');
     const cleanup = () => {
       document.body.classList.remove('print-plakat');
       const el = document.getElementById('plakatPrintAreaLive');
       if (el) el.remove();
-      host.style.display = 'none';
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
     setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 80);
-    logPrint('Plakat Audit', `mode ${mode} · ${items.length} item · sesi ${session.id || ''}`, { format: 'print-plakat', count: items.length, sessionId: session.id });
-    showToast('Mencetak plakat audit…');
-  }
-  $('#auditPlakat').onclick = () => doPlakat('pair');
-  $('#auditPlakatCombo').onclick = () => doPlakat('combo');
+    logPrint('Plakat Audit', plakatModeLabel(plakatMode, items.length) + ' · sesi ' + (session.id || ''), { format: 'print-plakat', count: items.length, sessionId: session.id, mode: plakatMode });
+  };
   applyDensity(initItems.length);
 }
 
@@ -3968,6 +4054,17 @@ window.viewAuditSession = function(id) {
   const h = (state.auditHistory || []).find(x => x.id === id);
   if (!h) return showToast('Sesi tidak ditemukan');
   openAuditModal(h);
+};
+
+window.loadAuditToDraft = function(id) {
+  const h = (state.auditHistory || []).find(x => x.id === id);
+  if (!h) return showToast('Sesi tidak ditemukan');
+  if (!confirm('Muat ' + (h.items || []).length + ' item ke draft audit? Draft saat ini akan diganti.')) return;
+  state.auditList = (h.items || []).map(it => Object.assign({}, it, { id: it.id || uid() }));
+  storage.set('auditList', state.auditList);
+  if (typeof cloudSaveAuditList === 'function') cloudSaveAuditList();
+  showToast('Dimuat ke draft audit');
+  navigate('audit');
 };
 
 window.exportOneAuditSession = function(id, fmt, onlyItems) {
@@ -4374,16 +4471,12 @@ function setActiveGudang(name) {
   showToast('DC aktif: '+name);
 }
 
-/** Ambil daftar user dari state (sudah diisi listener server) + system key */
+/** Ambil daftar user dari state (sudah diisi listener server) + admin Firebase */
 function getUsersList() {
   const list = (state.users || []).map(u => Object.assign({}, u, {
     role: normalizeRole(u.role),
     status: u.locked ? 'locked' : (normalizeRole(u.role) === 'pending' || u.status === 'pending' ? 'pending' : 'active')
   }));
-  // Pastikan system key selalu tampil di daftar
-  if (!list.find(u => (u.username || '').toUpperCase() === SYSTEM_KEY_USERNAME || u.isSystemKey)) {
-    list.unshift(Object.assign({}, DEFAULT_USERS[0]));
-  }
   return list;
 }
 
@@ -4411,13 +4504,6 @@ function renderUsers() {
           status: d.locked ? 'locked' : (normalizeRole(d.role) === 'pending' ? 'pending' : 'active')
         });
       });
-      // merge system key & local-only yang belum di cloud
-      (state.users || []).forEach(u => {
-        if (u.isSystemKey) return;
-        if (!rows.find(r => r.id === u.id || (u.username && r.username === u.username))) {
-          rows.push(Object.assign({}, u, { role: normalizeRole(u.role) }));
-        }
-      });
       state.users = rows;
       cacheLocal('users', rows);
       paintUsers(getUsersList());
@@ -4442,7 +4528,6 @@ function paintUsers(list) {
   tbody.innerHTML = list.map((u, i) => {
     const role = normalizeRole(u.role);
     const isPending = role === 'pending' || u.status === 'pending';
-    const isKey = !!(u.isSystemKey || (u.username || '').toUpperCase() === SYSTEM_KEY_USERNAME);
     const isLocked = !!u.locked || u.status === 'locked';
     const docId = String(u.id || u.username || '');
     const safeId = docId.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -4452,17 +4537,13 @@ function paintUsers(list) {
         ? '<span class="badge badge-danger">locked</span>'
         : '<span class="badge badge-success">active</span>');
 
-    const roleSelect = isKey
-      ? `<span class="badge badge-info">Administrator 🔑</span>`
-      : `<select class="user-role-select" data-id="${esc(docId)}" style="padding:6px 8px;font-size:12px;border-radius:8px;border:1.5px solid var(--border);max-width:150px;">
+    const roleSelect = `<select class="user-role-select" data-id="${esc(docId)}" style="padding:6px 8px;font-size:12px;border-radius:8px;border:1.5px solid var(--border);max-width:150px;">
           ${ROLE_LIST.map(r => `<option value="${r}" ${role === r ? 'selected' : ''}>${r}</option>`).join('')}
           <option value="pending" ${role === 'pending' ? 'selected' : ''}>pending</option>
         </select>`;
 
     let actions = '';
-    if (isKey) {
-      actions = '<span style="font-size:11px;color:var(--text-muted);">System key</span>';
-    } else if (isPending) {
+    if (isPending) {
       actions = `
         <button type="button" class="btn btn-sm btn-primary" data-approve="${esc(docId)}">✓ Approve</button>
         <button type="button" class="btn btn-sm btn-danger-outline" data-reject="${esc(docId)}">✕ Tolak</button>
@@ -4581,8 +4662,8 @@ window.deleteUser = async function(id) {
   if (!isAdmin()) return showToast('Hanya admin');
   if (!requireServer()) return;
   const u = (state.users || []).find(x => x.id === id || x.username === id);
-  if (u && (u.isSystemKey || (u.username || '').toUpperCase() === SYSTEM_KEY_USERNAME)) {
-    return showToast('System key tidak bisa dihapus');
+  if (u && u.id === (state.user && state.user.uid)) {
+    return showToast('Akun yang sedang dipakai tidak boleh dihapus dari modul ini');
   }
   if (!confirm('Hapus akun ini dari sistem?\n\nDokumen profil dihapus dari server. Login Auth mungkin masih ada di Firebase Authentication.')) return;
   try {
@@ -4617,7 +4698,7 @@ function openAddUserModal() {
             <input type="text" id="auUsername" placeholder="Username / NIK" autocapitalize="off"></div>
           <div class="form-group"><label>Email</label>
             <input type="email" id="auEmail" placeholder="nama@email.com"></div>
-          <div class="form-group"><label>Password (min. 6)</label>
+          <div class="form-group"><label>Password (min. 8)</label>
             <input type="password" id="auPass" placeholder="••••••••"></div>
           <div class="form-group"><label>Role</label>
             <select id="auRole">
@@ -4647,16 +4728,19 @@ function openAddUserModal() {
     if (!name || !username || !email || !password) {
       err.style.display = 'block'; err.textContent = 'Semua field wajib diisi'; return;
     }
-    if (password.length < 6) {
-      err.style.display = 'block'; err.textContent = 'Password minimal 6 karakter'; return;
+    if (password.length < 8) {
+      err.style.display = 'block'; err.textContent = 'Password minimal 8 karakter'; return;
     }
     if (!requireServer()) return;
     try {
-      // Buat Auth user (sementara sign-in sebagai user baru — lalu restore session admin tidak mudah di client)
-      // Alternatif aman: simpan profil pending tanpa Auth, minta user daftar sendiri.
-      // Di sini kita pakai createUser — admin perlu login ulang setelah itu.
-      const adminSession = state.user;
-      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      // SECURITY: create the Auth account on a secondary Firebase app so the
+      // current administrator session is never replaced by the new user's session.
+      const creatorAppName = 'GudangProUserCreator';
+      let creatorApp;
+      try { creatorApp = firebase.app(creatorAppName); }
+      catch (_) { creatorApp = firebase.initializeApp(firebaseConfig, creatorAppName); }
+      const creatorAuth = creatorApp.auth();
+      const cred = await creatorAuth.createUserWithEmailAndPassword(email, password);
       await db.collection('users').doc(cred.user.uid).set({
         name, username, email,
         role: toFirestoreRole(role),
@@ -4664,18 +4748,11 @@ function openAddUserModal() {
         createdAt: tsNow(),
         createdBy: actorName()
       });
-      await auth.signOut();
-      // Kembalikan session admin lokal (system key / session cache)
-      state.user = adminSession;
-      saveSession(adminSession);
+      await creatorAuth.signOut().catch(()=>{});
       logActivity('CREATE', 'Master User', `${name} (${username}) · ${role}`);
-      showToast('Akun dibuat. Jika Anda admin Firebase, login ulang mungkin diperlukan.');
+      showToast('Akun berhasil dibuat di Firebase ☁');
       close();
       renderUsers();
-      // Re-login system key tidak putus; Firebase Auth user admin non-system perlu login lagi
-      if (!adminSession.isSystemKey && adminSession.email) {
-        showToast('Akun baru OK. Silakan login ulang sebagai admin.');
-      }
     } catch (e) {
       err.style.display = 'block';
       err.textContent = e.code === 'auth/email-already-in-use'
@@ -5099,6 +5176,55 @@ function buildNota() {
   };
 }
 
+// ==================== PLAKAT GROUPING ENGINE ====================
+// mode: single | all | group:N. Semua modul (Retur, Riwayat Retur, Audit EXP,
+// Riwayat Audit, dan Cetak Plakat) menggunakan engine yang sama.
+function getPlakatGroups(items, mode) {
+  const arr = Array.isArray(items) ? items : [];
+  if (!arr.length) return [];
+  if (mode === 'all' || mode === 'combo-all') return [arr.slice()];
+  if (mode === 'single' || mode === 'pair' || !mode) return arr.map(x => [x]);
+  const m = String(mode).match(/^group:(\d+)$/);
+  const size = m ? Math.max(1, parseInt(m[1], 10)) : 1;
+  const groups = [];
+  for (let i = 0; i < arr.length; i += size) groups.push(arr.slice(i, i + size));
+  return groups;
+}
+
+function getPlakatPaperLayout(){ return $('#plkPaperLayout')?.value || 'half'; }
+
+function plakatModeLabel(mode, count) {
+  if (mode === 'all') return `Semua ${count} item → 1 plakat`;
+  if (mode === 'single') return '1 item → 1 plakat';
+  const m = String(mode).match(/^group:(\d+)$/);
+  if (m) return `${m[1]} item → 1 plakat`;
+  return 'Plakat';
+}
+
+function plakatModeOptions(selectId, defaultMode) {
+  const d = defaultMode || 'single';
+  return `<div class="plakat-mode-wrap" style="width:100%;">
+    <div class="plakat-toggle" data-select="${selectId}">
+      <button type="button" data-mode="single" class="${d==='single'?'active':''}">🏷️ Pisah per Item</button>
+      <button type="button" data-mode="all" class="${d==='all'?'active':''}">📚 Gabung Semua</button>
+    </div>
+    <select id="${selectId}" class="plakat-mode-select" style="display:none;">
+      <option value="single" ${d==='single'?'selected':''}>1 item / plakat</option>
+      <option value="all" ${d==='all'?'selected':''}>Semua item / 1 plakat</option>
+    </select>
+  </div>`;
+}
+
+function bindPlakatModeToggle(selectId){
+  const sel=$('#'+selectId); if(!sel) return;
+  const wrap=sel.parentElement; if(!wrap) return;
+  wrap.querySelectorAll('button[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{
+    sel.value=btn.dataset.mode||'single';
+    wrap.querySelectorAll('button[data-mode]').forEach(b=>b.classList.toggle('active',b===btn));
+  }));
+}
+
+
 function openNotaModal(nota, isHistory) {
   const root = $('#modalRoot');
   if (!root) return;
@@ -5230,100 +5356,74 @@ function openNotaModal(nota, isHistory) {
       </div>`;
   }
 
-  /** mode: 'pair' = 2 plakat / 1 kertas A4 | 'combo' = 2 item digabung 1 plakat */
   function buildPlakatHtml(items, mode) {
-    mode = mode || 'pair';
-    const n = items.length;
+    mode = mode || 'single';
+    const groups = getPlakatGroups(items, mode);
     const dc = nota.dcName || state.dcName || 'DC';
     const tgl = nota.tanggalLabel || nota.tanggal || '';
     const nomor = nota.nomor || '';
+    const total = items.length;
 
-    function oneCard(it, i, total) {
+    function oneCard(it, i) {
       const pic = (resolveItemPic(it) || it.pic || '-').trim() || '-';
       const vendor = (it.vendor || '-').trim() || '-';
       const kond = (it.kondisi || 'Bad') === 'Good' ? 'BAGUS' : 'JELEK';
       const alasan = (it.alasan || '').trim();
       const qty = `${it.qty || 0} ${it.satuan || 'PCS'}`;
       const title = (it.kondisi || 'Bad') === 'Good' ? 'RETUR' : 'KARANTINA';
-      return `
-        <div class="plakat-card">
-          <div class="plakat-head">
-            <div class="pt">${esc(dc)}</div>
-            <div class="title">${esc(title)}</div>
-          </div>
-          <div class="plakat-body">
-            <div class="plakat-row"><span class="lbl">Nama Bahan</span><span class="sep">:</span><span class="val">${esc(it.nama || '-')}</span></div>
-            <div class="plakat-row"><span class="lbl">Kode Bahan</span><span class="sep">:</span><span class="val">${esc(it.kode || '-')}</span></div>
-            <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(it.barcode || '-')}</span></div>
-            <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val">${esc(qty)}</span></div>
-            <div class="plakat-row"><span class="lbl">Vendor</span><span class="sep">:</span><span class="val">${esc(vendor)}</span></div>
-            <div class="plakat-row"><span class="lbl">PIC Purchasing</span><span class="sep">:</span><span class="val">${esc(pic)}</span></div>
-            <div class="plakat-row"><span class="lbl">Kondisi</span><span class="sep">:</span><span class="val">${esc(kond)}${alasan ? ' · ' + esc(alasan) : ''}</span></div>
-            <div class="plakat-row"><span class="lbl">No. Nota Retur</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
-            <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
-            ${it.catatan ? `<div class="plakat-row"><span class="lbl">Catatan</span><span class="sep">:</span><span class="val">${esc(it.catatan)}</span></div>` : ''}
-            <div class="plakat-foot">${i + 1} / ${total} · ${esc(dc)} · Tempel di kardus</div>
-          </div>
-        </div>`;
+      return `<div class="plakat-card">
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+        <div class="plakat-body">
+          <div class="plakat-row"><span class="lbl">Nama Barang</span><span class="sep">:</span><span class="val">${esc(it.nama || '-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Kode Barang</span><span class="sep">:</span><span class="val">${esc(it.kode || '-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(it.barcode || '-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val">${esc(qty)}</span></div>
+          <div class="plakat-row"><span class="lbl">Vendor</span><span class="sep">:</span><span class="val">${esc(vendor)}</span></div>
+          <div class="plakat-row"><span class="lbl">PIC Purchasing</span><span class="sep">:</span><span class="val">${esc(pic)}</span></div>
+          <div class="plakat-row"><span class="lbl">Kondisi</span><span class="sep">:</span><span class="val">${esc(kond)}${alasan ? ' · ' + esc(alasan) : ''}</span></div>
+          <div class="plakat-row"><span class="lbl">No. Nota Retur</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
+          <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
+          ${it.catatan ? `<div class="plakat-row"><span class="lbl">Catatan</span><span class="sep">:</span><span class="val">${esc(it.catatan)}</span></div>` : ''}
+          <div class="plakat-foot">${i + 1} / ${total} · ${esc(dc)} · Tempel di kardus</div>
+        </div>
+      </div>`;
     }
 
-    function comboCard(pair, startIdx, total) {
-      const blocks = pair.map((it, j) => {
+    function groupCard(group, startIdx) {
+      const blocks = group.map((it, j) => {
         const pic = (resolveItemPic(it) || it.pic || '-').trim() || '-';
         const vendor = (it.vendor || '-').trim() || '-';
         const kond = (it.kondisi || 'Bad') === 'Good' ? 'BAGUS' : 'JELEK';
         const qty = `${it.qty || 0} ${it.satuan || 'PCS'}`;
         return `<div class="plakat-item-block">
           <div class="iname">${startIdx + j + 1}. ${esc(it.nama || '-')}</div>
-          <div class="imeta">Kode: <b>${esc(it.kode || '-')}</b> · Qty: <b>${esc(qty)}</b><br>
-          Vendor: ${esc(vendor)} · PIC: ${esc(pic)} · ${esc(kond)}${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
+          <div class="imeta">Kode Barang: <b>${esc(it.kode || '-')}</b> · Qty: <b>${esc(qty)}</b><br>Vendor: ${esc(vendor)} · PIC: ${esc(pic)} · ${esc(kond)}${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
         </div>`;
       }).join('');
-      const anyBad = pair.some(it => (it.kondisi || 'Bad') !== 'Good');
+      const anyBad = group.some(it => (it.kondisi || 'Bad') !== 'Good');
       const title = anyBad ? 'KARANTINA' : 'RETUR';
-      return `
-        <div class="plakat-card combo">
-          <div class="plakat-head">
-            <div class="pt">${esc(dc)}</div>
-            <div class="title">${esc(title)}</div>
-          </div>
-          <div class="plakat-body">
-            <div class="plakat-row"><span class="lbl">No. Nota</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
-            <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
-            <div class="plakat-items">${blocks}</div>
-            <div class="plakat-foot">${pair.length} item · ${esc(dc)} · Tempel di kardus</div>
-          </div>
-        </div>`;
+      return `<div class="plakat-card combo ${group.length === total ? 'all-items' : ''}>
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+        <div class="plakat-body">
+          <div class="plakat-row"><span class="lbl">No. Nota</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
+          <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
+          <div class="plakat-items">${blocks}</div>
+          <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
+        </div>
+      </div>`;
     }
 
-    // Kelompokkan per halaman A4: max 2 plakat
     const pages = [];
-    if (mode === 'combo') {
-      // tiap plakat = 2 item digabung; 2 plakat per kertas = 4 item
-      const combos = [];
-      for (let i = 0; i < items.length; i += 2) {
-        combos.push({ pair: items.slice(i, i + 2), start: i });
+    let idx = 0;
+    for (let i = 0; i < groups.length; i += 2) {
+      const g1 = groups[i], g2 = groups[i + 1];
+      let inner = g1.length === 1 && mode === 'single' ? oneCard(g1[0], idx) : groupCard(g1, idx);
+      idx += g1.length;
+      if (g2) {
+        inner += '<div class="plakat-cut"></div>' + (g2.length === 1 && mode === 'single' ? oneCard(g2[0], idx) : groupCard(g2, idx));
+        idx += g2.length;
       }
-      for (let i = 0; i < combos.length; i += 2) {
-        const c1 = combos[i];
-        const c2 = combos[i + 1];
-        let inner = comboCard(c1.pair, c1.start, n);
-        if (c2) {
-          inner += '<div class="plakat-cut"></div>' + comboCard(c2.pair, c2.start, n);
-        }
-        pages.push(`<div class="plakat-page${c2 ? '' : ' single'}">${inner}</div>`);
-      }
-    } else {
-      // pair: tiap item 1 plakat, 2 plakat per kertas A4
-      for (let i = 0; i < items.length; i += 2) {
-        const a = items[i];
-        const b = items[i + 1];
-        let inner = oneCard(a, i, n);
-        if (b) {
-          inner += '<div class="plakat-cut"></div>' + oneCard(b, i + 1, n);
-        }
-        pages.push(`<div class="plakat-page${b ? '' : ' single'}">${inner}</div>`);
-      }
+      pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
     }
     return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
   }
@@ -5343,13 +5443,16 @@ function openNotaModal(nota, isHistory) {
   const initItems = filteredItems();
   const initDens = densityClass(initItems.length);
 
+  let viewMode = 'struk';
+  let plakatMode = 'single';
+
   root.innerHTML = `
     <div class="modal-backdrop" id="notaBackdrop">
-      <div class="modal-sheet">
+      <div class="modal-sheet modal-sheet-wide">
         <div class="handle"></div>
-        <div class="modal-header">
-          <h3>Pratinjau Nota</h3>
-          <button class="btn btn-icon btn-outline" id="notaClose">✕</button>
+        <div class="modal-header modal-header-dark">
+          <h3>📋 Pratinjau Nota Retur</h3>
+          <button class="btn btn-icon btn-outline" id="notaClose" style="color:#fff;border-color:rgba(255,255,255,.3);">✕</button>
         </div>
         <div class="modal-body">
           <div class="form-group no-print">
@@ -5358,36 +5461,51 @@ function openNotaModal(nota, isHistory) {
           </div>
           ${picFilterHtml}
           ${buildPickerHtml()}
-          <div class="receipt ${initDens}" id="printArea">
-            <div class="brand">
-              <div class="title">${esc(nota.judul || 'NOTA PENGAJUAN RETUR')}</div>
-              <div class="sub">${esc(nota.dcName)}</div>
-            </div>
-            <hr>
-            <div class="meta-row"><span>No</span><b>${esc(nota.nomor)}</b></div>
-            <div class="meta-row"><span>Tanggal</span><b>${esc(nota.tanggalLabel)}</b></div>
-            <div class="meta-row"><span>Item</span><b id="notaItemCount">${initItems.length} produk</b></div>
-            <div class="meta-row" id="notaPicMeta" style="display:none;"><span>PIC</span><b id="notaPicMetaVal"></b></div>
-            <hr>
-            <div id="notaItemsBody">${buildItemsHtml(initItems)}</div>
-            <hr>
-            <div class="totals"><span>TOTAL QTY</span><span id="notaTotalQty">${buildTotalsHtml(initItems).totalQty}</span></div>
-            <div class="meta-row" style="margin-top:6px;"><span>🟢 Bagus</span><b id="notaGoodSum">${buildTotalsHtml(initItems).goodItems.length} item · qty ${buildTotalsHtml(initItems).goodQty}</b></div>
-            <div class="meta-row"><span>🔴 Jelek</span><b id="notaBadSum">${buildTotalsHtml(initItems).badItems.length} item · qty ${buildTotalsHtml(initItems).badQty}</b></div>
-            <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;" id="notaFooterStatus">Status: Diajukan · ${esc(nota.createdByName || '')}</div>
+          <div class="view-tabs no-print" id="notaViewTabs">
+            <button type="button" class="view-tab active" data-view="struk">📄 Struk Nota</button>
+            <button type="button" class="view-tab" data-view="plakat" id="notaTabPlakat">🏷️ Plakat Retur (${initItems.length})</button>
           </div>
-          <div id="plakatHost" class="no-print" style="display:none;"></div>
+          <div id="notaStrukPane">
+            <div class="receipt ${initDens}" id="printArea">
+              <div class="brand">
+                <div class="title">${esc(nota.judul || 'NOTA PENGAJUAN RETUR')}</div>
+                <div class="sub">${esc(nota.dcName)}</div>
+              </div>
+              <hr>
+              <div class="meta-row"><span>No</span><b>${esc(nota.nomor)}</b></div>
+              <div class="meta-row"><span>Tanggal</span><b>${esc(nota.tanggalLabel)}</b></div>
+              <div class="meta-row"><span>Item</span><b id="notaItemCount">${initItems.length} produk</b></div>
+              <div class="meta-row" id="notaPicMeta" style="display:none;"><span>PIC</span><b id="notaPicMetaVal"></b></div>
+              <hr>
+              <div id="notaItemsBody">${buildItemsHtml(initItems)}</div>
+              <hr>
+              <div class="totals"><span>TOTAL QTY</span><span id="notaTotalQty">${buildTotalsHtml(initItems).totalQty}</span></div>
+              <div class="meta-row" style="margin-top:6px;"><span>🟢 Bagus</span><b id="notaGoodSum">${buildTotalsHtml(initItems).goodItems.length} item · qty ${buildTotalsHtml(initItems).goodQty}</b></div>
+              <div class="meta-row"><span>🔴 Jelek</span><b id="notaBadSum">${buildTotalsHtml(initItems).badItems.length} item · qty ${buildTotalsHtml(initItems).badQty}</b></div>
+              <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;" id="notaFooterStatus">Status: Diajukan · ${esc(nota.createdByName || '')}</div>
+            </div>
+          </div>
+          <div id="notaPlakatPane" style="display:none;">
+            <div class="plakat-format-bar no-print">
+              <div class="plakat-format-label">🏷️ Format Tampilan Plakat:</div>
+              <div class="plakat-toggle" id="notaPlakatToggle">
+                <button type="button" data-mode="single" class="active">🏷️ Pisah per Item (${initItems.length} Label)</button>
+                <button type="button" data-mode="all">📚 Gabung 1 Plakat</button>
+              </div>
+            </div>
+            <div class="plakat-preview-frame" id="notaPlakatPreview"></div>
+          </div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
-          <button class="btn btn-primary" id="notaCopy">📋 Salin WA</button>
+          <button class="btn btn-outline" id="notaCopy">📋 Salin WA</button>
           <button class="btn btn-outline" id="notaPdf">📑 PDF</button>
           <button class="btn btn-outline" id="notaPng">🖼 PNG</button>
           <button class="btn btn-outline" id="notaPrint">🖨 Cetak Nota</button>
-          <button class="btn btn-outline" id="notaPlakat" title="2 plakat per kertas A4 (1 item = 1 label)">🟨 2 Plakat/A4</button>
-          <button class="btn btn-outline" id="notaPlakatCombo" title="2 item digabung dalam 1 plakat">🟨 2 Item/Plakat</button>
+          <button class="btn btn-primary" id="notaPlakat" style="background:#f59e0b;border-color:#f59e0b;">🏷️ Cetak Plakat (Pisah)</button>
           ${!isHistory ? `<button class="btn btn-primary" id="notaSave">✅ Simpan & Selesai</button>` : ''}
           ${isHistory && can('edit') ? `<button class="btn btn-primary" id="notaEditFromView">✏️ Edit Qty</button>` : ''}
           ${isHistory ? `<button class="btn btn-outline" id="notaSaveJudul">💾 Simpan Judul</button>` : ''}
+          <button class="btn btn-outline" id="notaClose2">Tutup</button>
         </div>
       </div>
     </div>
@@ -5409,6 +5527,37 @@ function openNotaModal(nota, isHistory) {
     if (!list) return;
     list.innerHTML = buildPickerRowsHtml();
     rebindPickerChecks();
+  }
+
+  function refreshPlakatPreview() {
+    const items = filteredItems();
+    const host = $('#notaPlakatPreview');
+    if (!host) return;
+    if (!items.length) {
+      host.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="ico">📄</div><h3>Tidak ada item dipilih</h3></div>';
+      return;
+    }
+    const html = buildPlakatHtml(items, plakatMode);
+    host.innerHTML = html.replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"');
+    const btn = $('#notaPlakat');
+    if (btn) btn.textContent = plakatMode === 'single' ? '🏷️ Cetak Plakat (Pisah)' : '🏷️ Cetak Plakat (Gabung)';
+    const tab = $('#notaTabPlakat');
+    if (tab) tab.textContent = `🏷️ Plakat Retur (${items.length})`;
+    const tog = $('#notaPlakatToggle');
+    if (tog) {
+      const b1 = tog.querySelector('[data-mode="single"]');
+      const b2 = tog.querySelector('[data-mode="all"]');
+      if (b1) b1.textContent = `🏷️ Pisah per Item (${items.length} Label)`;
+      if (b2) b2.textContent = '📚 Gabung 1 Plakat';
+    }
+  }
+
+  function setView(v) {
+    viewMode = v;
+    $$('#notaViewTabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+    if ($('#notaStrukPane')) $('#notaStrukPane').style.display = v === 'struk' ? 'block' : 'none';
+    if ($('#notaPlakatPane')) $('#notaPlakatPane').style.display = v === 'plakat' ? 'block' : 'none';
+    if (v === 'plakat') refreshPlakatPreview();
   }
 
   function refreshView() {
@@ -5440,6 +5589,9 @@ function openNotaModal(nota, isHistory) {
       const j = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim();
       judulEl.textContent = j || 'NOTA PENGAJUAN RETUR';
     }
+    if (viewMode === 'plakat') refreshPlakatPreview();
+    const tab = $('#notaTabPlakat');
+    if (tab) tab.textContent = `🏷️ Plakat Retur (${items.length})`;
   }
 
   const close = () => {
@@ -5447,7 +5599,19 @@ function openNotaModal(nota, isHistory) {
     root.innerHTML = '';
   };
   $('#notaClose').onclick = close;
+  $('#notaClose2')?.addEventListener('click', close);
   $('#notaBackdrop').addEventListener('click', e => { if (e.target.id === 'notaBackdrop') close(); });
+
+  $$('#notaViewTabs .view-tab').forEach(btn => {
+    btn.addEventListener('click', () => setView(btn.dataset.view));
+  });
+  $$('#notaPlakatToggle button[data-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      plakatMode = btn.dataset.mode || 'single';
+      $$('#notaPlakatToggle button[data-mode]').forEach(b => b.classList.toggle('active', b === btn));
+      refreshPlakatPreview();
+    });
+  });
 
   const picSel = $('#notaPicFilter');
   if (picSel) {
@@ -5549,6 +5713,13 @@ function openNotaModal(nota, isHistory) {
   $('#notaPng').onclick = () => {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
+    if (viewMode === 'plakat') {
+      const host = $('#notaPlakatPreview');
+      if (host) {
+        ExportEngine.captureElementPNG(host, `Plakat_Retur_${String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_')}.png`);
+        return;
+      }
+    }
     const judul = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim();
     const snap = Object.assign({}, nota, {
       judul: judul + (activePic ? ' · PIC ' + activePic : ''),
@@ -5566,49 +5737,36 @@ function openNotaModal(nota, isHistory) {
   $('#notaPrint').onclick = () => {
     if (!filteredItems().length) return showToast('Pilih minimal 1 item');
     document.body.classList.remove('print-plakat');
+    setView('struk');
     logPrint('Nota Retur', `Cetak nota · ${nota.nomor || ''} · ${filteredItems().length} item`, { nomor: nota.nomor, count: filteredItems().length });
-    window.print();
+    setTimeout(() => window.print(), 50);
   };
 
-  // Plakat A4 — 2 plakat/kertas ATAU 2 item digabung 1 plakat
-  function printPlakat(mode) {
+  // Plakat Retur — cetak langsung (preview sudah di tab Plakat)
+  $('#notaPlakat').onclick = () => {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
-    if (items.length > 10) {
-      if (!confirm('Anda memilih ' + items.length + ' item.\nDisarankan max 10 agar plakat tetap besar dan terbaca.\nLanjut cetak?')) return;
-    }
-    const host = $('#plakatHost');
-    if (!host) return showToast('Gagal siapkan plakat');
-    host.innerHTML = buildPlakatHtml(items, mode);
-    host.style.display = 'block';
-    const sheet = host.querySelector('.plakat-sheet');
+    const mode = plakatMode || 'single';
+    const wrap = document.createElement('div');
+    wrap.innerHTML = buildPlakatHtml(items, mode);
+    const sheet = wrap.querySelector('.plakat-sheet');
     if (!sheet) return;
-    const clone = sheet.cloneNode(true);
-    clone.id = 'plakatPrintAreaLive';
-    clone.style.display = 'block';
     const old = document.getElementById('plakatPrintAreaLive');
     if (old) old.remove();
-    document.body.appendChild(clone);
+    sheet.id = 'plakatPrintAreaLive';
+    sheet.style.display = 'block';
+    document.body.appendChild(sheet);
     document.body.classList.add('print-plakat');
-
     const cleanup = () => {
       document.body.classList.remove('print-plakat');
       const el = document.getElementById('plakatPrintAreaLive');
       if (el) el.remove();
-      if (host) host.style.display = 'none';
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
-    setTimeout(() => {
-      window.print();
-      setTimeout(cleanup, 1500);
-    }, 80);
-    const label = mode === 'combo' ? '2 item/plakat' : '2 plakat/A4';
-    logPrint('Plakat Retur', label + ' · ' + items.length + ' item · ' + nota.nomor, { format: 'print-plakat', count: items.length, nomor: nota.nomor });
-    showToast('Mencetak plakat (' + label + ', ' + items.length + ' item)…');
-  }
-  $('#notaPlakat').onclick = () => printPlakat('pair');
-  $('#notaPlakatCombo').onclick = () => printPlakat('combo');
+    setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 80);
+    logPrint('Plakat Retur', plakatModeLabel(mode, items.length) + ' · ' + items.length + ' item · ' + nota.nomor, { format: 'print-plakat', count: items.length, nomor: nota.nomor, mode });
+  };
 
   if (!isHistory) {
     $('#notaSave').onclick = async () => {
@@ -6482,6 +6640,15 @@ function renderCetakPlakat() {
     $('#plkSub').value = state.dcName || 'DC INDUK';
   }
   paintPlakatItems();
+  updatePlakatLivePreview();
+}
+
+function updatePlakatLivePreview(){
+  const host = $('#plkLivePreview');
+  if (!host) return;
+  if (!plakatState.items.length) { host.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="ico">📄</div><h3>Pratinjau Plakat Kosong</h3><p>Pilih barang di atas untuk melihat tampilan plakat standar gudang.</p></div>'; return; }
+  host.innerHTML = buildUniversalPlakatHtml(plakatState.items, $('#plkLayout')?.value || 'single');
+  const sheet=host.querySelector('.plakat-sheet'); if(sheet) sheet.style.display='block';
 }
 
 function paintPlakatItems() {
@@ -6498,7 +6665,7 @@ function paintPlakatItems() {
       <div class="idx">${i+1}</div>
       <div class="info" style="flex:1;">
         <div class="nm">${esc(it.nama)}</div>
-        <div class="meta">${esc(it.kode||'')} · ${esc(it.barcode||'')}</div>
+        <div class="meta">Kode Barang: ${esc(it.kode||'')} · ${esc(it.barcode||'')}</div>
         <div class="form-row" style="margin-top:6px;">
           <div class="form-group" style="margin:0;">
             <label style="font-size:11px;">Qty</label>
@@ -6518,17 +6685,18 @@ function paintPlakatItems() {
     </div>
   `).join('');
   box.querySelectorAll('[data-rm]').forEach(btn => {
-    btn.onclick = () => { plakatState.items.splice(parseInt(btn.dataset.rm,10), 1); paintPlakatItems(); };
+    btn.onclick = () => { plakatState.items.splice(parseInt(btn.dataset.rm,10), 1); paintPlakatItems(); updatePlakatLivePreview(); };
   });
   box.querySelectorAll('.plk-qty').forEach(el => {
-    el.onchange = () => { plakatState.items[parseInt(el.dataset.i,10)].qty = parseFloat(el.value)||0; };
+    el.onchange = () => { plakatState.items[parseInt(el.dataset.i,10)].qty = parseFloat(el.value)||0; updatePlakatLivePreview(); };
   });
   box.querySelectorAll('.plk-sat').forEach(el => {
-    el.onchange = () => { plakatState.items[parseInt(el.dataset.i,10)].satuan = el.value.trim() || 'PCS'; };
+    el.onchange = () => { plakatState.items[parseInt(el.dataset.i,10)].satuan = el.value.trim() || 'PCS'; updatePlakatLivePreview(); };
   });
   box.querySelectorAll('.plk-note').forEach(el => {
-    el.onchange = () => { plakatState.items[parseInt(el.dataset.i,10)].note = el.value.trim(); };
+    el.onchange = () => { plakatState.items[parseInt(el.dataset.i,10)].note = el.value.trim(); updatePlakatLivePreview(); };
   });
+  updatePlakatLivePreview();
 }
 
 function applyPlakatTemplate() {
@@ -6556,17 +6724,17 @@ function parseExtraFields() {
 }
 
 function buildUniversalPlakatHtml(items, mode) {
-  mode = mode || 'pair';
+  mode = mode || 'single';
   const title = ($('#plkTitle')?.value || 'PLAKAT').trim() || 'PLAKAT';
   const dc = ($('#plkSub')?.value || state.dcName || 'DC').trim();
   const extras = parseExtraFields();
-  const n = items.length;
-  const layout = mode === 'single' ? 'single' : mode;
+  const groups = getPlakatGroups(items, mode);
+  const total = items.length;
 
-  function oneCard(it, i, total) {
+  function oneCard(it, i) {
     const rows = [
-      ['Nama Bahan', it.nama || '-'],
-      ['Kode Bahan', it.kode || '-'],
+      ['Nama Barang', it.nama || '-'],
+      ['Kode Barang', it.kode || '-'],
       ['Barcode', it.barcode || '-'],
       ['Qty / Satuan', (it.qty || 0) + ' ' + (it.satuan || 'PCS')],
     ];
@@ -6583,44 +6751,41 @@ function buildUniversalPlakatHtml(items, mode) {
     </div>`;
   }
 
-  function comboCard(pair, startIdx) {
-    const blocks = pair.map((it, j) => {
-      return `<div class="plakat-item-block">
-        <div class="iname">${startIdx+j+1}. ${esc(it.nama||'-')}</div>
-        <div class="imeta">Kode: <b>${esc(it.kode||'-')}</b> · Qty: <b>${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</b>
-        ${it.note ? '<br>'+esc(it.note) : ''}</div>
-      </div>`;
-    }).join('');
-    const extraHtml = extras.map(ex =>
-      `<div class="plakat-row"><span class="lbl">${esc(ex.lbl)}</span><span class="sep">:</span><span class="val">${esc(ex.val)}</span></div>`
-    ).join('');
-    return `<div class="plakat-card combo">
+  function groupCard(group, startIndex) {
+    const blocks = group.map((it, j) => `<div class="plakat-item-block">
+      <div class="iname">${startIndex+j+1}. ${esc(it.nama||'-')}</div>
+      <div class="imeta">Kode Barang: <b>${esc(it.kode||'-')}</b> · Qty: <b>${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</b>
+      ${it.note ? '<br>Catatan: '+esc(it.note) : ''}</div>
+    </div>`).join('');
+    const extraHtml = extras.map(ex => `<div class="plakat-row"><span class="lbl">${esc(ex.lbl)}</span><span class="sep">:</span><span class="val">${esc(ex.val)}</span></div>`).join('');
+    return `<div class="plakat-card combo ${group.length === total ? 'all-items' : ''}">
       <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
       <div class="plakat-body">${extraHtml}<div class="plakat-items">${blocks}</div>
-        <div class="plakat-foot">${pair.length} item · ${esc(dc)}</div>
+        <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
       </div>
     </div>`;
   }
 
   const pages = [];
-  if (layout === 'single') {
-    items.forEach((it, i) => {
-      pages.push(`<div class="plakat-page single">${oneCard(it, i, n)}</div>`);
+  let index = 0;
+  const paper = getPlakatPaperLayout();
+  if (paper === 'full') {
+    groups.forEach(g => {
+      const inner = g.length === 1 && mode === 'single' ? oneCard(g[0], index) : groupCard(g, index);
+      pages.push(`<div class="plakat-page full-page single">${inner}</div>`);
+      index += g.length;
     });
-  } else if (layout === 'combo') {
-    const combos = [];
-    for (let i = 0; i < items.length; i += 2) combos.push({ pair: items.slice(i, i+2), start: i });
-    for (let i = 0; i < combos.length; i += 2) {
-      const c1 = combos[i], c2 = combos[i+1];
-      let inner = comboCard(c1.pair, c1.start);
-      if (c2) inner += '<div class="plakat-cut"></div>' + comboCard(c2.pair, c2.start);
-      pages.push(`<div class="plakat-page${c2?'':' single'}">${inner}</div>`);
-    }
   } else {
-    for (let i = 0; i < items.length; i += 2) {
-      let inner = oneCard(items[i], i, n);
-      if (items[i+1]) inner += '<div class="plakat-cut"></div>' + oneCard(items[i+1], i+1, n);
-      pages.push(`<div class="plakat-page${items[i+1]?'':' single'}">${inner}</div>`);
+    for (let i = 0; i < groups.length; i += 2) {
+      const g1 = groups[i], g2 = groups[i+1];
+      let inner = g1.length === 1 && mode === 'single' ? oneCard(g1[0], index) : groupCard(g1, index);
+      index += g1.length;
+      if (g2) {
+        inner += '<div class="plakat-cut"></div>';
+        inner += g2.length === 1 && mode === 'single' ? oneCard(g2[0], index) : groupCard(g2, index);
+        index += g2.length;
+      }
+      pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
     }
   }
   return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
@@ -6641,7 +6806,8 @@ function printUniversalPlakat(previewOnly) {
     const i = parseInt(el.dataset.i, 10);
     if (plakatState.items[i]) plakatState.items[i].note = el.value.trim();
   });
-  const mode = $('#plkLayout')?.value || 'pair';
+  const mode = $('#plkLayout')?.value || 'single';
+  updatePlakatLivePreview();
   const html = buildUniversalPlakatHtml(plakatState.items, mode);
   if (previewOnly) {
     const root = $('#modalRoot');
@@ -6685,13 +6851,61 @@ function printUniversalPlakat(previewOnly) {
   };
   window.addEventListener('afterprint', cleanup);
   setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 80);
-  logPrint('Cetak Plakat', ($('#plkTitle')?.value || 'PLAKAT') + ' · ' + plakatState.items.length + ' item', { format: 'print-plakat', count: plakatState.items.length, title: ($('#plkTitle')?.value || '') });
-  showToast('Mencetak plakat…');
+  logPrint('Cetak Plakat', plakatModeLabel(mode, plakatState.items.length) + ' · ' + ($('#plkTitle')?.value || 'PLAKAT'), { format: 'print-plakat', count: plakatState.items.length, title: ($('#plkTitle')?.value || ''), mode });
+  showToast('Mencetak plakat: ' + plakatModeLabel(mode, plakatState.items.length));
+}
+
+function openPlakatMasterPicker() {
+  const root = $('#modalRoot');
+  if (!root) return;
+  const products = Array.isArray(state.products) ? state.products : [];
+  const selected = new Set(plakatState.items.map(x => `${x.kode||''}||${x.nama||''}`));
+  let query = '';
+  const keyOf = p => `${p.kode||''}||${p.nama||''}`;
+  const render = () => {
+    const q = query.trim().toLowerCase();
+    const rows = products.map((p,i) => {
+      const key=keyOf(p), checked=selected.has(key), text=`${p.nama||''} ${p.kode||''} ${p.barcode||''}`.toLowerCase();
+      if(q && !text.includes(q)) return '';
+      return `<label class="picker-row" data-key="${esc(key)}"><input type="checkbox" class="plk-master-cb" data-i="${i}" ${checked?'checked':''}><div><div class="nm">${esc(p.nama||'-')}</div><div class="meta">Kode Barang: ${esc(p.kode||'-')} · ${esc(p.barcode||'')}</div></div></label>`;
+    }).join('') || '<div class="empty-state" style="padding:20px;"><p>Produk tidak ditemukan</p></div>';
+    const list=$('#plkMasterList'); if(list) list.innerHTML=rows;
+    $$('.plk-master-cb').forEach(cb=>cb.onchange=()=>{const p=products[parseInt(cb.dataset.i,10)]; if(!p)return; const k=keyOf(p); if(cb.checked)selected.add(k);else selected.delete(k); updateCount();});
+    updateCount();
+  };
+  const updateCount=()=>{const el=$('#plkMasterCount'); if(el)el.textContent=`${selected.size} produk dipilih`;};
+  root.innerHTML=`<div class="modal-backdrop" id="plkMasterBackdrop"><div class="modal-sheet" style="max-width:720px;"><div class="handle"></div><div class="modal-header"><h3>Pilih Produk untuk Plakat</h3><button class="btn btn-icon btn-outline" id="plkMasterClose">✕</button></div><div class="modal-body"><div class="picker-head"><div class="picker-head-top"><strong id="plkMasterCount">0 produk dipilih</strong><div class="picker-actions"><button class="btn btn-sm btn-outline" id="plkMasterAll">✓ Semua</button><button class="btn btn-sm btn-outline" id="plkMasterNone">✕ Kosong</button></div></div><div class="picker-search"><input type="text" id="plkMasterSearch" placeholder="Cari nama, kode, barcode…"></div></div><div class="picker-list" id="plkMasterList" style="max-height:55vh;"></div></div><div class="modal-footer"><button class="btn btn-primary" id="plkMasterAdd">Tambahkan ke Plakat</button><button class="btn btn-outline" id="plkMasterClose2">Tutup</button></div></div></div>`;
+  const close=()=>{root.innerHTML='';};
+  $('#plkMasterClose').onclick=close; $('#plkMasterClose2').onclick=close; $('#plkMasterBackdrop').onclick=e=>{if(e.target.id==='plkMasterBackdrop')close();};
+  $('#plkMasterSearch').oninput=e=>{query=e.target.value||'';render();};
+  $('#plkMasterAll').onclick=()=>{products.forEach(p=>selected.add(keyOf(p)));render();};
+  $('#plkMasterNone').onclick=()=>{selected.clear();render();};
+  $('#plkMasterAdd').onclick=()=>{
+    products.forEach(p=>{
+      const k=keyOf(p); if(!selected.has(k)) return;
+      if(plakatState.items.some(x=>keyOf(x)===k)) return;
+      plakatState.items.push({id:uid(),nama:p.nama,kode:p.kode,barcode:p.barcode||'',qty:1,satuan:'PCS',note:''});
+    });
+    paintPlakatItems(); updatePlakatLivePreview(); close(); showToast(`${plakatState.items.length} item siap dicetak di plakat`);
+  };
+  render();
 }
 
 function bindCetakPlakatEvents() {
+  document.querySelectorAll('.plk-template-tab').forEach(btn => btn.addEventListener('click', () => {
+    const t=btn.dataset.template||'karantina'; const sel=$('#plkTemplate'); if(sel) sel.value=t;
+    document.querySelectorAll('.plk-template-tab').forEach(b=>{b.classList.toggle('active', b===btn); b.classList.toggle('btn-primary', b===btn); b.classList.toggle('btn-outline', b!==btn);});
+    applyPlakatTemplate(); updatePlakatLivePreview();
+  }));
+  document.querySelectorAll('#plkFormatToggle button').forEach(btn => btn.addEventListener('click',()=>{
+    const mode=btn.dataset.mode||'single'; $('#plkLayout').value=mode; document.querySelectorAll('#plkFormatToggle button').forEach(b=>b.classList.toggle('active',b===btn)); updatePlakatLivePreview();
+  }));
+  document.querySelectorAll('#plkPaperToggle button').forEach(btn => btn.addEventListener('click',()=>{
+    const paper=btn.dataset.paper||'half'; $('#plkPaperLayout').value=paper; document.querySelectorAll('#plkPaperToggle button').forEach(b=>b.classList.toggle('active',b===btn)); updatePlakatLivePreview();
+  }));
   $('#plkTemplate')?.addEventListener('change', applyPlakatTemplate);
-  $('#plkClear')?.addEventListener('click', () => { plakatState.items = []; paintPlakatItems(); });
+  $('#plkPickMaster')?.addEventListener('click', openPlakatMasterPicker);
+  $('#plkClear')?.addEventListener('click', () => { plakatState.items = []; paintPlakatItems(); updatePlakatLivePreview(); });
   $('#plkPrintBtn')?.addEventListener('click', () => printUniversalPlakat(false));
   $('#plkPreviewBtn')?.addEventListener('click', () => printUniversalPlakat(true));
   // product search
@@ -6733,7 +6947,7 @@ function bindEvents() {
     showAuthCard('login');
   });
 
-  // Login — system key OR Firebase OR local
+  // Login — admin Firebase OR Firebase OR local
   $('#loginBtn').onclick = async () => {
     const u = ($('#loginUser').value || '').trim();
     const p = ($('#loginPass').value || '').trim();
@@ -6745,51 +6959,8 @@ function bindEvents() {
       return;
     }
 
-    // 1) System key admin — selalu prioritas, tidak tergantung Firebase
-    if (u.toUpperCase() === SYSTEM_KEY_USERNAME.toUpperCase() && p === SYSTEM_KEY_PASSWORD) {
-      state.user = {
-        name: 'QC Snack Admin',
-        username: SYSTEM_KEY_USERNAME,
-        role: 'Administrator',
-        isSystemKey: true,
-        uid: 'system-key-admin'
-      };
-      saveSession(state.user);
-      // Auth anonim opsional (tidak boleh gagalkan login key)
-      if (firebaseReady && auth) {
-        try {
-          if (!auth.currentUser) {
-            await auth.signInAnonymously().catch(() => {});
-          }
-        } catch (e) {}
-      }
-      enterApp();
-      try { logActivity('LOGIN', 'Sistem', 'Admin sistem ' + SYSTEM_KEY_USERNAME + ' masuk'); } catch(e) {}
-      return;
-    }
-
-    // 2) Local users (fallback offline)
-    const localUser = state.users.find(x =>
-      (x.username === u || x.username?.toUpperCase() === u.toUpperCase()) &&
-      x.password === p && x.status === 'active'
-    );
-    if (localUser) {
-      if (localUser.role === 'pending') {
-        showAuthCard('pending');
-        return;
-      }
-      state.user = {
-        name: localUser.name,
-        username: localUser.username,
-        role: localUser.role,
-        isSystemKey: !!localUser.isSystemKey,
-        uid: localUser.id
-      };
-      saveSession(state.user);
-      enterApp();
-      logActivity('LOGIN', 'Sistem', localUser.name + ' masuk (lokal)');
-      return;
-    }
+    // SECURITY: no client-side admin Firebase and no local-password fallback.
+    // All authentication must be verified by Firebase Authentication.
 
     // 3) Firebase Auth (email or username lookup)
     if (firebaseReady && auth && db) {
@@ -6827,9 +6998,8 @@ function bindEvents() {
           username: profile.username || u,
           email: cred.user.email,
           role: role,
-          isSystemKey: false
-        };
-        saveSession(state.user);
+          };
+        storage.set('session', null);
         enterApp();
         logActivity('LOGIN', 'Sistem', state.user.name + ' masuk (Firebase) · ' + role);
         return;
@@ -6865,17 +7035,11 @@ function bindEvents() {
       $('#regError').textContent = 'Username 3–30 karakter (huruf/angka/._-)';
       return;
     }
-    if (password.length < 6) {
+    if (password.length < 8) {
       $('#regError').style.display = 'block';
-      $('#regError').textContent = 'Password minimal 6 karakter';
+      $('#regError').textContent = 'Password minimal 8 karakter';
       return;
     }
-    if (username.toUpperCase() === SYSTEM_KEY_USERNAME.toUpperCase()) {
-      $('#regError').style.display = 'block';
-      $('#regError').textContent = 'Username ini dilindungi sistem';
-      return;
-    }
-
     // Firebase register
     if (firebaseReady && auth && db) {
       try {
@@ -6898,19 +7062,7 @@ function bindEvents() {
       }
     }
 
-    // Local fallback register
-    if (state.users.some(x => x.username.toUpperCase() === username.toUpperCase())) {
-      $('#regError').style.display = 'block';
-      $('#regError').textContent = 'NIK sudah dipakai';
-      return;
-    }
-    state.users.push({
-      id: uid(), name, username, password, email,
-      role: 'pending', status: 'pending'
-    });
-    storage.set('users', state.users);
-    showAuthCard('pending');
-    showToast('Pendaftaran lokal berhasil — minta admin approve');
+    // SECURITY: local registration is disabled; Firebase Authentication is required.
   });
 
   // Mode offline ditiadakan — semua aktivitas lewat server Firebase
@@ -7070,6 +7222,17 @@ function bindEvents() {
   if (_addAuditTop) _addAuditTop.onclick = doAddAudit;
   const _addAuditBot = $('#addAuditBtn');
   if (_addAuditBot) _addAuditBot.onclick = doAddAudit;
+  $('#auditCurrentPlakatBtn')?.addEventListener('click', () => {
+    if (!state.auditList.length) return showToast('List audit masih kosong');
+    openAuditModal({
+      id: 'DRAFT-AUDIT',
+      tanggal: todayStr(),
+      tanggalLabel: nowLabel(),
+      items: state.auditList.slice(),
+      user: state.user ? state.user.name : 'Lokal',
+      dcName: state.dcName || 'DC'
+    });
+  });
   $('#clearAuditBtn').onclick = () => {
     if (confirm('Kosongkan list audit?')) {
       state.auditList=[]; storage.set('auditList',[]); cloudSaveAuditList(); renderAuditList();
@@ -7354,11 +7517,9 @@ function bindEvents() {
 function enterApp() {
   $('#authScreen').classList.add('hidden');
   $('#appShell').style.display = 'flex';
-  if (state.user && !state.user.isSystemKey) {
-    state.user.role = normalizeRole(state.user.role);
-  }
+  if (state.user) state.user.role = normalizeRole(state.user.role);
   $('#userName').textContent = state.user.name;
-  $('#userRole').textContent = currentRole() + (state.user.isSystemKey ? ' 🔑' : '');
+  $('#userRole').textContent = currentRole();
   $('#userAvatar').textContent = (state.user.name||'U')[0].toUpperCase();
   $('#dcBadge').textContent = state.dcName;
   applyMenuVisibility();
@@ -7369,15 +7530,60 @@ function enterApp() {
   setTimeout(() => bootstrapServer(), 800);
 }
 
+async function restoreFirebaseUser(firebaseUser) {
+  if (!firebaseUser) {
+    stopCloudSync();
+    state.user = null;
+    storage.set('session', null);
+    $('#appShell').style.display = 'none';
+    $('#authScreen').classList.remove('hidden');
+    return;
+  }
+  try {
+    const snap = await db.collection('users').doc(firebaseUser.uid).get();
+    const profile = snap.exists ? snap.data() : {};
+    const role = normalizeRole(profile.role || 'pending');
+    if (!snap.exists || role === 'pending' || profile.locked) {
+      await auth.signOut();
+      state.user = null;
+      showAuthCardForSecurity('pending');
+      return;
+    }
+    state.user = {
+      uid: firebaseUser.uid,
+      name: profile.name || firebaseUser.email || 'User',
+      username: profile.username || firebaseUser.email || '',
+      email: firebaseUser.email || profile.email || '',
+      role, locked: !!profile.locked
+    };
+    // Do not persist credentials or an app-level session token in localStorage.
+    storage.set('session', null);
+    enterApp();
+  } catch (e) {
+    console.error('[security] restore auth', e);
+    await auth.signOut().catch(()=>{});
+    state.user = null;
+    showToast('Gagal memverifikasi akun dari server.');
+  }
+}
+
+function showAuthCardForSecurity(mode) {
+  const login = $('#authLoginCard'), reg = $('#authRegisterCard'), pending = $('#authPendingCard');
+  if (login) login.style.display = mode === 'login' ? 'block' : 'none';
+  if (reg) reg.style.display = mode === 'register' ? 'block' : 'none';
+  if (pending) pending.style.display = mode === 'pending' ? 'block' : 'none';
+}
+
 function init() {
   loadState();
   bindEvents();
-  // Auto login if session exists dan belum kedaluwarsa
-  const session = loadValidSession();
-  if (session) {
-    state.user = session;
-    enterApp();
+  if (!firebaseReady || !auth || !db) {
+    showAuthCardForSecurity('login');
+    $('#loginError').style.display = 'block';
+    $('#loginError').textContent = 'Firebase Authentication wajib tersedia.';
+    return;
   }
+  auth.onAuthStateChanged(restoreFirebaseUser);
 }
 
 document.addEventListener('DOMContentLoaded', init);
