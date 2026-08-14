@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0f172a">
 <meta name="description" content="Sistem Manajemen Retur Barang & Master Data Gudang - Enterprise Edition">
-<title>GudangPro · Sistem Retur & Master Data</title>
+<title>DC NONBUAH · Sistem Retur & Master Data</title>
 
 <!-- Font (mengikuti gaya versi React/Tailwind) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,7 +25,7 @@
 
 <style>
 /* =========================================================
-   GUDANGPRO - ENTERPRISE RETUR & MASTER DATA SYSTEM
+   DC NONBUAH - ENTERPRISE RETUR & MASTER DATA SYSTEM
    Design System: Modern, Clean, Accessible, Mobile-First
    ========================================================= */
 :root {
@@ -347,37 +347,9 @@ table.data-table .actions { display: flex; gap: 4px; }
   padding: 0 20px 12px;
 }
 .modal-header h3 { font-size: 16px; font-weight: 700; }
-.modal-header-dark {
-  background: #0f172a; color: #fff; margin: 0 -0px; padding: 14px 20px;
-  border-radius: 0; margin-bottom: 8px;
-}
-.modal-header-dark h3 { color: #fff; font-size: 15px; }
-.modal-sheet-wide { max-width: 720px; }
 .modal-body { padding: 0 20px; }
 .modal-footer {
   padding: 16px 20px 0; display: flex; gap: 8px; flex-wrap: wrap;
-}
-.view-tabs {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-  margin: 12px 0 14px;
-}
-.view-tab {
-  padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border);
-  background: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
-  color: var(--text-muted); transition: all .15s; font-family: inherit;
-}
-.view-tab.active {
-  background: #0f766e; color: #fff; border-color: #0f766e;
-}
-.view-tab[data-view="plakat"].active {
-  background: #f59e0b; color: #111; border-color: #f59e0b;
-}
-.plakat-format-bar {
-  background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px;
-  padding: 12px 14px; margin-bottom: 12px;
-}
-.plakat-format-label {
-  font-size: 12.5px; font-weight: 700; color: #92400e; margin-bottom: 8px;
 }
 @media (min-width: 700px) {
   .modal-backdrop { align-items: center; padding: 20px; }
@@ -537,62 +509,99 @@ table.data-table .actions { display: flex; gap: 4px; }
 .nota-item-picker .picker-row .meta { color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }
 
 /* ==================== PLAKAT A4 — STABLE PRINT ENGINE ==================== */
+
 .plakat-sheet{display:none;background:#fff;color:#111;box-sizing:border-box;width:100%;}
-.plakat-page{box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:0;page-break-after:always;break-after:page;background:#fff;}
+.plakat-page{box-sizing:border-box;width:100%;height:277mm;min-height:277mm;display:flex;flex-direction:column;gap:0;page-break-after:always;break-after:page;background:#fff;overflow:hidden;}
 .plakat-page:last-child{page-break-after:auto;break-after:auto;}
-.plakat-card{border:2px solid #111;background:#fff;overflow:hidden;box-sizing:border-box;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:0;}
+.plakat-page.full-page{height:277mm;min-height:277mm;}
+.plakat-card{border:2px solid #111;background:#fff;overflow:hidden;box-sizing:border-box;flex:1 1 50%;min-height:0;display:flex;flex-direction:column;border-radius:0;}
 .plakat-page.full-page .plakat-card{flex:1 1 100%;}
 .plakat-cut{height:0;flex:0 0 0;border-top:2px dashed #777;position:relative;margin:0;}
 .plakat-cut::after{content:'✂  POTONG DI SINI';position:absolute;left:50%;top:-8px;transform:translateX(-50%);background:#fff;color:#555;font-size:9px;padding:0 8px;font-weight:700;letter-spacing:.4px;white-space:nowrap;}
-.plakat-head{background:#ffbd00;border-bottom:2px solid #111;padding:8px 10px;text-align:center;flex:0 0 auto;display:grid;grid-template-columns:1fr 1.6fr 1fr;align-items:center;min-height:40px;}
+.plakat-head{background:#ffbd00;border-bottom:2px solid #111;padding:7px 10px;text-align:center;flex:0 0 auto;display:grid;grid-template-columns:1fr 1.5fr 1fr;align-items:center;min-height:38px;}
 .plakat-head .pt{font-size:10px;font-weight:800;text-align:left;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.plakat-head .title{font-weight:950;letter-spacing:1.2px;line-height:1.1;text-transform:uppercase;font-size:18px;text-align:center;}
+.plakat-head .title{font-weight:950;letter-spacing:1.4px;line-height:1.05;text-transform:uppercase;font-size:20px;}
 .plakat-body{padding:8px 12px 7px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;min-height:0;}
-.plakat-row{display:grid;grid-template-columns:112px 10px minmax(0,1fr);gap:2px 5px;align-items:start;margin:0;border-bottom:1px solid #e3e3e3;padding:4px 0;font-size:12px;line-height:1.25;}
+.plakat-row{display:grid;grid-template-columns:112px 10px minmax(0,1fr);gap:2px 5px;align-items:start;margin:0;border-bottom:1px solid #e3e3e3;padding:4px 0;font-size:12px;line-height:1.2;}
 .plakat-row .lbl{font-weight:700;font-size:11px;}
 .plakat-row .sep{font-weight:800;}
 .plakat-row .val{font-weight:800;word-break:break-word;overflow-wrap:anywhere;min-width:0;}
-.plakat-foot{margin-top:auto;padding-top:5px;border-top:1px dashed #777;font-size:9px;color:#444;text-align:center;flex:0 0 auto;line-height:1.2;}
-.plakat-page.single .plakat-head .title{font-size:22px;}
-.plakat-page.single .plakat-row{font-size:13px;padding:5px 0;}
-.plakat-page.single .plakat-row .lbl{font-size:11.5px;}
-.plakat-page.single .plakat-head{padding:10px 12px;min-height:44px;}
-.plakat-page.single .plakat-body{padding:10px 14px 8px;}
-.plakat-page.full-page .plakat-head .title{font-size:28px;}
-.plakat-page.full-page .plakat-row{font-size:15px;padding:7px 0;}
-.plakat-page.full-page .plakat-row .lbl{font-size:13px;}
-.plakat-page.full-page .plakat-head{padding:12px 16px;min-height:52px;}
-.plakat-page.full-page .plakat-body{padding:14px 18px 12px;}
-.plakat-card.combo .plakat-items{flex:1;display:flex;flex-direction:column;gap:6px;min-height:0;}
-.plakat-card.combo .plakat-item-block{border:1px solid #333;border-radius:4px;padding:6px 8px;background:#fafafa;}
-.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:12.5px;margin-bottom:3px;line-height:1.2;overflow-wrap:anywhere;}
-.plakat-card.combo .plakat-item-block .imeta{font-size:11px;line-height:1.35;overflow-wrap:anywhere;color:#333;}
-.plakat-card.all-items .plakat-item-block{padding:5px 7px;}
-.plakat-card.all-items .plakat-item-block .iname{font-size:12px;}
-.plakat-card.all-items .plakat-item-block .imeta{font-size:10.5px;}
-.plakat-card.all-items .plakat-items{gap:5px;}
-.plakat-card.all-items .plakat-row{font-size:12px;padding:4px 0;}
-/* Preview di layar: jangan paksa tinggi A4 (itu yang bikin box kosong besar) */
-.plakat-preview-frame{background:#f1f5f9;border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:10px;overflow:auto;max-height:60vh;}
-.plakat-preview-frame .plakat-sheet{display:block!important;width:100%;max-width:480px;margin:0 auto;transform:none;}
-.plakat-preview-frame .plakat-page{height:auto!important;min-height:0!important;box-shadow:0 2px 12px rgba(15,23,42,.12);margin-bottom:12px;overflow:visible!important;border:1px solid #cbd5e1;border-radius:4px;}
-.plakat-preview-frame .plakat-card{flex:none!important;min-height:0!important;height:auto!important;overflow:visible!important;}
-.plakat-preview-frame .plakat-body{overflow:visible!important;}
-.plakat-preview-frame .plakat-items{overflow:visible!important;}
-.plakat-preview-frame .plakat-head{background:#ffbd00!important;}
+.plakat-qty{
+  display:inline-block;font-weight:950;color:#0f766e;
+  background:#ccfbf1;border:1.5px solid #2dd4bf;border-radius:6px;
+  padding:1px 8px;letter-spacing:.2px;line-height:1.25;
+}
+.plakat-page.single .plakat-qty{font-size:1.15em;padding:2px 10px;}
+.plakat-page.full-page .plakat-qty{font-size:1.2em;padding:3px 12px;}
+.plakat-item-block .plakat-qty{
+  color:#0f766e;background:#ccfbf1;border:1px solid #5eead4;
+  border-radius:4px;padding:0 5px;font-weight:900;
+}
+.plakat-foot{margin-top:auto;padding-top:5px;border-top:1px dashed #777;font-size:8.5px;color:#444;text-align:center;flex:0 0 auto;line-height:1.1;}
+.plakat-page.single .plakat-head .title{font-size:28px;}
+.plakat-page.single .plakat-row{font-size:15px;padding:6px 0;}
+.plakat-page.single .plakat-row .lbl{font-size:12px;}
+.plakat-page.single .plakat-head{padding:10px 14px;min-height:48px;}
+.plakat-page.single .plakat-body{padding:12px 16px 10px;}
+.plakat-page.full-page .plakat-head .title{font-size:42px;}
+.plakat-page.full-page .plakat-row{font-size:20px;padding:9px 0;}
+.plakat-page.full-page .plakat-row .lbl{font-size:16px;}
+.plakat-page.full-page .plakat-head{padding:14px 18px;min-height:66px;}
+.plakat-page.full-page .plakat-body{padding:18px 22px 14px;}
+.plakat-card.combo .plakat-items{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;overflow:hidden;}
+.plakat-card.combo .plakat-item-block{border:1px solid #333;border-radius:3px;padding:5px 7px;min-height:0;overflow:hidden;}
+.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:12px;margin-bottom:3px;line-height:1.15;overflow-wrap:anywhere;}
+.plakat-card.combo .plakat-item-block .imeta{font-size:9.5px;line-height:1.25;overflow-wrap:anywhere;}
+.plakat-card.all-items .plakat-item-block{padding:3px 5px;}
+.plakat-card.all-items .plakat-item-block .iname{font-size:10.5px;}
+.plakat-card.all-items .plakat-item-block .imeta{font-size:8.5px;}
+.plakat-card.all-items .plakat-items{gap:2px;}
+.plakat-card.all-items .plakat-row{font-size:10px;padding:3px 0;}
+/* Mode tampilan: nama saja / barcode saja — ukuran menyesuaikan */
+.plakat-card.display-name .plakat-hero,
+.plakat-card.display-barcode .plakat-hero{
+  flex:1;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:14px 12px;min-height:0;
+}
+.plakat-card.display-name .plakat-hero-text{
+  font-weight:950;line-height:1.12;text-transform:uppercase;overflow-wrap:anywhere;
+  font-size:clamp(18px,4.2vw,36px);
+}
+.plakat-page.full-page .plakat-card.display-name .plakat-hero-text{font-size:clamp(28px,5.5vw,56px);}
+.plakat-page.single .plakat-card.display-name .plakat-hero-text{font-size:clamp(22px,4.8vw,42px);}
+.plakat-card.display-barcode .plakat-hero-text{
+  font-weight:950;letter-spacing:1px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:clamp(22px,5vw,44px);line-height:1.1;overflow-wrap:anywhere;
+}
+.plakat-page.full-page .plakat-card.display-barcode .plakat-hero-text{font-size:clamp(32px,6vw,64px);}
+.plakat-page.single .plakat-card.display-barcode .plakat-hero-text{font-size:clamp(26px,5.2vw,52px);}
+.plakat-card.display-name .plakat-head .title,
+.plakat-card.display-barcode .plakat-head .title{font-size:14px;letter-spacing:.8px;}
+.plakat-page.full-page .plakat-card.display-name .plakat-head .title,
+.plakat-page.full-page .plakat-card.display-barcode .plakat-head .title{font-size:18px;}
+.plakat-preview-frame{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:14px;overflow:auto;max-height:none;}
+.plakat-preview-frame .plakat-sheet{display:block!important;width:210mm;max-width:none;margin:0 auto;transform-origin:top center;}
+.plakat-preview-frame .plakat-page{box-shadow:0 2px 10px rgba(15,23,42,.12);margin-bottom:12px;}
 .plakat-control-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;}
 .plakat-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.plakat-toggle button{min-height:42px;border:1px solid #d1d5db;background:#fff;border-radius:10px;font-weight:800;color:#475569;cursor:pointer;}
+.plakat-toggle.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.plakat-toggle button{min-height:42px;border:1px solid #d1d5db;background:#fff;border-radius:10px;font-weight:800;color:#475569;cursor:pointer;font-size:12.5px;padding:8px 6px;}
 .plakat-toggle button.active{background:#ffb800;border-color:#f59e0b;color:#111827;box-shadow:0 1px 2px rgba(0,0,0,.08);}
 .plakat-toggle.teal button.active{background:#0f8b83;border-color:#0f766e;color:#fff;}
+.plakat-toggle.slate button.active{background:#334155;border-color:#1e293b;color:#fff;}
 .plakat-helper{font-size:11px;color:var(--text-muted);margin-top:6px;}
+/* Capture PNG: konten panjang tidak terpotong */
+.plakat-sheet.capture-full .plakat-page,
+.receipt.capture-full,
+.capture-full{
+  height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+}
 @media print{
   body.print-plakat .plakat-card.all-items{min-height:0;}
   body.print-plakat .plakat-sheet{display:block!important;width:100%;}
-  body.print-plakat .plakat-page{height:277mm;min-height:277mm;overflow:hidden;}
+  body.print-plakat .plakat-page{height:277mm;min-height:277mm;}
   body.print-plakat .plakat-page.full-page{height:277mm;min-height:277mm;}
-  body.print-plakat .plakat-card{border:2px solid #000!important;border-radius:0!important;flex:1 1 50%;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  body.print-plakat .plakat-page.single .plakat-card{flex:1 1 100%;}
+  body.print-plakat .plakat-card{border:2px solid #000!important;border-radius:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body.print-plakat .plakat-head{background:#ffbd00!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body.print-plakat .plakat-cut::after{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
@@ -799,7 +808,7 @@ table.data-table .actions { display: flex; gap: 4px; }
     <div style="text-align:center;margin-bottom:16px;">
       <div style="width:48px;height:48px;background:linear-gradient(135deg,#0d9488,#14b8a6);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;">G</div>
     </div>
-    <h1>GudangPro</h1>
+    <h1>DC NONBUAH</h1>
     <div class="sub">Sistem Manajemen Retur & Master Data</div>
     <div class="form-group">
       <label>Username / NIK / Email</label>
@@ -864,7 +873,7 @@ table.data-table .actions { display: flex; gap: 4px; }
     <div class="sidebar-brand">
       <div class="logo">G</div>
       <div>
-        <h1>GudangPro</h1>
+        <h1>DC NONBUAH</h1>
         <span>Enterprise v2.0</span>
       </div>
     </div>
@@ -1227,8 +1236,18 @@ table.data-table .actions { display: flex; gap: 4px; }
               </div>
               <div class="plakat-helper">Ukuran otomatis dikunci agar 1 item tidak melebar/acak saat dicetak.</div>
             </div>
+            <div class="plakat-control-card">
+              <label style="font-weight:800;display:block;margin-bottom:7px;">Isi yang Ditampilkan di Plakat</label>
+              <div class="plakat-toggle cols-3 slate" id="plkDisplayToggle">
+                <button type="button" data-display="full" class="active">📋 Lengkap</button>
+                <button type="button" data-display="name">🏷 Nama Saja</button>
+                <button type="button" data-display="barcode">📶 Barcode Saja</button>
+              </div>
+              <div class="plakat-helper">Nama/Barcode saja = teks diperbesar otomatis mengisi area plakat. Lengkap = semua field standar.</div>
+            </div>
             <input type="hidden" id="plkLayout" value="single">
             <input type="hidden" id="plkPaperLayout" value="half">
+            <input type="hidden" id="plkDisplayMode" value="full">
             <div class="form-group">
               <label>Cari & Pilih Barang dari Master Data</label>
               <div style="position:relative;"><input type="text" id="plkSearch" placeholder="Ketik nama barang, kode, barcode, atau vendor…" autocomplete="off"><div class="suggest-list" id="plkSuggest" style="display:none;"></div></div>
@@ -1239,7 +1258,12 @@ table.data-table .actions { display: flex; gap: 4px; }
               <div id="plkItemList"><div class="empty-state" style="padding:20px;"><p>Belum ada barang dipilih. Gunakan pencarian di atas untuk menambahkan barang ke plakat.</p></div></div>
             </div>
             <div class="form-group" style="margin-top:12px;"><label>Catatan Tambahan (opsional)</label><textarea id="plkExtra" rows="2" placeholder="Contoh: Surat Jalan|SJ-001"></textarea></div>
-            <div class="btn-group" style="margin-top:8px;flex-wrap:wrap;"><button class="btn btn-primary" id="plkPrintBtn">🖨 Cetak Plakat A4</button><button class="btn btn-outline" id="plkPreviewBtn">👁 Pratinjau Layar</button></div>
+            <div class="btn-group" style="margin-top:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" id="plkPrintBtn">🖨 Cetak Plakat A4</button>
+              <button class="btn btn-outline" id="plkPreviewBtn">👁 Pratinjau Layar</button>
+              <button class="btn btn-outline" id="plkPngBtn">🖼 Simpan PNG</button>
+              <button class="btn btn-outline" id="plkWordBtn">📄 Simpan Word</button>
+            </div>
             <div class="plakat-preview-frame" id="plkLivePreviewWrap">
               <div style="font-weight:800;font-size:13px;margin-bottom:8px;">👁 Live Pratinjau Standar Gudang (A4) <span style="font-weight:400;color:var(--text-muted);">Sesuai dengan hasil cetakan printer</span></div>
               <div id="plkLivePreview"><div class="empty-state" style="padding:30px;"><div class="ico">📄</div><h3>Pratinjau Plakat Kosong</h3><p>Pilih barang di atas untuk melihat tampilan plakat standar gudang.</p></div></div>
@@ -1425,7 +1449,10 @@ table.data-table .actions { display: flex; gap: 4px; }
             <b>Moderator</b> — + hapus nota, laporan master, vendor<br>
             <b>Kepala Tim</b> — + master produk/kategori/rak<br>
             <b>Supervisor</b> — + activity log<br>
-            <b>Administrator</b> — semua + kelola user & pengaturan
+            <b>Administrator</b> — semua + kelola user & pengaturan<br><br>
+            <b>Penempatan DC:</b> Admin menempatkan anggota ke DC tertentu (mis. DC SNACK / DC FROZEN).
+            Anggota hanya melihat & mengelola riwayat nota DC-nya sendiri.
+            <b>DC INDUK</b> adalah DC utama — anggota di DC Induk (dan Admin) dapat mengakses semua DC.
           </div>
         </div>
         <div class="card">
@@ -1435,7 +1462,7 @@ table.data-table .actions { display: flex; gap: 4px; }
           </div>
           <div class="card-body table-wrap">
             <table class="data-table">
-              <thead><tr><th>No</th><th>Nama</th><th>NIK</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead>
+              <thead><tr><th>No</th><th>Nama</th><th>NIK</th><th>Role</th><th>DC</th><th>Status</th><th>Aksi</th></tr></thead>
               <tbody id="userTbody"></tbody>
             </table>
           </div>
@@ -1551,7 +1578,7 @@ table.data-table .actions { display: flex; gap: 4px; }
             </div>
             <div class="form-group">
               <label>Nama Sistem</label>
-              <input type="text" id="setSysName" value="GudangPro">
+              <input type="text" id="setSysName" value="DC NONBUAH">
             </div>
           </div>
         </div>
@@ -1582,10 +1609,10 @@ table.data-table .actions { display: flex; gap: 4px; }
 <div id="modalRoot"></div>
 <div class="toast" id="toast"></div>
 
-<script src="products-seed.js" onerror="console.warn('[GudangPro] products-seed.js tidak ditemukan — pastikan file berada di folder yang sama dengan index.html')"></script>
+<script src="products-seed.js" onerror="console.warn('[DC NONBUAH] products-seed.js tidak ditemukan — pastikan file berada di folder yang sama dengan index.html')"></script>
 <script>
 /* =========================================================
-   GUDANGPRO v2.0 - ENTERPRISE RETUR & MASTER DATA
+   DC NONBUAH v2.0 - ENTERPRISE RETUR & MASTER DATA
    Architecture: SPA + LocalStorage + Export Engine
    Security: Role-based access, input sanitization, audit trail
    ========================================================= */
@@ -1651,7 +1678,7 @@ const state = {
   user: null,
   page: 'dashboard',
   dcName: 'DC INDUK',
-  sysName: 'GudangPro',
+  sysName: 'DC NONBUAH',
   products: [],
   categories: [],
   vendors: [],
@@ -1695,11 +1722,11 @@ try {
     db = firebase.firestore();
     auth = firebase.auth();
     firebaseReady = true;
-    console.log('[GudangPro] Firebase connected:', firebaseConfig.projectId);
+    console.log('[DC NONBUAH] Firebase connected:', firebaseConfig.projectId);
   }
 
 } catch (e) {
-  console.error('[GudangPro] Firebase init gagal', e);
+  console.error('[DC NONBUAH] Firebase init gagal', e);
   firebaseReady = false;
 }
 
@@ -1997,7 +2024,7 @@ function startCloudSync() {
         });
         if (!stillThere) delete pending[k];
       });
-      state.history = list;
+      state.history = canViewAllDc() ? list : list.filter(h => canAccessDc(h.dcName));
       cacheLocal('history', state.history);
       if (state.page === 'riwayat-retur') renderHistory();
       if (state.page === 'dashboard') renderDashboard();
@@ -2055,8 +2082,8 @@ function startCloudSync() {
         const d = doc.data();
         if (d && d.id) list.push(d);
       });
-      state.auditHistory = list;
-      cacheLocal('auditHistory', list);
+      state.auditHistory = canViewAllDc() ? list : list.filter(h => canAccessDc(h.dcName));
+      cacheLocal('auditHistory', state.auditHistory);
       if (state.page === 'riwayat-audit') renderAuditHistory();
     }), err => console.warn('[server] audit', err)));
 
@@ -2083,7 +2110,14 @@ function startCloudSync() {
     .onSnapshot(doc => apply(() => {
       if (!doc.exists) return;
       const s = doc.data();
-      if (s.dcName) { state.dcName = s.dcName; cacheLocal('dcName', s.dcName); }
+      // DC global settings hanya untuk Admin/Induk — anggota DC lain tetap di penempatan masing-masing
+      if (s.dcName && canViewAllDc()) {
+        state.dcName = s.dcName;
+        cacheLocal('dcName', s.dcName);
+      } else if (!canViewAllDc() && state.user && state.user.assignedDc) {
+        state.dcName = state.user.assignedDc;
+        cacheLocal('dcName', state.dcName);
+      }
       if (s.sysName) { state.sysName = s.sysName; cacheLocal('sysName', s.sysName); }
       if ($('#dcBadge')) $('#dcBadge').textContent = state.dcName;
       if (state.page === 'pengaturan') renderSettings();
@@ -2094,9 +2128,10 @@ function startCloudSync() {
     .onSnapshot(snap => apply(() => {
       const list = [];
       snap.forEach(doc => list.push(doc.data()));
-      state.activityLog = list;
-      cacheLocal('activityLog', list);
+      state.activityLog = canViewAllDc() ? list : list.filter(h => canAccessDc(h.dcName || h.dc));
+      cacheLocal('activityLog', state.activityLog);
       if (state.page === 'activity-log') renderLog();
+      if (state.page === 'dashboard') renderDashboard();
     }), err => {
       console.warn('[server] activityLog order', err);
     }));
@@ -2114,11 +2149,41 @@ function startCloudSync() {
           email: d.email || '',
           role: normalizeRole(d.role),
           locked: !!d.locked,
+          assignedDc: d.assignedDc || 'DC INDUK',
           status: d.locked ? 'locked' : (normalizeRole(d.role) === 'pending' ? 'pending' : 'active')
         });
       });
       state.users = rows;
       cacheLocal('users', rows);
+      // Update penempatan DC user yang sedang login (jika admin mengubah)
+      if (state.user && state.user.uid) {
+        const me = rows.find(u => u.id === state.user.uid);
+        if (me) {
+          const prevDc = state.user.assignedDc;
+          state.user.assignedDc = me.assignedDc || 'DC INDUK';
+          state.user.role = normalizeRole(me.role);
+          state.user.locked = !!me.locked;
+          if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
+            if (state.dcName !== state.user.assignedDc) {
+              state.dcName = state.user.assignedDc;
+              cacheLocal('dcName', state.dcName);
+              if ($('#dcBadge')) $('#dcBadge').textContent = state.dcName;
+              // Resubscribe draft per DC baru
+              try { startCloudSync(); } catch (e) {}
+            }
+          }
+          if (prevDc !== state.user.assignedDc) {
+            applyDcScopeToState();
+            if (state.page === 'dashboard') renderDashboard();
+            if (state.page === 'riwayat-retur') renderHistory();
+            if (state.page === 'riwayat-audit') renderAuditHistory();
+            if (state.page === 'activity-log') renderLog();
+          }
+          if ($('#userRole')) {
+            $('#userRole').textContent = currentRole() + (state.user.assignedDc ? ' · ' + state.user.assignedDc : '');
+          }
+        }
+      }
       if (state.page === 'master-user') paintUsers(getUsersList());
     }), err => console.warn('[server] users', err)));
 
@@ -2155,7 +2220,7 @@ function startCloudSync() {
       draftApplying = false;
     }), err => console.warn('[server] audit draft', err)));
 
-  console.log('[GudangPro] Server listeners aktif (termasuk draft cart & audit)');
+  console.log('[DC NONBUAH] Server listeners aktif (termasuk draft cart & audit)');
 
 }
 
@@ -2175,7 +2240,7 @@ async function bootstrapServer() {
   try {
     const setDoc = await db.collection('meta').doc('settings').get();
     if (!setDoc.exists) {
-      await cloudSaveSettings({ dcName: state.dcName || 'DC INDUK', sysName: state.sysName || 'GudangPro' });
+      await cloudSaveSettings({ dcName: state.dcName || 'DC INDUK', sysName: state.sysName || 'DC NONBUAH' });
     }
     const catDoc = await db.collection('meta').doc('categories').get();
     if (!catDoc.exists && state.categories.length) {
@@ -2328,6 +2393,64 @@ function can(action) {
   return true;
 }
 
+/** Normalisasi nama DC untuk perbandingan (case/spasi) */
+function normDc(name) {
+  return String(name || '').toUpperCase().replace(/\s+/g, ' ').trim();
+}
+
+/** Apakah nama DC termasuk DC Induk (DC utama) */
+function isIndukDc(name) {
+  const n = normDc(name);
+  return !n || n === 'DC INDUK' || n === 'INDUK' || n.includes('INDUK');
+}
+
+/** DC yang ditetapkan admin untuk user ini */
+function userAssignedDc() {
+  if (state.user && state.user.assignedDc) return state.user.assignedDc;
+  return state.dcName || 'DC INDUK';
+}
+
+/** Admin & anggota DC Induk boleh melihat semua DC */
+function canViewAllDc() {
+  if (isAdmin()) return true;
+  return isIndukDc(userAssignedDc());
+}
+
+/** Apakah user boleh mengakses data DC tertentu */
+function canAccessDc(dcName) {
+  if (canViewAllDc()) return true;
+  return normDc(dcName) === normDc(userAssignedDc());
+}
+
+/** Filter daftar nota/sesi/log berdasarkan akses DC user — data DC lain tidak ikut */
+function filterByUserDc(list) {
+  if (!Array.isArray(list)) return [];
+  if (canViewAllDc()) return list.slice();
+  const assigned = normDc(userAssignedDc());
+  return list.filter(h => {
+    const dc = normDc(h.dcName || h.dc || '');
+    // Tanpa DC di data lama: hanya Induk/Admin yang melihat (sudah di-handle canViewAllDc)
+    // Non-Induk hanya melihat data yang dcName-nya cocok persis
+    return dc && dc === assigned;
+  });
+}
+
+/** Terapkan filter DC ke state setelah sync (non-Induk tidak menyimpan data DC lain di memori UI) */
+function applyDcScopeToState() {
+  if (canViewAllDc()) return;
+  state.history = filterByUserDc(state.history || []);
+  state.auditHistory = filterByUserDc(state.auditHistory || []);
+  state.activityLog = filterByUserDc(state.activityLog || []);
+}
+
+/** Batasi daftar gudang yang boleh dipilih/aktifkan user */
+function allowedWarehouses() {
+  const list = Array.isArray(state.warehouses) ? state.warehouses : [];
+  if (canViewAllDc()) return list.slice();
+  const assigned = normDc(userAssignedDc());
+  return list.filter(w => normDc(w.name) === assigned);
+}
+
 // -------------------- ACTIVITY LOG --------------------
 function logActivity(action, module, detail, extra={}) {
   const entry = {
@@ -2357,7 +2480,7 @@ function logPrint(module, detail, extra={}) {
 const ExportEngine = {
   getMeta(moduleName, count, filters) {
     return {
-      system: state.sysName || 'GudangPro',
+      system: state.sysName || 'DC NONBUAH',
       module: moduleName,
       tanggal: todayStr(),
       jam: new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
@@ -2374,7 +2497,7 @@ const ExportEngine = {
     const title = meta.module || 'Export';
     // Header nota-style di sheet yang sama (bukan polos)
     const aoa = [
-      [meta.system || 'GudangPro'],
+      [meta.system || 'DC NONBUAH'],
       [title],
       [`DC: ${meta.dc || '-'}  ·  ${meta.tanggal || ''} ${meta.jam || ''}  ·  ${meta.user || ''} (${meta.role || ''})  ·  ${meta.count || 0} data`],
       [],
@@ -2506,7 +2629,7 @@ const ExportEngine = {
     doc.rect(0, 0, pageW, 28, 'F');
     doc.setTextColor(255);
     doc.setFontSize(14); doc.setFont(undefined,'bold');
-    doc.text(meta.system || 'GudangPro', 14, 12);
+    doc.text(meta.system || 'DC NONBUAH', 14, 12);
     doc.setFontSize(10); doc.setFont(undefined,'normal');
     doc.text(title, 14, 20);
     doc.setFontSize(8);
@@ -2601,12 +2724,20 @@ const ExportEngine = {
     }
     if (!el) return showToast('Area nota tidak ditemukan');
     showToast('Membuat PNG nota…');
+    const prevClass = el.className;
     try {
+      el.classList.add('capture-full');
+      // Pastikan tinggi penuh (item banyak tidak terpotong)
+      const fullH = Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight);
       const canvas = await html2canvas(el, {
         backgroundColor: '#fefce8',
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        height: fullH,
+        windowHeight: fullH,
+        scrollY: 0,
+        scrollX: 0
       });
       canvas.toBlob(blob => {
         if (blob) {
@@ -2617,6 +2748,8 @@ const ExportEngine = {
     } catch (e) {
       console.error(e);
       showToast('Gagal membuat PNG');
+    } finally {
+      el.className = prevClass;
     }
   },
 
@@ -2659,7 +2792,7 @@ const ExportEngine = {
     }
     showToast('Membuat PNG audit…');
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:420px;background:#fff;padding:16px;box-sizing:border-box;';
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:560px;background:#fff;padding:16px;box-sizing:border-box;overflow:visible;';
     wrap.innerHTML = this.buildAuditReceiptHtml(session);
     document.body.appendChild(wrap);
     try {
@@ -2667,7 +2800,8 @@ const ExportEngine = {
         backgroundColor: '#fefce8',
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        onclone: (doc) => { doc.querySelectorAll('.receipt,.plakat-page,.plakat-sheet').forEach(n=>{n.style.height='auto';n.style.minHeight='0';n.style.overflow='visible';n.style.maxHeight='none';}); }
       });
       const name = `Audit_${String(session.tanggal || session.id || todayStr()).replace(/[^\w.-]+/g, '_')}.png`;
       canvas.toBlob(blob => {
@@ -2703,7 +2837,8 @@ const ExportEngine = {
         backgroundColor: '#e7e5e4',
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        onclone: (doc) => { doc.querySelectorAll('.receipt,.plakat-page,.plakat-sheet').forEach(n=>{n.style.height='auto';n.style.minHeight='0';n.style.overflow='visible';n.style.maxHeight='none';}); }
       });
       canvas.toBlob(blob => {
         if (blob) {
@@ -2728,7 +2863,7 @@ const ExportEngine = {
     }
     showToast('Membuat PNG nota…');
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:420px;background:#fff;padding:16px;box-sizing:border-box;';
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:560px;background:#fff;padding:16px;box-sizing:border-box;overflow:visible;';
     wrap.innerHTML = this.buildReceiptHtml(nota, itemsOverride);
     document.body.appendChild(wrap);
     try {
@@ -2736,7 +2871,8 @@ const ExportEngine = {
         backgroundColor: '#fefce8',
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        onclone: (doc) => { doc.querySelectorAll('.receipt,.plakat-page,.plakat-sheet').forEach(n=>{n.style.height='auto';n.style.minHeight='0';n.style.overflow='visible';n.style.maxHeight='none';}); }
       });
       const name = `Nota_${String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_')}.png`;
       canvas.toBlob(blob => {
@@ -2773,7 +2909,8 @@ const ExportEngine = {
         backgroundColor: '#e7e5e4',
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        onclone: (doc) => { doc.querySelectorAll('.receipt,.plakat-page,.plakat-sheet').forEach(n=>{n.style.height='auto';n.style.minHeight='0';n.style.overflow='visible';n.style.maxHeight='none';}); }
       });
       canvas.toBlob(blob => {
         if (blob) {
@@ -2808,7 +2945,7 @@ const ExportEngine = {
     wrap.innerHTML = `
       <div style="width:794px;min-height:400px;box-sizing:border-box;padding:0 0 48px;position:relative;">
         <div style="background:#0f766e;color:#fff;padding:18px 24px 14px;">
-          <div style="font-size:18px;font-weight:700;">${(meta.system || 'GudangPro').replace(/</g,'&lt;')}</div>
+          <div style="font-size:18px;font-weight:700;">${(meta.system || 'DC NONBUAH').replace(/</g,'&lt;')}</div>
           <div style="font-size:13px;margin-top:4px;">${String(title || '').replace(/</g,'&lt;')}</div>
           <div style="font-size:11px;margin-top:8px;opacity:0.9;">DC: ${(meta.dc || '-').replace(/</g,'&lt;')}  ·  ${meta.tanggal || ''} · ${meta.count || 0} data</div>
         </div>
@@ -2822,7 +2959,8 @@ const ExportEngine = {
       </div>`;
     document.body.appendChild(wrap);
     try {
-      const canvas = await html2canvas(wrap, { backgroundColor: '#ffffff', scale: 2, useCORS: true, logging: false });
+      const canvas = await html2canvas(wrap, { backgroundColor: '#ffffff', scale: 2, useCORS: true, logging: false,
+        onclone: (doc) => { doc.querySelectorAll('.receipt,.plakat-page,.plakat-sheet').forEach(n=>{n.style.height='auto';n.style.minHeight='0';n.style.overflow='visible';n.style.maxHeight='none';}); } });
       canvas.toBlob(blob => {
         if (blob) {
           saveAs(blob, `${(meta.module || 'Export').replace(/\s+/g,'_')}_${meta.tanggal || todayStr()}.png`);
@@ -2884,7 +3022,7 @@ function exportCart(fmt) {
 }
 
 function exportHistory(fmt) {
-  let list = state.history.slice();
+  let list = filterByUserDc(state.history);
   // Terapkan filter UI yang sama
   const term = ($('#histSearch')?.value||'').toLowerCase();
   const from = $('#histFrom')?.value;
@@ -2955,7 +3093,7 @@ function exportAuditList(fmt) {
 }
 
 function exportAuditHistory(fmt) {
-  let list = (state.auditHistory || []).slice();
+  let list = filterByUserDc(state.auditHistory || []);
   if (!list.length) return showToast('Riwayat audit kosong');
   const term = ($('#auditHistSearch')?.value || '').toLowerCase();
   const from = $('#auditHistFrom')?.value;
@@ -3110,10 +3248,10 @@ function exportLaporan(fmt) {
 
 function exportLog(fmt) {
   if (!can('admin') && !can('export')) return showToast('Akses ditolak');
-  const list = state.activityLog;
+  const list = filterByUserDc(state.activityLog || []);
   const meta = ExportEngine.getMeta('Activity Log', list.length);
-  const headers = ['Waktu','User','Role','Aksi','Modul','Detail'];
-  const rows = list.map(l => [l.waktu, l.user, l.role, l.action, l.module, l.detail]);
+  const headers = ['Waktu','User','Role','DC','Aksi','Modul','Detail'];
+  const rows = list.map(l => [l.waktu, l.user, l.role, l.dcName||'', l.action, l.module, l.detail]);
   if (fmt==='xlsx') ExportEngine.toExcel(headers, rows, 'Log', meta);
   else if (fmt==='csv') ExportEngine.toCSV(headers, rows, meta);
   else if (fmt==='pdf') ExportEngine.toPDF('Activity Log', headers, rows, meta);
@@ -3208,20 +3346,21 @@ function renderPage(page) {
 function renderDashboard() {
   const today = todayStr();
   const monthPrefix = today.slice(0,7); // YYYY-MM
+  const hist = filterByUserDc(state.history);
   const totalProduk = state.products.length;
-  const totalNota = state.history.length;
-  const totalReturItem = state.history.reduce((s,h)=>s+h.items.length,0);
+  const totalNota = hist.length;
+  const totalReturItem = hist.reduce((s,h)=>s+(h.items||[]).length,0);
   const totalAudit = state.auditList.length;
 
   // Today stats
-  const todayNotas = state.history.filter(h => h.tanggal === today);
+  const todayNotas = hist.filter(h => h.tanggal === today);
   const todayItems = todayNotas.reduce((s,h)=>s+h.items.length,0);
   const todayQty = todayNotas.reduce((s,h)=>s+h.items.reduce((a,it)=>a+parseFloat(it.qty||0),0),0);
 
   // Month good/bad
   let goodQty = 0, badQty = 0, goodCnt = 0, badCnt = 0;
-  state.history.filter(h => (h.tanggal||'').startsWith(monthPrefix)).forEach(h => {
-    h.items.forEach(it => {
+  hist.filter(h => (h.tanggal||'').startsWith(monthPrefix)).forEach(h => {
+    (h.items||[]).forEach(it => {
       const k = (it.kondisi||'Bad').toLowerCase();
       const q = parseFloat(it.qty||0);
       if (k === 'good') { goodQty += q; goodCnt++; }
@@ -3281,8 +3420,8 @@ function renderDashboard() {
     </div>
   `;
 
-  // Recent activity
-  const recent = state.activityLog.slice(0,8);
+  // Recent activity (hanya DC yang diizinkan)
+  const recent = filterByUserDc(state.activityLog || []).slice(0,8);
   if (!recent.length) {
     $('#dashRecent').innerHTML = '<div class="empty-state"><p>Belum ada aktivitas</p></div>';
   } else {
@@ -3298,7 +3437,7 @@ function renderDashboard() {
 
   // Top vendor
   const vmap = {};
-  state.history.forEach(h => h.items.forEach(it => {
+  hist.forEach(h => (h.items||[]).forEach(it => {
     const v = it.vendor || '(Tanpa Vendor)';
     vmap[v] = (vmap[v]||0) + parseFloat(it.qty||0);
   }));
@@ -3316,7 +3455,7 @@ function renderDashboard() {
 
   // Top alasan
   const amap = {};
-  state.history.forEach(h => h.items.forEach(it => {
+  hist.forEach(h => (h.items||[]).forEach(it => {
     const a = it.alasan || '(Tanpa alasan)';
     amap[a] = (amap[a]||0) + 1;
   }));
@@ -3442,7 +3581,7 @@ window.updateHistSelCount = updateHistSelCount;
 window.updateAuditSelCount = updateAuditSelCount;
 
 function renderHistory() {
-  let list = state.history.slice();
+  let list = filterByUserDc(state.history);
   const term = ($('#histSearch')?.value||'').toLowerCase();
   const from = $('#histFrom')?.value;
   const to = $('#histTo')?.value;
@@ -3596,7 +3735,7 @@ function saveAuditSession() {
 }
 
 function renderAuditHistory() {
-  let list = (state.auditHistory || []).slice();
+  let list = filterByUserDc(state.auditHistory || []);
   const term = ($('#auditHistSearch')?.value || '').toLowerCase();
   const from = $('#auditHistFrom')?.value;
   const to = $('#auditHistTo')?.value;
@@ -3633,43 +3772,23 @@ function renderAuditHistory() {
       if (s.days < 0) expired++;
       else if (s.days <= 7) urgent++;
     });
-    const itemsPreview = (h.items || []).slice(0, 4).map((it, idx) => {
-      const s = getExpStatus(it.expDate);
-      return `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-        <span><b>${idx+1}. ${esc(it.nama)}</b> <span style="color:var(--text-muted);font-size:11px;">(${esc(it.kode||'-')})</span></span>
-        <span style="white-space:nowrap;">${esc(it.qty||0)} ${esc(it.satuan||'PCS')} · ${it.rak ? 'Rak: '+esc(it.rak)+' · ' : ''}<span class="badge ${s.cls}">${s.label}</span></span>
-      </div>`;
-    }).join('');
-    const more = (h.items || []).length > 4 ? `<div style="font-size:11px;color:var(--text-muted);padding-top:4px;">+${(h.items||[]).length - 4} item lainnya…</div>` : '';
-    const safe = (h.items || []).filter(it => { const s = getExpStatus(it.expDate); return s.days > 7; }).length;
     html += `
-      <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden;">
-        <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;">
-          <input type="checkbox" class="sel-check audit-sel" value="${esc(h.id)}" onchange="updateAuditSelCount()" style="margin-top:4px;">
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <strong style="font-size:13.5px;">NOTA AUDIT EXP</strong>
-              <span class="badge badge-success">TERSIMPAN</span>
-            </div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
-              📅 ${esc(h.tanggalLabel || h.tanggal)}${h.user ? ' · Auditor: ' + esc(h.user) : ''}${h.dcName ? ' · DC: ' + esc(h.dcName) : ''}
-            </div>
-            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="btn btn-primary btn-sm" onclick="viewAuditSession('${esc(h.id)}')">👁 Pratinjau / Cetak</button>
-              <button class="btn btn-outline btn-sm" onclick="loadAuditToDraft('${esc(h.id)}')">⬇ Muat ke Draft</button>
-              <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','pdf')">📑 PDF</button>
-              <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','xlsx')">📊 Excel</button>
-            </div>
+      <div class="list-item">
+        <input type="checkbox" class="sel-check audit-sel" value="${esc(h.id)}" onchange="updateAuditSelCount()">
+        <div class="info">
+          <div class="nm">Sesi Audit · ${esc(h.tanggalLabel || h.tanggal)}</div>
+          <div class="meta">${(h.items || []).length} item · qty ${qty}${h.user ? ' · oleh ' + esc(h.user) : ''}${h.dcName ? ' · ' + esc(h.dcName) : ''}</div>
+          <div class="meta" style="margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;">
+            ${expired ? `<span class="badge badge-danger">Expired ${expired}</span>` : ''}
+            ${urgent ? `<span class="badge badge-warning">Urgent ${urgent}</span>` : ''}
+            <span class="badge badge-muted">${(h.items || []).length} produk</span>
           </div>
         </div>
-        <div style="padding:10px 14px;background:#fafbfc;">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <span class="badge badge-info">Total ${(h.items||[]).length} Produk</span>
-            ${safe ? `<span class="badge badge-success">${safe} Safe</span>` : ''}
-            ${urgent ? `<span class="badge badge-warning">Urgent ${urgent}</span>` : ''}
-            ${expired ? `<span class="badge badge-danger">Expired ${expired}</span>` : ''}
-          </div>
-          ${itemsPreview}${more}
+        <div class="actions" style="flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="viewAuditSession('${esc(h.id)}')" title="Pratinjau & cetak">👁 Pratinjau</button>
+          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','pdf')" title="PDF A4">📑 PDF</button>
+          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','png')" title="PNG A4">🖼 PNG</button>
+          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','xlsx')" title="Excel">📊 Excel</button>
         </div>
       </div>`;
   });
@@ -3683,26 +3802,17 @@ function renderAuditHistory() {
 
 
 /** Modal pratinjau sesi audit — setara openNotaModal (pilih item, cetak, plakat) */
-function lookupBarcode(kode) {
-  if (!kode) return '';
-  const k = String(kode).trim().toLowerCase();
-  const p = (state.products || []).find(x => String(x.kode || '').trim().toLowerCase() === k);
-  return p ? (p.barcode || (Array.isArray(p.barcodes) && p.barcodes[0]) || '') : '';
-}
-
 function openAuditModal(session) {
   const root = $('#modalRoot');
   if (!root || !session) return;
   const allItems = (session.items || []).slice();
   const selectedIds = new Set(allItems.map((it, i) => String(it.id || ('aidx-' + i))));
   let pickerQuery = '';
-  let viewMode = 'struk'; // 'struk' | 'plakat'
-  let plakatMode = 'single'; // 'single' | 'all'
 
   function itemKey(it, i) { return String(it.id || ('aidx-' + i)); }
 
   function filteredItems() {
-    return allItems.filter((it, i) => selectedIds.has(itemKey(it, i)));
+    return allItems.filter((it, i) => selectedIds.has(itemKey(it, allItems.indexOf(it) >= 0 ? allItems.indexOf(it) : i)));
   }
 
   function densityClass(n) {
@@ -3722,11 +3832,11 @@ function openAuditModal(session) {
   function buildItemsHtml(items) {
     return items.map((c, i) => {
       const s = getExpStatus(c.expDate);
-      const kond = (c.kondisi || 'Good') === 'Good' ? 'Good' : 'Jelek';
+      const kond = (c.kondisi || 'Good') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
       return `<div class="rline">
         <div class="top"><span>${i+1}. ${esc(c.nama)}</span><span>${esc(c.qty)} ${esc(c.satuan||'PCS')}</span></div>
         <div class="sub">Kode: ${esc(c.kode||'-')} · Exp: <b>${esc(c.expDate||'-')}</b> · <span class="badge ${s.cls}">${s.label}</span></div>
-        <div class="sub">Rak: ${esc(c.rak||'-')} · Kondisi: ${esc(kond)}</div>
+        <div class="sub">${kond}${c.rak ? ' · Rak: ' + esc(c.rak) : ''}</div>
         ${c.catatan ? `<div class="sub" style="color:var(--danger);">Catatan: ${esc(c.catatan)}</div>` : ''}
       </div>`;
     }).join('');
@@ -3747,165 +3857,139 @@ function openAuditModal(session) {
         <input type="checkbox" class="nota-item-cb" data-key="${esc(key)}" ${checked}>
         <div>
           <div class="nm">${esc(it.nama)}</div>
-          <div class="meta">${esc(it.qty)} ${esc(it.satuan||'PCS')} · Exp ${esc(it.expDate||'-')} · ${s.label}${it.rak ? ' · Rak: ' + esc(it.rak) : ''}</div>
+          <div class="meta">${esc(it.qty)} ${esc(it.satuan||'PCS')} · Exp ${esc(it.expDate||'-')} · ${s.label}</div>
         </div>
       </label>`;
     }).join('');
   }
 
-  function buildAuditPlakatHtml(items, mode) {
+  // Reuse plakat builder pattern locally for audit
+  function buildAuditPlakatHtml(items, mode, displayMode) {
     mode = mode || 'single';
+    displayMode = displayMode || getPlakatDisplayFrom('auditPlakatDisplay') || 'full';
     const groups = getPlakatGroups(items, mode);
     const n = items.length;
     const dc = session.dcName || state.dcName || 'DC';
-    const tgl = session.tanggalLabel || session.tanggal || todayStr();
-    const judul = ($('#auditJudul')?.value || session.judul || 'NOTA AUDIT EXP').trim() || 'NOTA AUDIT EXP';
-
+    const tgl = session.tanggalLabel || session.tanggal || '';
     function oneCard(it, i) {
       const s = getExpStatus(it.expDate);
       const kond = (it.kondisi || 'Good') === 'Good' ? 'BAGUS' : 'JELEK';
-      const bc = it.barcode || lookupBarcode(it.kode) || '-';
-      const expLabel = it.expDate ? `${esc(it.expDate)} (${esc(s.label)})` : '-';
-      return `<div class="plakat-card">
-        <div class="plakat-head">
-          <div class="pt">${esc(dc)}</div>
-          <div class="title">${esc(judul)}</div>
-          <div></div>
-        </div>
-        <div class="plakat-body">
-          <div class="plakat-row"><span class="lbl">Nama Barang</span><span class="sep">:</span><span class="val">${esc(it.nama||'-')}</span></div>
-          <div class="plakat-row"><span class="lbl">Kode Barang</span><span class="sep">:</span><span class="val">${esc(it.kode||'-')}</span></div>
-          <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(bc)}</span></div>
-          <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val">${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</span></div>
-          <div class="plakat-row"><span class="lbl">Lokasi Rak</span><span class="sep">:</span><span class="val">${esc(it.rak||'-')}</span></div>
-          <div class="plakat-row"><span class="lbl">Tgl Expired</span><span class="sep">:</span><span class="val">${expLabel}</span></div>
-          <div class="plakat-row"><span class="lbl">Kondisi</span><span class="sep">:</span><span class="val">${esc(kond)}</span></div>
-          <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
-          ${it.catatan ? `<div class="plakat-row"><span class="lbl">Catatan</span><span class="sep">:</span><span class="val">${esc(it.catatan)}</span></div>` : ''}
-          <div class="plakat-foot">${i+1} / ${n} · ${esc(dc)} · Tempel di kardus</div>
-        </div>
-      </div>`;
-    }
-
-    function groupCard(group, startIdx) {
-      const blocks = group.map((it,j) => {
-        const s = getExpStatus(it.expDate);
-        const bc = it.barcode || lookupBarcode(it.kode) || '-';
-        const kond = (it.kondisi||'Good')==='Good'?'BAGUS':'JELEK';
-        return `<div class="plakat-item-block">
-          <div class="iname">${startIdx+j+1}. ${esc(it.nama||'-')}</div>
-          <div class="imeta">Kode: <b>${esc(it.kode||'-')}</b> · BC: ${esc(bc)} · Qty: <b>${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</b><br>
-          Exp: ${esc(it.expDate||'-')} (${esc(s.label)}) · Rak: ${esc(it.rak||'-')} · <b>${kond}</b></div>
-        </div>`;
-      }).join('');
-      const isFull = mode === 'all' || group.length === n;
-      return `<div class="plakat-card combo ${isFull?'all-items':''}">
-        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(judul)}</div><div></div></div>
-        <div class="plakat-body">
-          <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
-          <div class="plakat-items">${blocks}</div>
-          <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
-        </div>
-      </div>`;
-    }
-
-    const pages = [];
-    let idx = 0;
-    if (mode === 'all') {
-      pages.push(`<div class="plakat-page single full-page">${groupCard(groups[0] || items, 0)}</div>`);
-    } else {
-      for (let i = 0; i < groups.length; i += 2) {
-        const g1 = groups[i], g2 = groups[i + 1];
-        let inner = (g1.length === 1) ? oneCard(g1[0], idx) : groupCard(g1, idx);
-        idx += g1.length;
-        if (g2) {
-          inner += '<div class="plakat-cut"></div>' + ((g2.length === 1) ? oneCard(g2[0], idx) : groupCard(g2, idx));
-          idx += g2.length;
-        }
-        pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
+      const title = s.days < 0 ? 'EXPIRED' : (s.days <= 7 ? 'URGENT EXP' : 'AUDIT EXP');
+      if (displayMode === 'name') {
+        return `<div class="plakat-card display-name"><div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div><div class="plakat-body">
+          <div class="plakat-hero"><div class="plakat-hero-text">${esc(it.nama||'-')}</div></div>
+          <div class="plakat-foot">${i+1}/${n} · ${esc(dc)} · Tempel di kardus</div></div></div>`;
       }
+      if (displayMode === 'barcode') {
+        const bc = it.barcode || it.kode || '-';
+        return `<div class="plakat-card display-barcode"><div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div><div class="plakat-body">
+          <div class="plakat-hero"><div class="plakat-hero-text">${esc(bc)}</div></div>
+          <div class="plakat-foot">${i+1}/${n} · ${esc(it.nama||'')} · Tempel di kardus</div></div></div>`;
+      }
+      return `<div class="plakat-card"><div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div><div class="plakat-body">
+        <div class="plakat-row"><span class="lbl">Nama Barang</span><span class="sep">:</span><span class="val">${esc(it.nama||'-')}</span></div>
+        <div class="plakat-row"><span class="lbl">Kode Barang</span><span class="sep">:</span><span class="val">${esc(it.kode||'-')}</span></div>
+        <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(it.barcode||'-')}</span></div>
+        <div class="plakat-row"><span class="lbl">Tgl Expired</span><span class="sep">:</span><span class="val">${esc(it.expDate||'-')} (${esc(s.label)})</span></div>
+        <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val"><span class="plakat-qty">${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</span></span></div>
+        <div class="plakat-row"><span class="lbl">Rak</span><span class="sep">:</span><span class="val">${esc(it.rak||'-')}</span></div>
+        <div class="plakat-row"><span class="lbl">Kondisi</span><span class="sep">:</span><span class="val">${esc(kond)}</span></div>
+        <div class="plakat-row"><span class="lbl">Sesi Audit</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
+        ${it.catatan ? `<div class="plakat-row"><span class="lbl">Catatan</span><span class="sep">:</span><span class="val">${esc(it.catatan)}</span></div>` : ''}
+        <div class="plakat-foot">${i+1}/${n} · ${esc(dc)} · Tempel di kardus</div></div></div>`;
+    }
+    function groupCard(group, startIdx) {
+      if (displayMode === 'name') {
+        const blocks = group.map((it,j) => `<div class="plakat-item-block"><div class="iname">${startIdx+j+1}. ${esc(it.nama||'-')}</div></div>`).join('');
+        return `<div class="plakat-card combo display-name ${group.length===n?'all-items':''}"><div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">AUDIT EXP</div></div><div class="plakat-body"><div class="plakat-items">${blocks}</div><div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div></div></div>`;
+      }
+      if (displayMode === 'barcode') {
+        const blocks = group.map((it,j) => {
+          const bc = it.barcode || it.kode || '-';
+          return `<div class="plakat-item-block"><div class="iname">${startIdx+j+1}. ${esc(bc)}</div><div class="imeta">${esc(it.nama||'')}</div></div>`;
+        }).join('');
+        return `<div class="plakat-card combo display-barcode ${group.length===n?'all-items':''}"><div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">AUDIT EXP</div></div><div class="plakat-body"><div class="plakat-items">${blocks}</div><div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div></div></div>`;
+      }
+      const blocks = group.map((it,j) => { const s=getExpStatus(it.expDate); return `<div class="plakat-item-block"><div class="iname">${startIdx+j+1}. ${esc(it.nama||'-')}</div><div class="imeta">Kode: <b>${esc(it.kode||'-')}</b> · BC: <b>${esc(it.barcode||'-')}</b> · Qty: <span class="plakat-qty">${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</span><br>Exp: ${esc(it.expDate||'-')} (${esc(s.label)}) · Rak: ${esc(it.rak||'-')}</div></div>`; }).join('');
+      return `<div class="plakat-card combo ${group.length===n?'all-items':''}"><div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">AUDIT EXP</div></div><div class="plakat-body"><div class="plakat-row"><span class="lbl">Sesi Audit</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div><div class="plakat-items">${blocks}</div><div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div></div></div>`;
+    }
+    const pages=[]; let idx=0;
+    for(let i=0;i<groups.length;i+=2){
+      const g1=groups[i],g2=groups[i+1];
+      let inner=(g1.length===1&&mode==='single')?oneCard(g1[0],idx):groupCard(g1,idx); idx+=g1.length;
+      if(g2){inner+='<div class="plakat-cut"></div>'+((g2.length===1&&mode==='single')?oneCard(g2[0],idx):groupCard(g2,idx));idx+=g2.length;}
+      pages.push(`<div class="plakat-page${g2?'':' single'}">${inner}</div>`);
     }
     return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
   }
 
+
+
   const initItems = filteredItems();
   root.innerHTML = `
     <div class="modal-backdrop" id="auditBackdrop">
-      <div class="modal-sheet modal-sheet-wide">
+      <div class="modal-sheet">
         <div class="handle"></div>
-        <div class="modal-header modal-header-dark">
-          <h3>📋 Pratinjau Riwayat Sesi Audit EXP</h3>
-          <button class="btn btn-icon btn-outline" id="auditClose" style="color:#fff;border-color:rgba(255,255,255,.3);">✕</button>
+        <div class="modal-header">
+          <h3>Pratinjau Sesi Audit</h3>
+          <button class="btn btn-icon btn-outline" id="auditClose">✕</button>
         </div>
         <div class="modal-body">
           <div class="form-group no-print">
-            <label>Judul Sesi Audit (opsional)</label>
+            <label>Judul (opsional)</label>
             <input type="text" id="auditJudul" value="${esc(session.judul || 'NOTA AUDIT EXP')}" placeholder="NOTA AUDIT EXP">
           </div>
           <div class="nota-item-picker no-print" id="auditItemPicker">
-            <div class="picker-head">
+            <div class="picker-head" style="border-bottom:none;padding-bottom:4px;margin-bottom:0;">
               <div class="picker-head-top">
                 <div>
-                  <strong style="font-size:13px;">Pilih item audit yang ingin dicetak / diexport</strong>
-                  <div class="sel-count" id="auditSelCountModal">${selectedIds.size} / ${allItems.length} item dipilih</div>
-                </div>
-                <div class="picker-actions">
-                  <button type="button" class="btn btn-sm btn-outline" id="auditSelAllM">✓ Semua</button>
-                  <button type="button" class="btn btn-sm btn-outline" id="auditSelNoneM">✕ Kosong</button>
-                  <button type="button" class="btn btn-sm btn-outline" id="auditSelVisM">✓ Hasil Cari</button>
+                  <strong style="font-size:13px;">Pilih item ditampilkan / dicetak</strong>
+                  <div class="sel-count" id="auditSelCountModal">${selectedIds.size} / ${allItems.length} dipilih</div>
                 </div>
               </div>
-              <div class="picker-search">
-                <input type="text" id="auditItemSearch" placeholder="Cari item di dalam sesi (nama, kode, rak)…" autocomplete="off">
+            </div>
+            <div class="picker-list" id="auditPickerList" style="max-height:220px;">${buildPickerRowsHtml()}</div>
+            <div class="picker-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px;">
+              <div class="picker-search" style="margin-bottom:8px;">
+                <input type="text" id="auditItemSearch" placeholder="Cari nama, kode, exp, rak…" autocomplete="off">
+              </div>
+              <div class="picker-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm btn-outline" id="auditSelAllM">✓ Semua</button>
+                <button type="button" class="btn btn-sm btn-outline" id="auditSelNoneM">✕ Kosong</button>
+                <button type="button" class="btn btn-sm btn-outline" id="auditSelVisM">✓ Hasil cari</button>
               </div>
             </div>
-            <div class="picker-list" id="auditPickerList">${buildPickerRowsHtml()}</div>
           </div>
-
-          <div class="view-tabs no-print" id="auditViewTabs">
-            <button type="button" class="view-tab active" data-view="struk">📄 Struk Nota</button>
-            <button type="button" class="view-tab" data-view="plakat" id="auditTabPlakat">🏷️ Plakat Audit (${initItems.length})</button>
-          </div>
-
-          <div id="auditStrukPane">
-            <div class="receipt ${densityClass(initItems.length)}" id="printArea">
-              <div class="brand">
-                <div class="title" id="auditReceiptTitle">${esc(session.judul || 'NOTA AUDIT EXP')}</div>
-                <div class="sub">${esc(session.dcName || state.dcName || '')}</div>
-              </div>
-              <hr>
-              <div class="meta-row"><span>Sesi Audit</span><b>${esc(session.tanggalLabel || session.tanggal || '')}</b></div>
-              <div class="meta-row"><span>Auditor</span><b>${esc(session.user || '')}</b></div>
-              <div class="meta-row"><span>Total Item</span><b id="auditItemCount">${initItems.length} produk</b></div>
-              <hr>
-              <div id="auditItemsBody">${buildItemsHtml(initItems)}</div>
-              <hr>
-              <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;">Audit EXP · ${esc(session.dcName || '')} · ${esc(session.user || '')}</div>
+          <div class="receipt ${densityClass(initItems.length)}" id="printArea">
+            <div class="brand">
+              <div class="title" id="auditReceiptTitle">${esc(session.judul || 'NOTA AUDIT EXP')}</div>
+              <div class="sub">${esc(session.dcName || state.dcName || '')}</div>
             </div>
+            <hr>
+            <div class="meta-row"><span>Sesi</span><b>${esc(session.tanggalLabel || session.tanggal || '')}</b></div>
+            <div class="meta-row"><span>Oleh</span><b>${esc(session.user || '')}</b></div>
+            <div class="meta-row"><span>Item</span><b id="auditItemCount">${initItems.length} produk</b></div>
+            <hr>
+            <div id="auditItemsBody">${buildItemsHtml(initItems)}</div>
+            <hr>
+            <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;">Audit EXP · ${esc(session.dcName || '')}</div>
           </div>
-
-          <div id="auditPlakatPane" style="display:none;">
-            <div class="plakat-format-bar no-print">
-              <div class="plakat-format-label">🏷️ Format Tampilan Plakat Warning:</div>
-              <div class="plakat-toggle" id="auditPlakatToggle">
-                <button type="button" data-mode="single" class="active">🏷️ Pisah (${initItems.length} Label)</button>
-                <button type="button" data-mode="all">📚 Gabung (1 Plakat)</button>
-              </div>
-            </div>
-            <div class="plakat-preview-frame" id="auditPlakatPreview"></div>
-          </div>
+          <div id="plakatHost" class="no-print" style="display:none;"></div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
-          <button class="btn btn-outline" id="auditCopy">📋 Salin WA</button>
+          <button class="btn btn-primary" id="auditCopy">📋 Salin WA</button>
           <button class="btn btn-outline" id="auditPdf">📑 PDF</button>
           <button class="btn btn-outline" id="auditPng">🖼 PNG</button>
           <button class="btn btn-outline" id="auditPrint">🖨 Cetak Nota</button>
-          <button class="btn btn-primary" id="auditPlakatPrint" style="background:#f59e0b;border-color:#f59e0b;">🏷️ Cetak Plakat (Pisah)</button>
-          <button class="btn btn-outline" id="auditClose2">Tutup</button>
+          ${plakatModeOptions('auditPlakatMode','single')}
+          ${plakatDisplayOptions('auditPlakatDisplay','full')}
+          <button class="btn btn-primary" id="auditPlakat">🏷️ Plakat Audit</button>
         </div>
       </div>
     </div>`;
 
+  bindPlakatModeToggle('auditPlakatMode');
+  bindPlakatDisplayToggle('auditPlakatDisplay');
   function rebind() {
     $$('.nota-item-cb').forEach(cb => {
       cb.onchange = () => {
@@ -3918,54 +4002,20 @@ function openAuditModal(session) {
     const list = $('#auditPickerList');
     if (list) { list.innerHTML = buildPickerRowsHtml(); rebind(); }
   }
-  function refreshPlakatPreview() {
-    const items = filteredItems();
-    const host = $('#auditPlakatPreview');
-    if (!host) return;
-    if (!items.length) {
-      host.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="ico">📄</div><h3>Tidak ada item dipilih</h3></div>';
-      return;
-    }
-    const html = buildAuditPlakatHtml(items, plakatMode);
-    host.innerHTML = html.replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"');
-    const btn = $('#auditPlakatPrint');
-    if (btn) btn.textContent = plakatMode === 'single' ? `🏷️ Cetak Plakat (Pisah)` : `🏷️ Cetak Plakat (Gabung)`;
-    const tab = $('#auditTabPlakat');
-    if (tab) tab.textContent = `🏷️ Plakat Audit (${items.length})`;
-    // update toggle labels
-    const tog = $('#auditPlakatToggle');
-    if (tog) {
-      const b1 = tog.querySelector('[data-mode="single"]');
-      const b2 = tog.querySelector('[data-mode="all"]');
-      if (b1) b1.textContent = `🏷️ Pisah (${items.length} Label)`;
-      if (b2) b2.textContent = `📚 Gabung (1 Plakat)`;
-    }
-  }
   function refresh() {
     const items = filteredItems();
     const body = $('#auditItemsBody');
     if (body) body.innerHTML = items.length ? buildItemsHtml(items) : '<div class="sub" style="padding:8px 0;color:var(--text-muted);">Tidak ada item dipilih</div>';
     if ($('#auditItemCount')) $('#auditItemCount').textContent = items.length + ' produk';
-    if ($('#auditSelCountModal')) $('#auditSelCountModal').textContent = selectedIds.size + ' / ' + allItems.length + ' item dipilih';
+    if ($('#auditSelCountModal')) $('#auditSelCountModal').textContent = selectedIds.size + ' / ' + allItems.length + ' dipilih';
     applyDensity(items.length);
     const t = $('#auditJudul')?.value || 'NOTA AUDIT EXP';
     const te = $('#auditReceiptTitle');
     if (te) te.textContent = t;
-    if (viewMode === 'plakat') refreshPlakatPreview();
-    const tab = $('#auditTabPlakat');
-    if (tab) tab.textContent = `🏷️ Plakat Audit (${items.length})`;
-  }
-  function setView(v) {
-    viewMode = v;
-    $$('#auditViewTabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === v));
-    if ($('#auditStrukPane')) $('#auditStrukPane').style.display = v === 'struk' ? 'block' : 'none';
-    if ($('#auditPlakatPane')) $('#auditPlakatPane').style.display = v === 'plakat' ? 'block' : 'none';
-    if (v === 'plakat') refreshPlakatPreview();
   }
 
   const close = () => { document.body.classList.remove('print-plakat'); root.innerHTML = ''; };
   $('#auditClose').onclick = close;
-  $('#auditClose2').onclick = close;
   $('#auditBackdrop').onclick = e => { if (e.target.id === 'auditBackdrop') close(); };
   rebind();
   $('#auditSelAllM')?.addEventListener('click', () => { allItems.forEach((it,i)=>selectedIds.add(itemKey(it,i))); refreshPicker(); refresh(); });
@@ -3980,17 +4030,6 @@ function openAuditModal(session) {
     clearTimeout(st); st = setTimeout(refreshPicker, 120);
   });
   $('#auditJudul')?.addEventListener('input', refresh);
-
-  $$('#auditViewTabs .view-tab').forEach(btn => {
-    btn.addEventListener('click', () => setView(btn.dataset.view));
-  });
-  $$('#auditPlakatToggle button[data-mode]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      plakatMode = btn.dataset.mode || 'single';
-      $$('#auditPlakatToggle button[data-mode]').forEach(b => b.classList.toggle('active', b === btn));
-      refreshPlakatPreview();
-    });
-  });
 
   $('#auditCopy').onclick = () => {
     const items = filteredItems();
@@ -4019,63 +4058,61 @@ function openAuditModal(session) {
   $('#auditPng').onclick = () => {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
-    if (viewMode === 'plakat') {
-      const host = $('#auditPlakatPreview');
-      if (host) ExportEngine.captureElementPNG(host, `Plakat_Audit_${String(session.id||todayStr()).replace(/[^\w.-]+/g,'_')}.png`);
-    } else {
-      const area = $('#printArea');
-      if (area) ExportEngine.captureElementPNG(area, `Audit_${String(session.id||todayStr()).replace(/[^\w.-]+/g,'_')}.png`);
-      else exportOneAuditSession(session.id, 'png', items);
-    }
+    const area = $('#printArea');
+    if (area) ExportEngine.captureElementPNG(area, `Audit_${String(session.id||todayStr()).replace(/[^\w.-]+/g,'_')}.png`);
+    else exportOneAuditSession(session.id, 'png', items);
   };
   $('#auditPrint').onclick = () => {
     if (!filteredItems().length) return showToast('Pilih minimal 1 item');
     document.body.classList.remove('print-plakat');
-    setView('struk');
     logPrint('Audit EXP', `Cetak sesi · ${session.id || ''} · ${filteredItems().length} item`, { sessionId: session.id, count: filteredItems().length });
-    setTimeout(() => window.print(), 50);
+    window.print();
   };
-  $('#auditPlakatPrint').onclick = () => {
+  function doPlakat(mode) {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
-    const wrap = document.createElement('div');
-    wrap.innerHTML = buildAuditPlakatHtml(items, plakatMode);
-    const sheet = wrap.querySelector('.plakat-sheet');
-    if (!sheet) return;
-    const old = document.getElementById('plakatPrintAreaLive');
-    if (old) old.remove();
-    sheet.id = 'plakatPrintAreaLive';
-    sheet.style.display = 'block';
-    document.body.appendChild(sheet);
-    document.body.classList.add('print-plakat');
-    const cleanup = () => {
-      document.body.classList.remove('print-plakat');
-      const el = document.getElementById('plakatPrintAreaLive');
-      if (el) el.remove();
-      window.removeEventListener('afterprint', cleanup);
+    const host = $('#plakatHost');
+    if (!host) return;
+    const display = getPlakatDisplayFrom('auditPlakatDisplay');
+    const html = buildAuditPlakatHtml(items, mode, display);
+    host.innerHTML = `<div class="plakat-preview-frame" style="margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <strong>🏷️ Pratinjau Plakat Audit (${items.length} Item)</strong>
+        <span class="badge badge-warning">${esc(plakatModeLabel(mode,items.length))} · ${display==='name'?'Nama':display==='barcode'?'Barcode':'Lengkap'}</span>
+      </div>
+      <div class="plakat-preview-inner">${html.replace('class="plakat-sheet"','class="plakat-sheet" style="display:block"')}</div>
+      <div class="btn-group" style="margin-top:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="auditPrintPlakatNow">🖨 Cetak Plakat</button>
+        <button type="button" class="btn btn-outline" id="auditPngPlakatNow">🖼 PNG</button>
+        <button type="button" class="btn btn-outline" id="auditWordPlakatNow">📄 Word</button>
+        <button type="button" class="btn btn-outline" id="auditClosePlakatPreview">Tutup</button>
+      </div>
+    </div>`;
+    host.style.display = 'block';
+    const rebuild = () => buildAuditPlakatHtml(items, mode, getPlakatDisplayFrom('auditPlakatDisplay'));
+    $('#auditClosePlakatPreview').onclick = () => { host.innerHTML = ''; host.style.display = 'none'; };
+    $('#auditPrintPlakatNow').onclick = () => {
+      const h = rebuild();
+      printPlakatSheetHtml(h, 'Plakat Audit', plakatModeLabel(mode, items.length) + ' · sesi ' + (session.id || ''));
+      logPrint('Plakat Audit', plakatModeLabel(mode, items.length) + ' · sesi ' + (session.id || ''), { format: 'print-plakat', count: items.length, sessionId: session.id, mode });
     };
-    window.addEventListener('afterprint', cleanup);
-    setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 80);
-    logPrint('Plakat Audit', plakatModeLabel(plakatMode, items.length) + ' · sesi ' + (session.id || ''), { format: 'print-plakat', count: items.length, sessionId: session.id, mode: plakatMode });
-  };
+    $('#auditPngPlakatNow').onclick = () => {
+      exportAnyPlakatPNG(rebuild(), 'Plakat_Audit_' + String(session.id || todayStr()).replace(/[^\w.-]+/g, '_'));
+    };
+    $('#auditWordPlakatNow').onclick = () => {
+      exportAnyPlakatWord(rebuild(), 'Plakat_Audit_' + String(session.id || todayStr()).replace(/[^\w.-]+/g, '_'));
+      logActivity('EXPORT', 'Plakat Audit', `Word · ${items.length} item`);
+    };
+  }
+  $('#auditPlakat').onclick = () => doPlakat($('#auditPlakatMode')?.value || 'single');
   applyDensity(initItems.length);
 }
 
 window.viewAuditSession = function(id) {
   const h = (state.auditHistory || []).find(x => x.id === id);
   if (!h) return showToast('Sesi tidak ditemukan');
+  if (!canAccessDc(h.dcName)) return showToast('Sesi audit DC lain tidak dapat dibuka (akses: ' + userAssignedDc() + ')');
   openAuditModal(h);
-};
-
-window.loadAuditToDraft = function(id) {
-  const h = (state.auditHistory || []).find(x => x.id === id);
-  if (!h) return showToast('Sesi tidak ditemukan');
-  if (!confirm('Muat ' + (h.items || []).length + ' item ke draft audit? Draft saat ini akan diganti.')) return;
-  state.auditList = (h.items || []).map(it => Object.assign({}, it, { id: it.id || uid() }));
-  storage.set('auditList', state.auditList);
-  if (typeof cloudSaveAuditList === 'function') cloudSaveAuditList();
-  showToast('Dimuat ke draft audit');
-  navigate('audit');
 };
 
 window.exportOneAuditSession = function(id, fmt, onlyItems) {
@@ -4460,8 +4497,18 @@ function bulkSaveRacks() {
 }
 
 function renderGudang() {
-  const list = state.warehouses;
-  $('#gudangList').innerHTML = list.map((w,i) => `
+  const list = allowedWarehouses();
+  const all = Array.isArray(state.warehouses) ? state.warehouses : [];
+  const note = canViewAllDc()
+    ? ''
+    : `<div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;padding:10px 12px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;">
+        Anda ditetapkan di <b>${esc(userAssignedDc())}</b>. Data & nota DC lain tidak dapat dilihat.
+      </div>`;
+  if (!list.length && all.length) {
+    $('#gudangList').innerHTML = note + '<div class="empty-state"><p>Tidak ada DC yang diizinkan untuk akun ini. Hubungi Administrator.</p></div>';
+    return;
+  }
+  $('#gudangList').innerHTML = note + list.map((w,i) => `
     <div class="list-item">
       <div class="idx">${i+1}</div>
       <div class="info">
@@ -4469,15 +4516,26 @@ function renderGudang() {
         <div class="meta">${esc(w.address||'Alamat belum diisi')}</div>
       </div>
       ${w.name===state.dcName?'<span class="badge badge-success">Aktif</span>':
-        `<button class="btn btn-outline btn-sm" onclick="setActiveGudang('${esc(w.name)}')">Jadikan Aktif</button>`}
+        (canAccessDc(w.name)
+          ? `<button class="btn btn-outline btn-sm" onclick="setActiveGudang('${esc(w.name)}')">Jadikan Aktif</button>`
+          : '<span class="badge badge-muted">Tidak diizinkan</span>')}
     </div>
   `).join('');
 }
 
 function setActiveGudang(name) {
+  if (!canAccessDc(name)) {
+    return showToast('Anda hanya boleh mengakses DC: ' + userAssignedDc());
+  }
   state.dcName = name;
   storage.set('dcName', name);
   $('#dcBadge').textContent = name;
+  // Draft cart/audit terpisah per DC — sinkron ulang
+  if (typeof startCloudSync === 'function') {
+    try { startCloudSync(); } catch (e) {}
+  }
+  if (typeof cloudSaveCart === 'function') cloudSaveCart();
+  if (typeof cloudSaveAuditList === 'function') cloudSaveAuditList();
   renderGudang();
   showToast('DC aktif: '+name);
 }
@@ -4495,7 +4553,7 @@ function renderUsers() {
   const tbody = $('#userTbody');
   if (!tbody) return;
   if (!canAccessPage('master-user')) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;">Hanya Administrator yang dapat mengelola user</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;">Hanya Administrator yang dapat mengelola user</td></tr>';
     return;
   }
   // Jika server online, data di-update via listener; render dari state
@@ -4512,6 +4570,7 @@ function renderUsers() {
           email: d.email || '',
           role: normalizeRole(d.role),
           locked: !!d.locked,
+          assignedDc: d.assignedDc || 'DC INDUK',
           status: d.locked ? 'locked' : (normalizeRole(d.role) === 'pending' ? 'pending' : 'active')
         });
       });
@@ -4533,7 +4592,7 @@ function paintUsers(list) {
   const badge = $('#userCountBadge');
   if (badge) badge.textContent = list.length + ' user';
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Belum ada user — minta rekan daftar, lalu approve di sini</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">Belum ada user — minta rekan daftar, lalu approve di sini</td></tr>';
     return;
   }
   tbody.innerHTML = list.map((u, i) => {
@@ -4562,17 +4621,27 @@ function paintUsers(list) {
     } else {
       actions = `
         <button type="button" class="btn btn-sm btn-outline" data-save-role="${esc(docId)}" title="Simpan role">💾 Role</button>
+        <button type="button" class="btn btn-sm btn-outline" data-save-dc="${esc(docId)}" title="Simpan penempatan DC">💾 DC</button>
         ${isLocked
           ? `<button type="button" class="btn btn-sm btn-primary" data-unlock="${esc(docId)}">Buka kunci</button>`
           : `<button type="button" class="btn btn-sm btn-outline" data-lock="${esc(docId)}">Kunci</button>`}
         <button type="button" class="btn btn-sm btn-danger-outline" data-delete="${esc(docId)}" title="Hapus akun">🗑 Hapus</button>`;
     }
 
+    const dcOptions = (Array.isArray(state.warehouses) ? state.warehouses : [])
+      .map(w => w.name).filter(Boolean);
+    if (!dcOptions.includes('DC INDUK')) dcOptions.unshift('DC INDUK');
+    const curDc = u.assignedDc || 'DC INDUK';
+    const dcSelect = `<select class="user-dc-select" data-id="${esc(docId)}" style="padding:6px 8px;font-size:12px;border-radius:8px;border:1.5px solid var(--border);max-width:140px;">
+          ${dcOptions.map(d => `<option value="${esc(d)}" ${normDc(d)===normDc(curDc)?'selected':''}>${esc(d)}</option>`).join('')}
+        </select>`;
+
     return `<tr data-user-id="${esc(docId)}">
       <td>${i + 1}</td>
-      <td>${esc(u.name || '-')}${isKey ? ' 🔑' : ''}<div style="font-size:11px;color:var(--text-muted);">${esc(u.email || '')}</div></td>
+      <td>${esc(u.name || '-')}<div style="font-size:11px;color:var(--text-muted);">${esc(u.email || '')}</div></td>
       <td>${esc(u.username || '-')}</td>
       <td>${roleSelect}</td>
+      <td>${dcSelect}</td>
       <td>${statusBadge}</td>
       <td><div class="actions" style="flex-wrap:wrap;gap:4px;">${actions}</div></td>
     </tr>`;
@@ -4584,7 +4653,8 @@ function paintUsers(list) {
     if (!btn) return;
     const id = btn.getAttribute('data-approve') || btn.getAttribute('data-reject')
       || btn.getAttribute('data-delete') || btn.getAttribute('data-lock')
-      || btn.getAttribute('data-unlock') || btn.getAttribute('data-save-role');
+      || btn.getAttribute('data-unlock') || btn.getAttribute('data-save-role')
+      || btn.getAttribute('data-save-dc');
     if (!id) return;
     if (btn.hasAttribute('data-approve')) return approveUser(id);
     if (btn.hasAttribute('data-reject')) return rejectUser(id);
@@ -4596,8 +4666,35 @@ function paintUsers(list) {
       const sel = row && row.querySelector('.user-role-select');
       if (sel) return setUserRole(id, sel.value);
     }
+    if (btn.hasAttribute('data-save-dc')) {
+      const row = btn.closest('tr');
+      const sel = row && row.querySelector('.user-dc-select');
+      if (sel) return setUserDc(id, sel.value);
+    }
   };
 }
+
+/** Admin menetapkan anggota ke DC tertentu */
+window.setUserDc = async function(id, dcName) {
+  if (!isAdmin()) return showToast('Hanya admin');
+  if (!requireServer()) return;
+  const dc = String(dcName || '').trim() || 'DC INDUK';
+  try {
+    await db.collection('users').doc(id).set({
+      assignedDc: dc,
+      updatedAt: tsNow(),
+      updatedBy: actorName()
+    }, { merge: true });
+    const u = state.users.find(x => x.id === id || x.username === id);
+    if (u) u.assignedDc = dc;
+    cacheLocal('users', state.users);
+    logActivity('UPDATE', 'Master User', `DC → ${dc} (${id})`);
+    showToast('Penempatan DC disimpan: ' + dc + ' ☁');
+    renderUsers();
+  } catch (e) {
+    showToast('Gagal simpan DC: ' + (e.message || e));
+  }
+};
 
 window.approveUser = async function(id) {
   if (!isAdmin()) return showToast('Hanya admin');
@@ -4716,6 +4813,16 @@ function openAddUserModal() {
               ${ROLE_LIST.map(r => `<option value="${r}" ${r==='Anggota Tim'?'selected':''}>${r}</option>`).join('')}
             </select>
           </div>
+          <div class="form-group"><label>Penempatan DC</label>
+            <select id="auDc">
+              ${(Array.isArray(state.warehouses) && state.warehouses.length
+                ? state.warehouses.map(w => w.name)
+                : ['DC INDUK','DC SNACK','DC FROZEN']).map(d =>
+                  `<option value="${esc(d)}" ${normDc(d)==='DC INDUK'?'selected':''}>${esc(d)}</option>`
+                ).join('')}
+            </select>
+            <p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">DC SNACK/FROZEN = hanya data DC itu. DC INDUK = akses semua DC.</p>
+          </div>
           <div id="auError" class="auth-error" style="display:none;"></div>
         </div>
         <div class="modal-footer">
@@ -4746,15 +4853,17 @@ function openAddUserModal() {
     try {
       // SECURITY: create the Auth account on a secondary Firebase app so the
       // current administrator session is never replaced by the new user's session.
-      const creatorAppName = 'GudangProUserCreator';
+      const creatorAppName = 'DcNonbuahUserCreator';
       let creatorApp;
       try { creatorApp = firebase.app(creatorAppName); }
       catch (_) { creatorApp = firebase.initializeApp(firebaseConfig, creatorAppName); }
       const creatorAuth = creatorApp.auth();
       const cred = await creatorAuth.createUserWithEmailAndPassword(email, password);
+      const assignedDc = (($('#auDc') && $('#auDc').value) || 'DC INDUK').trim();
       await db.collection('users').doc(cred.user.uid).set({
         name, username, email,
         role: toFirestoreRole(role),
+        assignedDc,
         locked: false,
         createdAt: tsNow(),
         createdBy: actorName()
@@ -4780,7 +4889,7 @@ function collectLaporan() {
   const map = {};
   let notaCount = 0;
   let totalGoodQty = 0, totalBadQty = 0, totalGoodItems = 0, totalBadItems = 0;
-  state.history.forEach(h => {
+  filterByUserDc(state.history).forEach(h => {
     if (from && h.tanggal < from) return;
     if (to && h.tanggal > to) return;
     notaCount++;
@@ -4860,7 +4969,7 @@ function collectLaporanMaster() {
   const byDc = {}; // dcName -> { notaCount, itemCount, totalQty }
   let notaCount = 0;
 
-  state.history.forEach(h => {
+  filterByUserDc(state.history).forEach(h => {
     if (from && h.tanggal < from) return;
     if (to && h.tanggal > to) return;
     const dc = h.dcName || '(Tanpa DC)';
@@ -4897,10 +5006,13 @@ function collectLaporanMaster() {
 }
 
 function renderLaporanMaster() {
-  // Build DC checkboxes from history + warehouses
-  const dcSet = new Set(state.warehouses.map(w => w.name));
-  state.history.forEach(h => { if (h.dcName) dcSet.add(h.dcName); });
-  if (!dcSet.size) dcSet.add(state.dcName || 'DC INDUK');
+  // Build DC checkboxes from history + warehouses (dibatasi akses DC user)
+  const dcSet = new Set();
+  (state.warehouses || []).forEach(w => {
+    if (w && w.name && canAccessDc(w.name)) dcSet.add(w.name);
+  });
+  filterByUserDc(state.history).forEach(h => { if (h.dcName) dcSet.add(h.dcName); });
+  if (!dcSet.size) dcSet.add(canViewAllDc() ? (state.dcName || 'DC INDUK') : userAssignedDc());
   const dcs = Array.from(dcSet).sort();
   const prev = new Set(getSelectedLmDcs());
   // default: all selected if first render
@@ -4992,10 +5104,10 @@ function exportLaporanMaster(fmt) {
 
 
 function renderLog() {
-  let list = state.activityLog;
+  let list = filterByUserDc(state.activityLog || []);
   const term = ($('#logSearch')?.value||'').toLowerCase();
   if (term) list = list.filter(l =>
-    (l.action+l.module+l.detail+l.user).toLowerCase().includes(term)
+    (l.action+l.module+l.detail+l.user+(l.dcName||'')).toLowerCase().includes(term)
   );
   $('#logCount').textContent = list.length;
   if (!list.length) {
@@ -5235,6 +5347,188 @@ function bindPlakatModeToggle(selectId){
   }));
 }
 
+function plakatDisplayOptions(selectId, defaultMode) {
+  const d = defaultMode || 'full';
+  return `<div class="plakat-mode-wrap" style="width:100%;margin-top:8px;">
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">Isi yang ditampilkan</div>
+    <div class="plakat-toggle cols-3 slate" data-display-select="${selectId}">
+      <button type="button" data-display="full" class="${d==='full'?'active':''}">📋 Lengkap</button>
+      <button type="button" data-display="name" class="${d==='name'?'active':''}">🏷 Nama</button>
+      <button type="button" data-display="barcode" class="${d==='barcode'?'active':''}">📶 Barcode</button>
+    </div>
+    <select id="${selectId}" style="display:none;">
+      <option value="full" ${d==='full'?'selected':''}>Lengkap</option>
+      <option value="name" ${d==='name'?'selected':''}>Nama</option>
+      <option value="barcode" ${d==='barcode'?'selected':''}>Barcode</option>
+    </select>
+  </div>`;
+}
+
+function bindPlakatDisplayToggle(selectId, onChange) {
+  const sel = $('#'+selectId); if (!sel) return;
+  const wrap = sel.closest('.plakat-mode-wrap') || sel.parentElement;
+  if (!wrap) return;
+  wrap.querySelectorAll('button[data-display]').forEach(btn => btn.addEventListener('click', () => {
+    sel.value = btn.dataset.display || 'full';
+    wrap.querySelectorAll('button[data-display]').forEach(b => b.classList.toggle('active', b === btn));
+    if (typeof onChange === 'function') onChange(sel.value);
+  }));
+}
+
+function getPlakatDisplayFrom(selectId) {
+  return $('#'+selectId)?.value || 'full';
+}
+
+/** Export HTML plakat → PNG penuh (tidak terpotong) */
+async function exportAnyPlakatPNG(html, filenamePrefix) {
+  if (!window.html2canvas) return showToast('Library gambar belum siap');
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;background:#fff;box-sizing:border-box;padding:8px;';
+  wrap.innerHTML = html;
+  const sheet = wrap.querySelector('.plakat-sheet');
+  if (sheet) {
+    sheet.style.display = 'block';
+    sheet.classList.add('capture-full');
+    sheet.querySelectorAll('.plakat-page').forEach(p => {
+      p.style.height = 'auto';
+      p.style.minHeight = '0';
+      p.style.overflow = 'visible';
+      p.style.pageBreakAfter = 'auto';
+      p.style.marginBottom = '16px';
+    });
+  }
+  document.body.appendChild(wrap);
+  showToast('Membuat PNG plakat…');
+  try {
+    await new Promise(r => setTimeout(r, 60));
+    const target = sheet || wrap;
+    const fullH = Math.max(target.scrollHeight, target.offsetHeight) + 20;
+    const canvas = await html2canvas(target, {
+      backgroundColor: '#ffffff', scale: 2, useCORS: true, logging: false,
+      height: fullH, windowHeight: fullH, scrollY: 0, scrollX: 0
+    });
+    canvas.toBlob(blob => {
+      if (blob) {
+        saveAs(blob, `${filenamePrefix || 'Plakat'}_${todayStr()}.png`);
+        showToast('PNG plakat berhasil (penuh, tidak terpotong)');
+      } else showToast('Gagal membuat PNG');
+    }, 'image/png');
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal membuat PNG');
+  } finally {
+    if (wrap.parentNode) document.body.removeChild(wrap);
+  }
+}
+
+/** Export HTML plakat → Word .doc multi-halaman A4 */
+function exportAnyPlakatWord(html, filenamePrefix) {
+  const styles = `
+    @page { size: A4; margin: 8mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; }
+    .plakat-sheet { width: 100%; display: block !important; }
+    .plakat-page {
+      width: 100%; height: 277mm; min-height: 277mm;
+      page-break-after: always; break-after: page;
+      box-sizing: border-box; display: flex; flex-direction: column;
+      overflow: hidden; background: #fff;
+    }
+    .plakat-page:last-child { page-break-after: auto; }
+    .plakat-page.full-page { height: 277mm; }
+    .plakat-card {
+      border: 2px solid #111; box-sizing: border-box;
+      flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column;
+      overflow: hidden; background: #fff;
+    }
+    .plakat-page.full-page .plakat-card, .plakat-page.single .plakat-card { flex: 1 1 100%; }
+    .plakat-cut { height: 0; border-top: 2px dashed #777; position: relative; margin: 0; flex: 0 0 0; }
+    .plakat-cut::after {
+      content: "— potong di sini —"; position: absolute; left: 50%; top: -8px;
+      transform: translateX(-50%); background: #fff; color: #555; font-size: 9px;
+      padding: 0 8px; font-weight: 700; white-space: nowrap;
+    }
+    .plakat-head {
+      background: #ffbd00; border-bottom: 2px solid #111; padding: 8px 12px;
+      display: grid; grid-template-columns: 1fr 1.5fr 1fr; align-items: center;
+      text-align: center; min-height: 40px;
+    }
+    .plakat-head .pt { font-size: 10px; font-weight: 800; text-align: left; text-transform: uppercase; }
+    .plakat-head .title { font-weight: 900; letter-spacing: 1px; text-transform: uppercase; font-size: 20px; }
+    .plakat-body { padding: 10px 14px 8px; flex: 1; display: flex; flex-direction: column; }
+    .plakat-row {
+      display: grid; grid-template-columns: 120px 12px 1fr; gap: 4px;
+      border-bottom: 1px solid #e3e3e3; padding: 5px 0; font-size: 12px;
+    }
+    .plakat-row .lbl { font-weight: 700; }
+    .plakat-row .sep { font-weight: 800; }
+    .plakat-row .val { font-weight: 800; word-break: break-word; }
+
+    .plakat-qty {
+      display: inline-block; font-weight: 900; color: #0f766e;
+      background: #ccfbf1; border: 1.5px solid #2dd4bf; border-radius: 6px;
+      padding: 1px 8px;
+    }
+    .plakat-foot {
+      margin-top: auto; padding-top: 6px; border-top: 1px dashed #777;
+      font-size: 9px; color: #444; text-align: center;
+    }
+    .plakat-items { display: flex; flex-direction: column; gap: 4px; }
+    .plakat-item-block { border: 1px solid #333; padding: 5px 7px; }
+    .plakat-item-block .iname { font-weight: 900; font-size: 12px; margin-bottom: 2px; }
+    .plakat-item-block .imeta { font-size: 10px; line-height: 1.3; }
+    .plakat-hero { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; }
+    .plakat-hero-text { font-weight: 900; font-size: 28px; line-height: 1.15; text-transform: uppercase; }
+    .display-barcode .plakat-hero-text { font-family: Consolas, monospace; letter-spacing: 1px; font-size: 32px; }
+    .plakat-page.single .plakat-head .title { font-size: 28px; }
+    .plakat-page.full-page .plakat-head .title { font-size: 36px; }
+    .plakat-page.full-page .plakat-row { font-size: 16px; padding: 8px 0; }
+    .plakat-page.full-page .plakat-hero-text { font-size: 42px; }
+  `;
+  const body = String(html || '')
+    .replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"')
+    .replace('display:none', 'display:block');
+  const docHtml = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>${styles}</style>
+<title>${filenamePrefix || 'Plakat'}</title>
+</head>
+<body>${body}</body>
+</html>`;
+  const blob = new Blob(['\\ufeff' + docHtml], { type: 'application/msword' });
+  const safe = String(filenamePrefix || 'Plakat').replace(/[^\w.-]+/g, '_');
+  saveAs(blob, `${safe}_${todayStr()}.doc`);
+  showToast('Dokumen Word disimpan — halaman menyesuaikan jumlah plakat');
+}
+
+function printPlakatSheetHtml(html, logLabel, logMeta) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  const sheet = wrap.querySelector('.plakat-sheet');
+  if (!sheet) return;
+  const old = document.getElementById('plakatPrintAreaLive');
+  if (old) old.remove();
+  sheet.id = 'plakatPrintAreaLive';
+  sheet.style.display = 'block';
+  document.body.appendChild(sheet);
+  document.body.classList.add('print-plakat');
+  const cleanup = () => {
+    document.body.classList.remove('print-plakat');
+    const el = document.getElementById('plakatPrintAreaLive');
+    if (el) el.remove();
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 80);
+  if (logLabel) logPrint(logLabel, logMeta || '', { format: 'print-plakat' });
+}
+
+
 
 function openNotaModal(nota, isHistory) {
   const root = $('#modalRoot');
@@ -5347,28 +5641,31 @@ function openNotaModal(nota, isHistory) {
     if (!allItems.length) return '';
     return `
       <div class="nota-item-picker no-print" id="notaItemPicker">
-        <div class="picker-head">
+        <div class="picker-head" style="border-bottom:none;padding-bottom:4px;margin-bottom:0;">
           <div class="picker-head-top">
             <div>
               <strong style="font-size:13px;">Pilih item ditampilkan / dicetak</strong>
               <div class="sel-count" id="notaSelCount">${selectedIds.size} / ${allItems.length} dipilih</div>
             </div>
-            <div class="picker-actions">
-              <button type="button" class="btn btn-sm btn-outline" id="notaSelAll">✓ Semua</button>
-              <button type="button" class="btn btn-sm btn-outline" id="notaSelNone">✕ Kosong</button>
-              <button type="button" class="btn btn-sm btn-outline" id="notaSelVisible">✓ Hasil cari</button>
-            </div>
-          </div>
-          <div class="picker-search">
-            <input type="text" id="notaItemSearch" placeholder="Cari nama, kode, barcode, vendor, PIC…" autocomplete="off">
           </div>
         </div>
-        <div class="picker-list" id="notaPickerList">${buildPickerRowsHtml()}</div>
+        <div class="picker-list" id="notaPickerList" style="max-height:220px;">${buildPickerRowsHtml()}</div>
+        <div class="picker-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px;">
+          <div class="picker-search" style="margin-bottom:8px;">
+            <input type="text" id="notaItemSearch" placeholder="Cari nama, kode, barcode, vendor, PIC…" autocomplete="off">
+          </div>
+          <div class="picker-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm btn-outline" id="notaSelAll">✓ Semua</button>
+            <button type="button" class="btn btn-sm btn-outline" id="notaSelNone">✕ Kosong</button>
+            <button type="button" class="btn btn-sm btn-outline" id="notaSelVisible">✓ Hasil cari</button>
+          </div>
+        </div>
       </div>`;
   }
 
-  function buildPlakatHtml(items, mode) {
+  function buildPlakatHtml(items, mode, displayMode) {
     mode = mode || 'single';
+    displayMode = displayMode || getPlakatDisplayFrom('notaPlakatDisplay') || 'full';
     const groups = getPlakatGroups(items, mode);
     const dc = nota.dcName || state.dcName || 'DC';
     const tgl = nota.tanggalLabel || nota.tanggal || '';
@@ -5382,14 +5679,32 @@ function openNotaModal(nota, isHistory) {
       const alasan = (it.alasan || '').trim();
       const qty = `${it.qty || 0} ${it.satuan || 'PCS'}`;
       const title = (it.kondisi || 'Bad') === 'Good' ? 'RETUR' : 'KARANTINA';
-      const bc = it.barcode || lookupBarcode(it.kode) || '-';
+      if (displayMode === 'name') {
+        return `<div class="plakat-card display-name">
+          <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+          <div class="plakat-body">
+            <div class="plakat-hero"><div class="plakat-hero-text">${esc(it.nama || '-')}</div></div>
+            <div class="plakat-foot">${i + 1} / ${total} · ${esc(dc)} · Tempel di kardus</div>
+          </div>
+        </div>`;
+      }
+      if (displayMode === 'barcode') {
+        const bc = it.barcode || it.kode || '-';
+        return `<div class="plakat-card display-barcode">
+          <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+          <div class="plakat-body">
+            <div class="plakat-hero"><div class="plakat-hero-text">${esc(bc)}</div></div>
+            <div class="plakat-foot">${i + 1} / ${total} · ${esc(it.nama || '')} · Tempel di kardus</div>
+          </div>
+        </div>`;
+      }
       return `<div class="plakat-card">
-        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div><div></div></div>
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
         <div class="plakat-body">
           <div class="plakat-row"><span class="lbl">Nama Barang</span><span class="sep">:</span><span class="val">${esc(it.nama || '-')}</span></div>
           <div class="plakat-row"><span class="lbl">Kode Barang</span><span class="sep">:</span><span class="val">${esc(it.kode || '-')}</span></div>
-          <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(bc)}</span></div>
-          <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val">${esc(qty)}</span></div>
+          <div class="plakat-row"><span class="lbl">Barcode</span><span class="sep">:</span><span class="val">${esc(it.barcode || '-')}</span></div>
+          <div class="plakat-row"><span class="lbl">Qty / Satuan</span><span class="sep">:</span><span class="val"><span class="plakat-qty">${esc(qty)}</span></span></div>
           <div class="plakat-row"><span class="lbl">Vendor</span><span class="sep">:</span><span class="val">${esc(vendor)}</span></div>
           <div class="plakat-row"><span class="lbl">PIC Purchasing</span><span class="sep">:</span><span class="val">${esc(pic)}</span></div>
           <div class="plakat-row"><span class="lbl">Kondisi</span><span class="sep">:</span><span class="val">${esc(kond)}${alasan ? ' · ' + esc(alasan) : ''}</span></div>
@@ -5402,23 +5717,45 @@ function openNotaModal(nota, isHistory) {
     }
 
     function groupCard(group, startIdx) {
+      const anyBad = group.some(it => (it.kondisi || 'Bad') !== 'Good');
+      const title = anyBad ? 'KARANTINA' : 'RETUR';
+      if (displayMode === 'name') {
+        const blocks = group.map((it, j) => `<div class="plakat-item-block"><div class="iname">${startIdx + j + 1}. ${esc(it.nama || '-')}</div></div>`).join('');
+        return `<div class="plakat-card combo display-name ${group.length === total ? 'all-items' : ''}">
+          <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+          <div class="plakat-body">
+            <div class="plakat-row"><span class="lbl">No. Nota</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
+            <div class="plakat-items">${blocks}</div>
+            <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
+          </div>
+        </div>`;
+      }
+      if (displayMode === 'barcode') {
+        const blocks = group.map((it, j) => {
+          const bc = it.barcode || it.kode || '-';
+          return `<div class="plakat-item-block"><div class="iname">${startIdx + j + 1}. ${esc(bc)}</div><div class="imeta">${esc(it.nama || '')}</div></div>`;
+        }).join('');
+        return `<div class="plakat-card combo display-barcode ${group.length === total ? 'all-items' : ''}">
+          <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+          <div class="plakat-body">
+            <div class="plakat-row"><span class="lbl">No. Nota</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
+            <div class="plakat-items">${blocks}</div>
+            <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
+          </div>
+        </div>`;
+      }
       const blocks = group.map((it, j) => {
         const pic = (resolveItemPic(it) || it.pic || '-').trim() || '-';
         const vendor = (it.vendor || '-').trim() || '-';
         const kond = (it.kondisi || 'Bad') === 'Good' ? 'BAGUS' : 'JELEK';
         const qty = `${it.qty || 0} ${it.satuan || 'PCS'}`;
-        const bc = it.barcode || lookupBarcode(it.kode) || '-';
         return `<div class="plakat-item-block">
           <div class="iname">${startIdx + j + 1}. ${esc(it.nama || '-')}</div>
-          <div class="imeta">Kode: <b>${esc(it.kode || '-')}</b> · BC: ${esc(bc)} · Qty: <b>${esc(qty)}</b><br>
-          Vendor: ${esc(vendor)} · PIC: ${esc(pic)} · <b>${esc(kond)}</b>${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
+          <div class="imeta">Kode: <b>${esc(it.kode || '-')}</b> · BC: <b>${esc(it.barcode || '-')}</b> · Qty: <span class="plakat-qty">${esc(qty)}</span><br>Vendor: ${esc(vendor)} · PIC: ${esc(pic)} · ${esc(kond)}${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
         </div>`;
       }).join('');
-      const anyBad = group.some(it => (it.kondisi || 'Bad') !== 'Good');
-      const title = anyBad ? 'KARANTINA' : 'RETUR';
-      const isFull = mode === 'all' || group.length === total;
-      return `<div class="plakat-card combo ${isFull ? 'all-items' : ''}">
-        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div><div></div></div>
+      return `<div class="plakat-card combo ${group.length === total ? 'all-items' : ''}">
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
         <div class="plakat-body">
           <div class="plakat-row"><span class="lbl">No. Nota</span><span class="sep">:</span><span class="val">${esc(nomor)}</span></div>
           <div class="plakat-row"><span class="lbl">Tanggal Buat</span><span class="sep">:</span><span class="val">${esc(tgl)}</span></div>
@@ -5430,23 +5767,19 @@ function openNotaModal(nota, isHistory) {
 
     const pages = [];
     let idx = 0;
-    // Mode "all" = 1 kartu penuh 1 halaman; mode single = 2 kartu per halaman
-    if (mode === 'all') {
-      pages.push(`<div class="plakat-page single full-page">${groupCard(groups[0] || items, 0)}</div>`);
-    } else {
-      for (let i = 0; i < groups.length; i += 2) {
-        const g1 = groups[i], g2 = groups[i + 1];
-        let inner = g1.length === 1 ? oneCard(g1[0], idx) : groupCard(g1, idx);
-        idx += g1.length;
-        if (g2) {
-          inner += '<div class="plakat-cut"></div>' + (g2.length === 1 ? oneCard(g2[0], idx) : groupCard(g2, idx));
-          idx += g2.length;
-        }
-        pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
+    for (let i = 0; i < groups.length; i += 2) {
+      const g1 = groups[i], g2 = groups[i + 1];
+      let inner = g1.length === 1 && mode === 'single' ? oneCard(g1[0], idx) : groupCard(g1, idx);
+      idx += g1.length;
+      if (g2) {
+        inner += '<div class="plakat-cut"></div>' + (g2.length === 1 && mode === 'single' ? oneCard(g2[0], idx) : groupCard(g2, idx));
+        idx += g2.length;
       }
+      pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
     }
     return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
   }
+
 
   const picFilterHtml = picSet.length > 1 ? `
     <div class="form-group no-print" style="margin-bottom:12px;">
@@ -5463,16 +5796,13 @@ function openNotaModal(nota, isHistory) {
   const initItems = filteredItems();
   const initDens = densityClass(initItems.length);
 
-  let viewMode = 'struk';
-  let plakatMode = 'single';
-
   root.innerHTML = `
     <div class="modal-backdrop" id="notaBackdrop">
-      <div class="modal-sheet modal-sheet-wide">
+      <div class="modal-sheet">
         <div class="handle"></div>
-        <div class="modal-header modal-header-dark">
-          <h3>📋 Pratinjau Nota Retur</h3>
-          <button class="btn btn-icon btn-outline" id="notaClose" style="color:#fff;border-color:rgba(255,255,255,.3);">✕</button>
+        <div class="modal-header">
+          <h3>Pratinjau Nota</h3>
+          <button class="btn btn-icon btn-outline" id="notaClose">✕</button>
         </div>
         <div class="modal-body">
           <div class="form-group no-print">
@@ -5481,55 +5811,44 @@ function openNotaModal(nota, isHistory) {
           </div>
           ${picFilterHtml}
           ${buildPickerHtml()}
-          <div class="view-tabs no-print" id="notaViewTabs">
-            <button type="button" class="view-tab active" data-view="struk">📄 Struk Nota</button>
-            <button type="button" class="view-tab" data-view="plakat" id="notaTabPlakat">🏷️ Plakat Retur (${initItems.length})</button>
-          </div>
-          <div id="notaStrukPane">
-            <div class="receipt ${initDens}" id="printArea">
-              <div class="brand">
-                <div class="title">${esc(nota.judul || 'NOTA PENGAJUAN RETUR')}</div>
-                <div class="sub">${esc(nota.dcName)}</div>
-              </div>
-              <hr>
-              <div class="meta-row"><span>No</span><b>${esc(nota.nomor)}</b></div>
-              <div class="meta-row"><span>Tanggal</span><b>${esc(nota.tanggalLabel)}</b></div>
-              <div class="meta-row"><span>Item</span><b id="notaItemCount">${initItems.length} produk</b></div>
-              <div class="meta-row" id="notaPicMeta" style="display:none;"><span>PIC</span><b id="notaPicMetaVal"></b></div>
-              <hr>
-              <div id="notaItemsBody">${buildItemsHtml(initItems)}</div>
-              <hr>
-              <div class="totals"><span>TOTAL QTY</span><span id="notaTotalQty">${buildTotalsHtml(initItems).totalQty}</span></div>
-              <div class="meta-row" style="margin-top:6px;"><span>🟢 Bagus</span><b id="notaGoodSum">${buildTotalsHtml(initItems).goodItems.length} item · qty ${buildTotalsHtml(initItems).goodQty}</b></div>
-              <div class="meta-row"><span>🔴 Jelek</span><b id="notaBadSum">${buildTotalsHtml(initItems).badItems.length} item · qty ${buildTotalsHtml(initItems).badQty}</b></div>
-              <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;" id="notaFooterStatus">Status: Diajukan · ${esc(nota.createdByName || '')}</div>
+          <div class="receipt ${initDens}" id="printArea">
+            <div class="brand">
+              <div class="title">${esc(nota.judul || 'NOTA PENGAJUAN RETUR')}</div>
+              <div class="sub">${esc(nota.dcName)}</div>
             </div>
+            <hr>
+            <div class="meta-row"><span>No</span><b>${esc(nota.nomor)}</b></div>
+            <div class="meta-row"><span>Tanggal</span><b>${esc(nota.tanggalLabel)}</b></div>
+            <div class="meta-row"><span>Item</span><b id="notaItemCount">${initItems.length} produk</b></div>
+            <div class="meta-row" id="notaPicMeta" style="display:none;"><span>PIC</span><b id="notaPicMetaVal"></b></div>
+            <hr>
+            <div id="notaItemsBody">${buildItemsHtml(initItems)}</div>
+            <hr>
+            <div class="totals"><span>TOTAL QTY</span><span id="notaTotalQty">${buildTotalsHtml(initItems).totalQty}</span></div>
+            <div class="meta-row" style="margin-top:6px;"><span>🟢 Bagus</span><b id="notaGoodSum">${buildTotalsHtml(initItems).goodItems.length} item · qty ${buildTotalsHtml(initItems).goodQty}</b></div>
+            <div class="meta-row"><span>🔴 Jelek</span><b id="notaBadSum">${buildTotalsHtml(initItems).badItems.length} item · qty ${buildTotalsHtml(initItems).badQty}</b></div>
+            <div style="text-align:center;margin-top:12px;font-size:11px;color:#78716c;" id="notaFooterStatus">Status: Diajukan · ${esc(nota.createdByName || '')}</div>
           </div>
-          <div id="notaPlakatPane" style="display:none;">
-            <div class="plakat-format-bar no-print">
-              <div class="plakat-format-label">🏷️ Format Tampilan Plakat:</div>
-              <div class="plakat-toggle" id="notaPlakatToggle">
-                <button type="button" data-mode="single" class="active">🏷️ Pisah per Item (${initItems.length} Label)</button>
-                <button type="button" data-mode="all">📚 Gabung 1 Plakat</button>
-              </div>
-            </div>
-            <div class="plakat-preview-frame" id="notaPlakatPreview"></div>
-          </div>
+          <div id="plakatHost" class="no-print" style="display:none;"></div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
-          <button class="btn btn-outline" id="notaCopy">📋 Salin WA</button>
+          <button class="btn btn-primary" id="notaCopy">📋 Salin WA</button>
           <button class="btn btn-outline" id="notaPdf">📑 PDF</button>
           <button class="btn btn-outline" id="notaPng">🖼 PNG</button>
           <button class="btn btn-outline" id="notaPrint">🖨 Cetak Nota</button>
-          <button class="btn btn-primary" id="notaPlakat" style="background:#f59e0b;border-color:#f59e0b;">🏷️ Cetak Plakat (Pisah)</button>
+          ${plakatModeOptions('notaPlakatMode','single')}
+          ${plakatDisplayOptions('notaPlakatDisplay','full')}
+          <button class="btn btn-primary" id="notaPlakat">🏷️ Plakat Retur</button>
           ${!isHistory ? `<button class="btn btn-primary" id="notaSave">✅ Simpan & Selesai</button>` : ''}
           ${isHistory && can('edit') ? `<button class="btn btn-primary" id="notaEditFromView">✏️ Edit Qty</button>` : ''}
           ${isHistory ? `<button class="btn btn-outline" id="notaSaveJudul">💾 Simpan Judul</button>` : ''}
-          <button class="btn btn-outline" id="notaClose2">Tutup</button>
         </div>
       </div>
     </div>
   `;
+
+  bindPlakatModeToggle('notaPlakatMode');
+  bindPlakatDisplayToggle('notaPlakatDisplay');
 
   function rebindPickerChecks() {
     $$('.nota-item-cb').forEach(cb => {
@@ -5547,37 +5866,6 @@ function openNotaModal(nota, isHistory) {
     if (!list) return;
     list.innerHTML = buildPickerRowsHtml();
     rebindPickerChecks();
-  }
-
-  function refreshPlakatPreview() {
-    const items = filteredItems();
-    const host = $('#notaPlakatPreview');
-    if (!host) return;
-    if (!items.length) {
-      host.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="ico">📄</div><h3>Tidak ada item dipilih</h3></div>';
-      return;
-    }
-    const html = buildPlakatHtml(items, plakatMode);
-    host.innerHTML = html.replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"');
-    const btn = $('#notaPlakat');
-    if (btn) btn.textContent = plakatMode === 'single' ? '🏷️ Cetak Plakat (Pisah)' : '🏷️ Cetak Plakat (Gabung)';
-    const tab = $('#notaTabPlakat');
-    if (tab) tab.textContent = `🏷️ Plakat Retur (${items.length})`;
-    const tog = $('#notaPlakatToggle');
-    if (tog) {
-      const b1 = tog.querySelector('[data-mode="single"]');
-      const b2 = tog.querySelector('[data-mode="all"]');
-      if (b1) b1.textContent = `🏷️ Pisah per Item (${items.length} Label)`;
-      if (b2) b2.textContent = '📚 Gabung 1 Plakat';
-    }
-  }
-
-  function setView(v) {
-    viewMode = v;
-    $$('#notaViewTabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === v));
-    if ($('#notaStrukPane')) $('#notaStrukPane').style.display = v === 'struk' ? 'block' : 'none';
-    if ($('#notaPlakatPane')) $('#notaPlakatPane').style.display = v === 'plakat' ? 'block' : 'none';
-    if (v === 'plakat') refreshPlakatPreview();
   }
 
   function refreshView() {
@@ -5609,9 +5897,6 @@ function openNotaModal(nota, isHistory) {
       const j = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim();
       judulEl.textContent = j || 'NOTA PENGAJUAN RETUR';
     }
-    if (viewMode === 'plakat') refreshPlakatPreview();
-    const tab = $('#notaTabPlakat');
-    if (tab) tab.textContent = `🏷️ Plakat Retur (${items.length})`;
   }
 
   const close = () => {
@@ -5619,19 +5904,7 @@ function openNotaModal(nota, isHistory) {
     root.innerHTML = '';
   };
   $('#notaClose').onclick = close;
-  $('#notaClose2')?.addEventListener('click', close);
   $('#notaBackdrop').addEventListener('click', e => { if (e.target.id === 'notaBackdrop') close(); });
-
-  $$('#notaViewTabs .view-tab').forEach(btn => {
-    btn.addEventListener('click', () => setView(btn.dataset.view));
-  });
-  $$('#notaPlakatToggle button[data-mode]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      plakatMode = btn.dataset.mode || 'single';
-      $$('#notaPlakatToggle button[data-mode]').forEach(b => b.classList.toggle('active', b === btn));
-      refreshPlakatPreview();
-    });
-  });
 
   const picSel = $('#notaPicFilter');
   if (picSel) {
@@ -5733,13 +6006,6 @@ function openNotaModal(nota, isHistory) {
   $('#notaPng').onclick = () => {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
-    if (viewMode === 'plakat') {
-      const host = $('#notaPlakatPreview');
-      if (host) {
-        ExportEngine.captureElementPNG(host, `Plakat_Retur_${String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_')}.png`);
-        return;
-      }
-    }
     const judul = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim();
     const snap = Object.assign({}, nota, {
       judul: judul + (activePic ? ' · PIC ' + activePic : ''),
@@ -5757,36 +6023,48 @@ function openNotaModal(nota, isHistory) {
   $('#notaPrint').onclick = () => {
     if (!filteredItems().length) return showToast('Pilih minimal 1 item');
     document.body.classList.remove('print-plakat');
-    setView('struk');
     logPrint('Nota Retur', `Cetak nota · ${nota.nomor || ''} · ${filteredItems().length} item`, { nomor: nota.nomor, count: filteredItems().length });
-    setTimeout(() => window.print(), 50);
+    window.print();
   };
 
-  // Plakat Retur — cetak langsung (preview sudah di tab Plakat)
-  $('#notaPlakat').onclick = () => {
+  // Plakat Retur — preview dahulu, baru cetak
+  function printPlakat(mode) {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
-    const mode = plakatMode || 'single';
-    const wrap = document.createElement('div');
-    wrap.innerHTML = buildPlakatHtml(items, mode);
-    const sheet = wrap.querySelector('.plakat-sheet');
-    if (!sheet) return;
-    const old = document.getElementById('plakatPrintAreaLive');
-    if (old) old.remove();
-    sheet.id = 'plakatPrintAreaLive';
-    sheet.style.display = 'block';
-    document.body.appendChild(sheet);
-    document.body.classList.add('print-plakat');
-    const cleanup = () => {
-      document.body.classList.remove('print-plakat');
-      const el = document.getElementById('plakatPrintAreaLive');
-      if (el) el.remove();
-      window.removeEventListener('afterprint', cleanup);
+    const host = $('#plakatHost');
+    if (!host) return showToast('Gagal siapkan plakat');
+    const display = getPlakatDisplayFrom('notaPlakatDisplay');
+    const html = buildPlakatHtml(items, mode, display);
+    host.innerHTML = `<div class="plakat-preview-frame" style="margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <strong>🏷️ Pratinjau Plakat Retur (${items.length} Item)</strong>
+        <span class="badge badge-warning">${esc(plakatModeLabel(mode,items.length))} · ${display==='name'?'Nama':display==='barcode'?'Barcode':'Lengkap'}</span>
+      </div>
+      <div class="plakat-preview-inner">${html.replace('class="plakat-sheet"','class="plakat-sheet" style="display:block"')}</div>
+      <div class="btn-group" style="margin-top:10px;justify-content:flex-end;flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="notaPrintPlakatNow">🖨 Cetak Plakat</button>
+        <button type="button" class="btn btn-outline" id="notaPngPlakatNow">🖼 PNG</button>
+        <button type="button" class="btn btn-outline" id="notaWordPlakatNow">📄 Word</button>
+        <button type="button" class="btn btn-outline" id="notaClosePlakatPreview">Tutup</button>
+      </div>
+    </div>`;
+    host.style.display = 'block';
+    const rebuild = () => buildPlakatHtml(items, mode, getPlakatDisplayFrom('notaPlakatDisplay'));
+    $('#notaClosePlakatPreview').onclick = () => { host.innerHTML = ''; host.style.display = 'none'; };
+    $('#notaPrintPlakatNow').onclick = () => {
+      const h = rebuild();
+      printPlakatSheetHtml(h, 'Plakat Retur', plakatModeLabel(mode, items.length) + ' · ' + items.length + ' item · ' + (nota.nomor || ''));
+      logPrint('Plakat Retur', plakatModeLabel(mode, items.length) + ' · ' + items.length + ' item · ' + (nota.nomor || ''), { format: 'print-plakat', count: items.length, nomor: nota.nomor, mode });
     };
-    window.addEventListener('afterprint', cleanup);
-    setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 80);
-    logPrint('Plakat Retur', plakatModeLabel(mode, items.length) + ' · ' + items.length + ' item · ' + nota.nomor, { format: 'print-plakat', count: items.length, nomor: nota.nomor, mode });
-  };
+    $('#notaPngPlakatNow').onclick = () => {
+      exportAnyPlakatPNG(rebuild(), 'Plakat_Retur_' + String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_'));
+    };
+    $('#notaWordPlakatNow').onclick = () => {
+      exportAnyPlakatWord(rebuild(), 'Plakat_Retur_' + String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_'));
+      logActivity('EXPORT', 'Plakat Retur', `Word · ${items.length} item · ${nota.nomor || ''}`);
+    };
+  }
+  $('#notaPlakat').onclick = () => printPlakat($('#notaPlakatMode')?.value || 'single');
 
   if (!isHistory) {
     $('#notaSave').onclick = async () => {
@@ -5951,12 +6229,15 @@ function openGridNotaModal(notas) {
 
 window.viewNota = function(nomor) {
   const nota = state.history.find(h => h.nomor === nomor);
-  if (nota) openNotaModal(nota, true);
+  if (!nota) return showToast('Nota tidak ditemukan');
+  if (!canAccessDc(nota.dcName)) return showToast('Nota DC lain tidak dapat dibuka (akses: ' + userAssignedDc() + ')');
+  openNotaModal(nota, true);
 };
 window.editNota = function(nomor) {
   if (!can('edit')) return showToast('Tidak punya hak edit');
   const nota = state.history.find(h => h.nomor === nomor);
   if (!nota) return showToast('Nota tidak ditemukan');
+  if (!canAccessDc(nota.dcName)) return showToast('Nota DC lain tidak dapat diedit (akses: ' + userAssignedDc() + ')');
   openNotaEditModal(nota);
 };
 
@@ -6185,6 +6466,10 @@ window.deleteNota = async function(nomor) {
   }
   const key = String(nomor || '').trim();
   if (!key) return showToast('Nomor nota tidak valid');
+  const existing = (state.history || []).find(h => String(h.nomor || '').trim() === key);
+  if (existing && !canAccessDc(existing.dcName)) {
+    return showToast('Nota DC lain tidak dapat dihapus (akses: ' + userAssignedDc() + ')');
+  }
   if (!confirm('Hapus nota ' + key + '?\n\nNota akan hilang permanen dari daftar dan server.')) return;
 
   // 1) Tandai pending SEBELUM hapus — mencegah onSnapshot mengembalikan nota
@@ -6441,7 +6726,7 @@ async function pushProductsBatch(products) {
 
 // -------------------- DATA MIGRATION (v1 → v2) --------------------
 /**
- * Skema Migrasi GudangPro
+ * Skema Migrasi DC NONBUAH
  * -----------------------
  * Aplikasi lama (Retur Barang) menyimpan data di localStorage dengan prefix:
  *   retur_app_<key>
@@ -6591,7 +6876,7 @@ function migrateFromV1() {
     report
   });
 
-  console.log('[GudangPro] Migrasi v1→v2 selesai:', report);
+  console.log('[DC NONBUAH] Migrasi v1→v2 selesai:', report);
   return report;
 }
 
@@ -6601,10 +6886,10 @@ function loadState() {
   try {
     const mig = migrateFromV1();
     if (mig && mig.migrated && Object.keys(mig.items || {}).length) {
-      console.log('[GudangPro] Data lama berhasil dimigrasi:', mig.items);
+      console.log('[DC NONBUAH] Data lama berhasil dimigrasi:', mig.items);
     }
   } catch (e) {
-    console.warn('[GudangPro] Migrasi gagal (non-fatal):', e);
+    console.warn('[DC NONBUAH] Migrasi gagal (non-fatal):', e);
   }
 
   // Prefer data already saved in localStorage (user may have imported/edited)
@@ -6616,7 +6901,7 @@ function loadState() {
   } else if (seed && seed.products && seed.products.length) {
     state.products = seed.products;
     storage.set('products', state.products);
-    console.log('[GudangPro] Loaded', state.products.length, 'products from seed database');
+    console.log('[DC NONBUAH] Loaded', state.products.length, 'products from seed database');
   } else {
     state.products = SAMPLE_PRODUCTS;
   }
@@ -6643,12 +6928,13 @@ function loadState() {
   state.auditHistory = storage.get('auditHistory', []);
   state.activityLog = storage.get('activityLog', []);
   state.dcName = storage.get('dcName', 'DC INDUK');
-  state.sysName = storage.get('sysName', 'GudangPro');
+  state.sysName = storage.get('sysName', 'DC NONBUAH');
   state.pendingDeletes = storage.get('pendingDeletes', {}) || {};
   // Saring nota yang sudah ditandai hapus
   if (state.pendingDeletes && Object.keys(state.pendingDeletes).length) {
     state.history = state.history.filter(h => !state.pendingDeletes[String(h.nomor || '').trim()]);
   }
+  // Scope DC diterapkan setelah user login (enterApp) — di sini belum ada user
 }
 
 
@@ -6743,6 +7029,8 @@ function parseExtraFields() {
   }).filter(x => x.lbl);
 }
 
+function getPlakatDisplayMode(){ return $('#plkDisplayMode')?.value || 'full'; }
+
 function buildUniversalPlakatHtml(items, mode) {
   mode = mode || 'single';
   const title = ($('#plkTitle')?.value || 'PLAKAT').trim() || 'PLAKAT';
@@ -6750,18 +7038,40 @@ function buildUniversalPlakatHtml(items, mode) {
   const extras = parseExtraFields();
   const groups = getPlakatGroups(items, mode);
   const total = items.length;
+  const display = getPlakatDisplayMode();
 
   function oneCard(it, i) {
+    if (display === 'name') {
+      return `<div class="plakat-card display-name">
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+        <div class="plakat-body">
+          <div class="plakat-hero"><div class="plakat-hero-text">${esc(it.nama || '-')}</div></div>
+          <div class="plakat-foot">${i+1}/${total} · ${esc(dc)} · Tempel di kardus</div>
+        </div>
+      </div>`;
+    }
+    if (display === 'barcode') {
+      const bc = (it.barcode || it.kode || '-');
+      return `<div class="plakat-card display-barcode">
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+        <div class="plakat-body">
+          <div class="plakat-hero"><div class="plakat-hero-text">${esc(bc)}</div></div>
+          <div class="plakat-foot">${i+1}/${total} · ${esc(it.nama||'')} · Tempel di kardus</div>
+        </div>
+      </div>`;
+    }
     const rows = [
-      ['Nama Barang', it.nama || '-'],
-      ['Kode Barang', it.kode || '-'],
-      ['Barcode', it.barcode || '-'],
-      ['Qty / Satuan', (it.qty || 0) + ' ' + (it.satuan || 'PCS')],
+      ['Nama Barang', it.nama || '-', false],
+      ['Kode Barang', it.kode || '-', false],
+      ['Barcode', it.barcode || '-', false],
+      ['Qty / Satuan', (it.qty || 0) + ' ' + (it.satuan || 'PCS'), true],
     ];
-    if (it.note) rows.push(['Catatan', it.note]);
-    extras.forEach(ex => rows.push([ex.lbl, ex.val]));
-    const rowsHtml = rows.map(([l,v]) =>
-      `<div class="plakat-row"><span class="lbl">${esc(l)}</span><span class="sep">:</span><span class="val">${esc(v)}</span></div>`
+    if (it.note) rows.push(['Catatan', it.note, false]);
+    extras.forEach(ex => rows.push([ex.lbl, ex.val, false]));
+    const rowsHtml = rows.map(([l,v,isQty]) =>
+      isQty
+        ? `<div class="plakat-row"><span class="lbl">${esc(l)}</span><span class="sep">:</span><span class="val"><span class="plakat-qty">${esc(v)}</span></span></div>`
+        : `<div class="plakat-row"><span class="lbl">${esc(l)}</span><span class="sep">:</span><span class="val">${esc(v)}</span></div>`
     ).join('');
     return `<div class="plakat-card">
       <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
@@ -6772,9 +7082,30 @@ function buildUniversalPlakatHtml(items, mode) {
   }
 
   function groupCard(group, startIndex) {
+    if (display === 'name') {
+      const blocks = group.map((it, j) => `<div class="plakat-item-block"><div class="iname">${startIndex+j+1}. ${esc(it.nama||'-')}</div></div>`).join('');
+      return `<div class="plakat-card combo display-name ${group.length === total ? 'all-items' : ''}">
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+        <div class="plakat-body"><div class="plakat-items">${blocks}</div>
+          <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
+        </div>
+      </div>`;
+    }
+    if (display === 'barcode') {
+      const blocks = group.map((it, j) => {
+        const bc = it.barcode || it.kode || '-';
+        return `<div class="plakat-item-block"><div class="iname">${startIndex+j+1}. ${esc(bc)}</div><div class="imeta">${esc(it.nama||'')}</div></div>`;
+      }).join('');
+      return `<div class="plakat-card combo display-barcode ${group.length === total ? 'all-items' : ''}">
+        <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+        <div class="plakat-body"><div class="plakat-items">${blocks}</div>
+          <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
+        </div>
+      </div>`;
+    }
     const blocks = group.map((it, j) => `<div class="plakat-item-block">
       <div class="iname">${startIndex+j+1}. ${esc(it.nama||'-')}</div>
-      <div class="imeta">Kode Barang: <b>${esc(it.kode||'-')}</b> · Qty: <b>${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</b>
+      <div class="imeta">Kode Barang: <b>${esc(it.kode||'-')}</b> · BC: <b>${esc(it.barcode||'-')}</b> · Qty: <span class="plakat-qty">${esc(it.qty||0)} ${esc(it.satuan||'PCS')}</span>
       ${it.note ? '<br>Catatan: '+esc(it.note) : ''}</div>
     </div>`).join('');
     const extraHtml = extras.map(ex => `<div class="plakat-row"><span class="lbl">${esc(ex.lbl)}</span><span class="sep">:</span><span class="val">${esc(ex.val)}</span></div>`).join('');
@@ -6911,6 +7242,158 @@ function openPlakatMasterPicker() {
   render();
 }
 
+async function exportPlakatPNG() {
+  if (!plakatState.items.length) return showToast('Pilih minimal 1 produk');
+  if (!window.html2canvas) return showToast('Library gambar belum siap');
+  const mode = $('#plkLayout')?.value || 'single';
+  const html = buildUniversalPlakatHtml(plakatState.items, mode);
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;background:#fff;box-sizing:border-box;padding:8px;';
+  wrap.innerHTML = html;
+  const sheet = wrap.querySelector('.plakat-sheet');
+  if (sheet) {
+    sheet.style.display = 'block';
+    sheet.classList.add('capture-full');
+    sheet.querySelectorAll('.plakat-page').forEach(p => {
+      p.style.height = 'auto';
+      p.style.minHeight = '0';
+      p.style.overflow = 'visible';
+      p.style.pageBreakAfter = 'auto';
+      p.style.marginBottom = '16px';
+    });
+  }
+  document.body.appendChild(wrap);
+  showToast('Membuat PNG plakat…');
+  try {
+    await new Promise(r => setTimeout(r, 60));
+    const target = sheet || wrap;
+    const fullH = Math.max(target.scrollHeight, target.offsetHeight) + 20;
+    const canvas = await html2canvas(target, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      height: fullH,
+      windowHeight: fullH,
+      scrollY: 0,
+      scrollX: 0
+    });
+    canvas.toBlob(blob => {
+      if (blob) {
+        const title = ($('#plkTitle')?.value || 'Plakat').replace(/[^\w.-]+/g, '_');
+        saveAs(blob, `Plakat_${title}_${todayStr()}.png`);
+        showToast('PNG plakat berhasil disimpan (penuh, tidak terpotong)');
+        logActivity('EXPORT', 'Cetak Plakat', `PNG · ${plakatState.items.length} item`);
+      } else showToast('Gagal membuat PNG');
+    }, 'image/png');
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal membuat PNG');
+  } finally {
+    document.body.removeChild(wrap);
+  }
+}
+
+function exportPlakatWord() {
+  if (!plakatState.items.length) return showToast('Pilih minimal 1 produk');
+  const mode = $('#plkLayout')?.value || 'single';
+  const paper = getPlakatPaperLayout();
+  const title = ($('#plkTitle')?.value || 'PLAKAT').trim() || 'PLAKAT';
+  const dc = ($('#plkSub')?.value || state.dcName || 'DC').trim();
+  const htmlBody = buildUniversalPlakatHtml(plakatState.items, mode);
+  // Word-compatible HTML: page size A4, each .plakat-page = 1 lembar
+  const styles = `
+    @page { size: A4; margin: 8mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; }
+    .plakat-sheet { width: 100%; }
+    .plakat-page {
+      width: 100%; height: 277mm; min-height: 277mm;
+      page-break-after: always; break-after: page;
+      box-sizing: border-box; display: flex; flex-direction: column;
+      overflow: hidden; background: #fff;
+    }
+    .plakat-page:last-child { page-break-after: auto; }
+    .plakat-page.full-page { height: 277mm; }
+    .plakat-card {
+      border: 2px solid #111; box-sizing: border-box;
+      flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column;
+      overflow: hidden; background: #fff;
+    }
+    .plakat-page.full-page .plakat-card, .plakat-page.single .plakat-card { flex: 1 1 100%; }
+    .plakat-cut {
+      height: 0; border-top: 2px dashed #777; position: relative; margin: 0; flex: 0 0 0;
+    }
+    .plakat-cut::after {
+      content: "— potong di sini —"; position: absolute; left: 50%; top: -8px;
+      transform: translateX(-50%); background: #fff; color: #555; font-size: 9px;
+      padding: 0 8px; font-weight: 700; white-space: nowrap;
+    }
+    .plakat-head {
+      background: #ffbd00; border-bottom: 2px solid #111; padding: 8px 12px;
+      display: grid; grid-template-columns: 1fr 1.5fr 1fr; align-items: center;
+      text-align: center; min-height: 40px;
+    }
+    .plakat-head .pt { font-size: 10px; font-weight: 800; text-align: left; text-transform: uppercase; }
+    .plakat-head .title { font-weight: 900; letter-spacing: 1px; text-transform: uppercase; font-size: 20px; }
+    .plakat-body { padding: 10px 14px 8px; flex: 1; display: flex; flex-direction: column; }
+    .plakat-row {
+      display: grid; grid-template-columns: 120px 12px 1fr; gap: 4px;
+      border-bottom: 1px solid #e3e3e3; padding: 5px 0; font-size: 12px;
+    }
+    .plakat-row .lbl { font-weight: 700; }
+    .plakat-row .sep { font-weight: 800; }
+    .plakat-row .val { font-weight: 800; word-break: break-word; }
+
+    .plakat-qty {
+      display: inline-block; font-weight: 900; color: #0f766e;
+      background: #ccfbf1; border: 1.5px solid #2dd4bf; border-radius: 6px;
+      padding: 1px 8px;
+    }
+    .plakat-foot {
+      margin-top: auto; padding-top: 6px; border-top: 1px dashed #777;
+      font-size: 9px; color: #444; text-align: center;
+    }
+    .plakat-items { display: flex; flex-direction: column; gap: 4px; }
+    .plakat-item-block { border: 1px solid #333; padding: 5px 7px; }
+    .plakat-item-block .iname { font-weight: 900; font-size: 12px; margin-bottom: 2px; }
+    .plakat-item-block .imeta { font-size: 10px; line-height: 1.3; }
+    .plakat-hero { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; }
+    .plakat-hero-text { font-weight: 900; font-size: 28px; line-height: 1.15; text-transform: uppercase; }
+    .display-barcode .plakat-hero-text { font-family: Consolas, monospace; letter-spacing: 1px; font-size: 32px; }
+    .plakat-page.single .plakat-head .title { font-size: 28px; }
+    .plakat-page.full-page .plakat-head .title { font-size: 36px; }
+    .plakat-page.full-page .plakat-row { font-size: 16px; padding: 8px 0; }
+    .plakat-page.full-page .plakat-hero-text { font-size: 42px; }
+  `;
+  const docHtml = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<!--[if gte mso 9]><xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+ </w:WordDocument>
+</xml><![endif]-->
+<style>${styles}</style>
+<title>Plakat ${title}</title>
+</head>
+<body>
+${htmlBody.replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"').replace('display:none','display:block')}
+</body>
+</html>`;
+  const blob = new Blob(['\ufeff' + docHtml], { type: 'application/msword' });
+  const safe = title.replace(/[^\w.-]+/g, '_');
+  const pagesHint = paper === 'full' ? '1-plakat-per-halaman' : '2-plakat-per-halaman';
+  saveAs(blob, `Plakat_${safe}_${pagesHint}_${todayStr()}.doc`);
+  logActivity('EXPORT', 'Cetak Plakat', `Word · ${plakatState.items.length} item · ${pagesHint}`);
+  showToast('Dokumen Word disimpan — halaman menyesuaikan jumlah plakat');
+}
+
 function bindCetakPlakatEvents() {
   document.querySelectorAll('.plk-template-tab').forEach(btn => btn.addEventListener('click', () => {
     const t=btn.dataset.template||'karantina'; const sel=$('#plkTemplate'); if(sel) sel.value=t;
@@ -6923,11 +7406,22 @@ function bindCetakPlakatEvents() {
   document.querySelectorAll('#plkPaperToggle button').forEach(btn => btn.addEventListener('click',()=>{
     const paper=btn.dataset.paper||'half'; $('#plkPaperLayout').value=paper; document.querySelectorAll('#plkPaperToggle button').forEach(b=>b.classList.toggle('active',b===btn)); updatePlakatLivePreview();
   }));
+  document.querySelectorAll('#plkDisplayToggle button').forEach(btn => btn.addEventListener('click',()=>{
+    const d=btn.dataset.display||'full'; const el=$('#plkDisplayMode'); if(el) el.value=d;
+    document.querySelectorAll('#plkDisplayToggle button').forEach(b=>b.classList.toggle('active',b===btn));
+    updatePlakatLivePreview();
+  }));
   $('#plkTemplate')?.addEventListener('change', applyPlakatTemplate);
   $('#plkPickMaster')?.addEventListener('click', openPlakatMasterPicker);
   $('#plkClear')?.addEventListener('click', () => { plakatState.items = []; paintPlakatItems(); updatePlakatLivePreview(); });
   $('#plkPrintBtn')?.addEventListener('click', () => printUniversalPlakat(false));
   $('#plkPreviewBtn')?.addEventListener('click', () => printUniversalPlakat(true));
+  $('#plkPngBtn')?.addEventListener('click', () => exportPlakatPNG());
+  $('#plkWordBtn')?.addEventListener('click', () => exportPlakatWord());
+  ['plkTitle','plkSub','plkExtra'].forEach(id => {
+    const el = $('#'+id);
+    if (el) { el.addEventListener('input', updatePlakatLivePreview); el.addEventListener('change', updatePlakatLivePreview); }
+  });
   // product search
   if ($('#plkSearch')) {
     attachSearch('#plkSearch', '#plkSuggest', (p) => {
@@ -7018,8 +7512,13 @@ function bindEvents() {
           username: profile.username || u,
           email: cred.user.email,
           role: role,
+          assignedDc: profile.assignedDc || 'DC INDUK'
           };
         storage.set('session', null);
+        if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
+          state.dcName = state.user.assignedDc;
+          cacheLocal('dcName', state.dcName);
+        }
         enterApp();
         logActivity('LOGIN', 'Sistem', state.user.name + ' masuk (Firebase) · ' + role);
         return;
@@ -7472,7 +7971,7 @@ function bindEvents() {
     if (!requireServer()) return;
     const prevDc = state.dcName;
     state.dcName = $('#setDcName').value.trim() || 'DC INDUK';
-    state.sysName = $('#setSysName').value.trim() || 'GudangPro';
+    state.sysName = $('#setSysName').value.trim() || 'DC NONBUAH';
     cacheLocal('dcName', state.dcName);
     cacheLocal('sysName', state.sysName);
     cloudSaveSettings({ dcName: state.dcName, sysName: state.sysName });
@@ -7501,7 +8000,7 @@ function bindEvents() {
       sysName: state.sysName
     };
     const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
-    saveAs(blob, `gudangpro-backup-${todayStr()}.json`);
+    saveAs(blob, `dc-nonbuah-backup-${todayStr()}.json`);
     logActivity('EXPORT', 'Backup', 'Full backup JSON');
     showToast('Backup berhasil diunduh');
   };
@@ -7538,15 +8037,17 @@ function enterApp() {
   $('#authScreen').classList.add('hidden');
   $('#appShell').style.display = 'flex';
   if (state.user) state.user.role = normalizeRole(state.user.role);
-  // Tampilkan nama dari profil Firebase; jika kosong pakai username login
-  const displayName = (state.user.name || '').trim() || state.user.username || state.user.email || 'User';
-  const uname = (state.user.username || '').trim();
-  $('#userName').textContent = displayName;
-  // Role + username agar jelas akun mana yang login (mis. QCSNACKLBI)
-  const roleLabel = currentRole() + (uname ? ' · ' + uname : '');
+  // Pastikan DC aktif sesuai penempatan (kecuali Induk/Admin)
+  if (state.user && !isAdmin() && !isIndukDc(state.user.assignedDc)) {
+    state.dcName = state.user.assignedDc || state.dcName;
+    cacheLocal('dcName', state.dcName);
+  }
+  $('#userName').textContent = state.user.name;
+  const roleLabel = currentRole() + (state.user.assignedDc ? ' · ' + state.user.assignedDc : '');
   $('#userRole').textContent = roleLabel;
-  $('#userAvatar').textContent = (displayName || 'U')[0].toUpperCase();
+  $('#userAvatar').textContent = (state.user.name||'U')[0].toUpperCase();
   $('#dcBadge').textContent = state.dcName;
+  applyDcScopeToState();
   applyMenuVisibility();
   if (window.lucide) lucide.createIcons();
   navigate('dashboard');
@@ -7579,10 +8080,16 @@ async function restoreFirebaseUser(firebaseUser) {
       name: profile.name || firebaseUser.email || 'User',
       username: profile.username || firebaseUser.email || '',
       email: firebaseUser.email || profile.email || '',
-      role, locked: !!profile.locked
+      role, locked: !!profile.locked,
+      assignedDc: profile.assignedDc || 'DC INDUK'
     };
     // Do not persist credentials or an app-level session token in localStorage.
     storage.set('session', null);
+    // Non-Induk: kunci DC aktif ke penempatan user
+    if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
+      state.dcName = state.user.assignedDc;
+      cacheLocal('dcName', state.dcName);
+    }
     enterApp();
   } catch (e) {
     console.error('[security] restore auth', e);
