@@ -3941,7 +3941,7 @@ function openAuditModal(session) {
               </div>
             </div>
           </div>
-          <div class="receipt ${densityClass(initItems.length)}" id="printArea">
+          <div class="receipt ${densityClass(initItems.length)} audit-view-only" id="printArea">
             <div class="brand">
               <div class="title" id="auditReceiptTitle">${esc(session.judul || 'NOTA AUDIT EXP')}</div>
               <div class="sub">${esc(session.dcName || state.dcName || '')}</div>
@@ -4058,33 +4058,62 @@ function openAuditModal(session) {
     if (!items.length) return showToast('Pilih minimal 1 item');
     const host = $('#plakatHost');
     if (!host) return;
-    const fields = getPlakatFields('auditPlakatFields');
-    const html = buildAuditPlakatHtml(items, mode, fields);
-    host.innerHTML = `<div class="plakat-preview-frame" style="margin-top:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-        <strong>🏷️ Pratinjau Plakat Audit (${items.length} Item)</strong>
-        <span class="badge badge-warning">${esc(plakatModeLabel(mode,items.length))}</span>
-      </div>
-      <div class="plakat-preview-inner">${html.replace('class="plakat-sheet"','class="plakat-sheet" style="display:block"')}</div>
-      <div class="btn-group" style="margin-top:10px;justify-content:flex-end;flex-wrap:wrap;">
-        <button type="button" class="btn btn-primary" id="auditPrintPlakatNow">🖨 Cetak Plakat</button>
-        <button type="button" class="btn btn-outline" id="auditPngPlakatNow">🖼 PNG</button>
-        <button type="button" class="btn btn-outline" id="auditWordPlakatNow">📄 Word</button>
-        <button type="button" class="btn btn-outline" id="auditClosePlakatPreview">Tutup</button>
-      </div>
-    </div>`;
-    host.style.display = 'block';
-    const rebuild = () => buildAuditPlakatHtml(items, mode, getPlakatFields('auditPlakatFields'));
-    $('#auditClosePlakatPreview').onclick = () => { host.innerHTML = ''; host.style.display = 'none'; };
-    $('#auditPrintPlakatNow').onclick = () => {
-      printPlakatSheetHtml(rebuild(), 'Plakat Audit', plakatModeLabel(mode, items.length));
-    };
-    $('#auditPngPlakatNow').onclick = () => {
-      exportAnyPlakatPNG(rebuild(), 'Plakat_Audit_' + String(session.id || todayStr()).replace(/[^\w.-]+/g, '_'));
-    };
-    $('#auditWordPlakatNow').onclick = () => {
-      exportAnyPlakatWord(rebuild(), 'Plakat_Audit_' + String(session.id || todayStr()).replace(/[^\w.-]+/g, '_'));
-    };
+    const receipt = $('#printArea');
+
+    function showPlakatView() {
+      if (receipt) receipt.style.display = 'none';
+      document.querySelectorAll('.audit-view-only').forEach(el => el.style.display = 'none');
+      host.style.display = 'block';
+    }
+    function showAuditView() {
+      if (receipt) receipt.style.display = '';
+      document.querySelectorAll('.audit-view-only').forEach(el => el.style.display = '');
+      host.innerHTML = '';
+      host.style.display = 'none';
+    }
+
+    function renderPreview() {
+      const fields = getPlakatFields('auditPlakatFields');
+      const html = buildAuditPlakatHtml(items, mode, fields);
+      host.innerHTML = `<div class="plakat-preview-frame" style="margin-top:4px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+          <strong>🏷️ Pratinjau Plakat Audit (${items.length} Item)</strong>
+          <span class="badge badge-warning">${esc(plakatModeLabel(mode,items.length))}</span>
+        </div>
+        <div class="plakat-preview-inner">${html.replace('class="plakat-sheet"','class="plakat-sheet" style="display:block"')}</div>
+        <div class="btn-group" style="margin-top:10px;justify-content:flex-end;flex-wrap:wrap;gap:6px;">
+          <button type="button" class="btn btn-primary" id="auditPrintPlakatNow">🖨 Cetak Plakat</button>
+          <button type="button" class="btn btn-outline" id="auditPngPlakatNow">🖼 PNG</button>
+          <button type="button" class="btn btn-outline" id="auditWordPlakatNow">📄 Word</button>
+          <button type="button" class="btn btn-outline" id="auditBackToList">← Kembali</button>
+        </div>
+      </div>`;
+      host.style.display = 'block';
+      const rebuild = () => buildAuditPlakatHtml(items, mode, getPlakatFields('auditPlakatFields'));
+      $('#auditPrintPlakatNow').onclick = () => printPlakatSheetHtml(rebuild(), 'Plakat Audit', plakatModeLabel(mode, items.length));
+      $('#auditPngPlakatNow').onclick = () => exportAnyPlakatPNG(rebuild(), 'Plakat_Audit_' + String(session.id || todayStr()).replace(/[^\w.-]+/g, '_'));
+      $('#auditWordPlakatNow').onclick = () => exportAnyPlakatWord(rebuild(), 'Plakat_Audit_' + String(session.id || todayStr()).replace(/[^\w.-]+/g, '_'));
+      $('#auditBackToList').onclick = () => showAuditView();
+    }
+
+    const modeSel = $('#auditPlakatMode');
+    if (modeSel) mode = modeSel.value || mode;
+    showPlakatView();
+    renderPreview();
+    bindPlakatFieldOptions('auditPlakatFields', () => {
+      if (host.style.display !== 'none') renderPreview();
+    });
+    const modeWrap = modeSel && modeSel.parentElement;
+    if (modeWrap) {
+      modeWrap.querySelectorAll('button[data-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setTimeout(() => {
+            mode = modeSel.value || 'single';
+            if (host.style.display !== 'none') renderPreview();
+          }, 10);
+        });
+      });
+    }
   }
   $('#auditPlakat').onclick = () => doPlakat($('#auditPlakatMode')?.value || 'single');
   applyDensity(initItems.length);
@@ -5347,21 +5376,25 @@ function plakatFieldOptions(wrapId, fields, defaults) {
 
 function bindPlakatFieldOptions(wrapId, onChange) {
   const wrap = $('#'+wrapId); if (!wrap) return;
+  if (typeof onChange === 'function') wrap._plakatFieldOnChange = onChange;
   wrap.querySelectorAll('.plk-field-cb').forEach(cb => {
+    if (cb._plakatBound) return;
+    cb._plakatBound = true;
     cb.addEventListener('change', () => {
       const lab = cb.closest('.field-chip');
       if (lab) lab.classList.toggle('on', cb.checked);
-      if (typeof onChange === 'function') onChange(getPlakatFields(wrapId));
+      const fn = wrap._plakatFieldOnChange;
+      if (typeof fn === 'function') fn(getPlakatFields(wrapId));
     });
   });
 }
 
 function getPlakatFields(wrapId) {
   const wrap = $('#'+wrapId);
-  if (!wrap) return null;
+  if (!wrap) return null; // null = show all (default)
   const keys = [];
   wrap.querySelectorAll('.plk-field-cb:checked').forEach(cb => keys.push(cb.dataset.fkey));
-  return keys.length ? keys : null; // null = show all default
+  return keys; // array (bisa kosong)
 }
 
 function plakatRowHtml(lbl, val, isQty) {
@@ -5374,7 +5407,8 @@ function plakatRowHtml(lbl, val, isQty) {
 
 function filterPlakatRows(rows, fieldKeys) {
   // rows: [{key,lbl,val,isQty?}]
-  if (!fieldKeys || !fieldKeys.length) return rows;
+  // null/undefined = tampilkan semua; array = filter (kosong = tidak ada baris)
+  if (fieldKeys == null) return rows;
   const set = new Set(fieldKeys);
   return rows.filter(r => set.has(r.key));
 }
@@ -5422,79 +5456,100 @@ async function exportAnyPlakatPNG(html, filenamePrefix) {
   }
 }
 
-/** Export HTML plakat → Word (.doc) valid multi-halaman */
+/** Export HTML plakat → Word (.doc) via table layout (kompatibel Word Android/WPS) */
 function exportAnyPlakatWord(html, filenamePrefix) {
-  const styles = `
-@page { size: A4; margin: 10mm; }
-body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; }
-.plakat-sheet { width: 100%; display: block !important; }
-.plakat-page {
-  width: 100%; min-height: 260mm;
-  page-break-after: always; break-after: page;
-  box-sizing: border-box; background: #fff; margin-bottom: 0;
-}
-.plakat-page:last-child { page-break-after: auto; }
-.plakat-card {
-  border: 2px solid #111; box-sizing: border-box;
-  width: 100%; margin-bottom: 8px; background: #fff;
-}
-.plakat-cut {
-  border-top: 2px dashed #777; text-align: center;
-  color: #555; font-size: 9px; font-weight: 700; margin: 6px 0; padding-top: 2px;
-}
-.plakat-head {
-  background: #ffbd00; border-bottom: 2px solid #111;
-  padding: 12px 14px; text-align: center;
-}
-.plakat-head .pt { font-size: 10px; font-weight: 800; text-transform: uppercase; display: block; text-align: left; margin-bottom: 2px; }
-.plakat-head .title { font-weight: 900; letter-spacing: 1px; text-transform: uppercase; font-size: 24px; display: block; }
-.plakat-body { padding: 10px 14px 10px; }
-.plakat-row { padding: 5px 0; border-bottom: 1px solid #e3e3e3; font-size: 13px; }
-.plakat-row .lbl { font-weight: 700; display: inline-block; width: 130px; }
-.plakat-row .sep { font-weight: 800; margin-right: 6px; }
-.plakat-row .val { font-weight: 800; }
-.plakat-qty {
-  display: inline-block; font-weight: 900; color: #0f766e;
-  background: #ccfbf1; border: 1.5px solid #2dd4bf; border-radius: 6px; padding: 1px 8px;
-}
-.plakat-foot {
-  margin-top: 8px; padding-top: 6px; border-top: 1px dashed #777;
-  font-size: 9px; color: #444; text-align: center;
-}
-.plakat-items { margin-top: 6px; }
-.plakat-item-block { border: 1px solid #333; padding: 6px 8px; margin-bottom: 4px; }
-.plakat-item-block .iname { font-weight: 900; font-size: 13px; margin-bottom: 2px; }
-.plakat-item-block .imeta { font-size: 11px; line-height: 1.35; }
-`;
-  // Flatten structure for better Word compatibility (tables-like simple HTML)
-  let body = String(html || '');
-  body = body.replace(/class="plakat-sheet"[^>]*/g, 'class="plakat-sheet" style="display:block"');
-  body = body.replace(/style="display:\s*none"/gi, 'style="display:block"');
-  // Convert cut div to visible text for Word
-  body = body.replace(/<div class="plakat-cut"><\/div>/g, '<div class="plakat-cut">— potong di sini —</div>');
-  body = body.replace(/<div class="plakat-cut"><\/div>/g, '<div class="plakat-cut">— potong di sini —</div>');
+  try {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    const pages = wrap.querySelectorAll('.plakat-page');
+    const cards = wrap.querySelectorAll('.plakat-card');
+    if (!cards.length) return showToast('Tidak ada isi plakat untuk diekspor');
 
-  const safeTitle = String(filenamePrefix || 'Plakat').replace(/[^\w.\- ]+/g, '_');
-  const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
-    + '<head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8">'
-    + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
-    + '<title>' + safeTitle + '</title><style>' + styles + '</style></head><body>'
-    + body
-    + '</body></html>';
+    function cardToTable(card) {
+      const head = card.querySelector('.plakat-head');
+      const title = (head && head.querySelector('.title')) ? head.querySelector('.title').textContent.trim() : 'PLAKAT';
+      const pt = (head && head.querySelector('.pt')) ? head.querySelector('.pt').textContent.trim() : '';
+      const foot = card.querySelector('.plakat-foot');
+      const footTxt = foot ? foot.textContent.trim() : '';
+      let rows = '';
+      // Header bar
+      rows += '<tr><td colspan="2" style="background:#ffbd00;border:2px solid #111;padding:12px 10px;text-align:center;">'
+        + (pt ? '<div style="font-size:10px;font-weight:800;text-align:left;text-transform:uppercase;">' + esc(pt) + '</div>' : '')
+        + '<div style="font-size:22px;font-weight:900;letter-spacing:1px;text-transform:uppercase;">' + esc(title) + '</div>'
+        + '</td></tr>';
+      // Data rows
+      card.querySelectorAll('.plakat-row').forEach(r => {
+        const lbl = (r.querySelector('.lbl') || {}).textContent || '';
+        const val = (r.querySelector('.val') || {}).textContent || '';
+        rows += '<tr>'
+          + '<td style="border:1px solid #ccc;padding:6px 8px;font-weight:700;width:32%;vertical-align:top;font-size:12px;">' + esc(lbl) + '</td>'
+          + '<td style="border:1px solid #ccc;padding:6px 8px;font-weight:800;font-size:13px;">' + esc(val) + '</td>'
+          + '</tr>';
+      });
+      // Group items
+      card.querySelectorAll('.plakat-item-block').forEach(b => {
+        const name = (b.querySelector('.iname') || {}).textContent || '';
+        const meta = (b.querySelector('.imeta') || {}).textContent || '';
+        rows += '<tr><td colspan="2" style="border:1px solid #333;padding:7px 8px;">'
+          + '<div style="font-weight:900;font-size:13px;">' + esc(name) + '</div>'
+          + (meta ? '<div style="font-size:11px;margin-top:2px;">' + esc(meta) + '</div>' : '')
+          + '</td></tr>';
+      });
+      if (footTxt) {
+        rows += '<tr><td colspan="2" style="border-top:1px dashed #777;padding:6px;text-align:center;font-size:9px;color:#444;">' + esc(footTxt) + '</td></tr>';
+      }
+      return '<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:2px solid #111;margin:0 0 14px 0;width:100%;">' + rows + '</table>';
+    }
 
-  // BOM + HTML as .doc (Word opens HTML WordProcessingML-compatible)
-  const blob = new Blob(['\ufeff', doc], { type: 'application/msword;charset=utf-8' });
-  const fname = safeTitle.replace(/\s+/g, '_') + '_' + todayStr() + '.doc';
-  if (window.saveAs) {
-    saveAs(blob, fname);
-  } else {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fname;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    let bodyHtml = '';
+    if (pages.length) {
+      pages.forEach((page, pi) => {
+        const pageCards = page.querySelectorAll('.plakat-card');
+        pageCards.forEach(c => { bodyHtml += cardToTable(c); });
+        if (pi < pages.length - 1) {
+          bodyHtml += '<br clear="all" style="page-break-after:always;" />';
+        }
+      });
+    } else {
+      cards.forEach(c => { bodyHtml += cardToTable(c); });
+    }
+
+    const safeTitle = String(filenamePrefix || 'Plakat').replace(/[^\w.\- ]+/g, ' ').trim() || 'Plakat';
+    const fname = safeTitle.replace(/\s+/g, '_') + '_' + todayStr() + '.doc';
+
+    const doc = '<!DOCTYPE html>\n'
+      + '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">\n'
+      + '<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n'
+      + '<meta charset="utf-8">\n'
+      + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom>'
+      + '<w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->\n'
+      + '<title>' + esc(safeTitle) + '</title>\n'
+      + '<style>\n'
+      + '  @page { size: A4; margin: 12mm; }\n'
+      + '  body { font-family: Arial, Helvetica, sans-serif; color: #111; }\n'
+      + '  table { page-break-inside: avoid; }\n'
+      + '</style>\n</head>\n<body>\n'
+      + bodyHtml
+      + '\n</body>\n</html>';
+
+    // Word on Android prefers application/msword with UTF-8 BOM
+    const blob = new Blob(['\ufeff' + doc], { type: 'application/msword' });
+    if (window.saveAs) {
+      saveAs(blob, fname);
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    }
+    showToast('Word disimpan: ' + fname);
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal membuat Word: ' + (e.message || 'error'));
   }
-  showToast('Word disimpan: ' + fname);
 }
 
 function printPlakatSheetHtml(html, logLabel, logMeta) {
@@ -5767,7 +5822,7 @@ function openNotaModal(nota, isHistory) {
           </div>
           ${picFilterHtml}
           ${buildPickerHtml()}
-          <div class="receipt ${initDens}" id="printArea">
+          <div class="receipt ${initDens} nota-view-only" id="printArea">
             <div class="brand">
               <div class="title">${esc(nota.judul || 'NOTA PENGAJUAN RETUR')}</div>
               <div class="sub">${esc(nota.dcName)}</div>
@@ -5788,10 +5843,10 @@ function openNotaModal(nota, isHistory) {
           <div id="plakatHost" class="no-print" style="display:none;"></div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
-          <button class="btn btn-primary" id="notaCopy">📋 Salin WA</button>
-          <button class="btn btn-outline" id="notaPdf">📑 PDF</button>
-          <button class="btn btn-outline" id="notaPng">🖼 PNG</button>
-          <button class="btn btn-outline" id="notaPrint">🖨 Cetak Nota</button>
+          <button class="btn btn-primary nota-view-only" id="notaCopy">📋 Salin WA</button>
+          <button class="btn btn-outline nota-view-only" id="notaPdf">📑 PDF</button>
+          <button class="btn btn-outline nota-view-only" id="notaPng">🖼 PNG</button>
+          <button class="btn btn-outline nota-view-only" id="notaPrint">🖨 Cetak Nota</button>
           ${plakatModeOptions('notaPlakatMode','single')}
           ${plakatFieldOptions('notaPlakatFields',[
             {key:'nama',label:'Nama'},{key:'kode',label:'Kode'},{key:'barcode',label:'Barcode'},
@@ -5993,33 +6048,69 @@ function openNotaModal(nota, isHistory) {
     if (!items.length) return showToast('Pilih minimal 1 item');
     const host = $('#plakatHost');
     if (!host) return showToast('Gagal siapkan plakat');
-    const fields = getPlakatFields('notaPlakatFields');
-    const html = buildPlakatHtml(items, mode, fields);
-    host.innerHTML = `<div class="plakat-preview-frame" style="margin-top:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-        <strong>🏷️ Pratinjau Plakat Retur (${items.length} Item)</strong>
-        <span class="badge badge-warning">${esc(plakatModeLabel(mode,items.length))}</span>
-      </div>
-      <div class="plakat-preview-inner">${html.replace('class="plakat-sheet"','class="plakat-sheet" style="display:block"')}</div>
-      <div class="btn-group" style="margin-top:10px;justify-content:flex-end;flex-wrap:wrap;">
-        <button type="button" class="btn btn-primary" id="notaPrintPlakatNow">🖨 Cetak Plakat</button>
-        <button type="button" class="btn btn-outline" id="notaPngPlakatNow">🖼 PNG</button>
-        <button type="button" class="btn btn-outline" id="notaWordPlakatNow">📄 Word</button>
-        <button type="button" class="btn btn-outline" id="notaClosePlakatPreview">Tutup</button>
-      </div>
-    </div>`;
-    host.style.display = 'block';
-    const rebuild = () => buildPlakatHtml(items, mode, getPlakatFields('notaPlakatFields'));
-    $('#notaClosePlakatPreview').onclick = () => { host.innerHTML = ''; host.style.display = 'none'; };
-    $('#notaPrintPlakatNow').onclick = () => {
-      printPlakatSheetHtml(rebuild(), 'Plakat Retur', plakatModeLabel(mode, items.length));
-    };
-    $('#notaPngPlakatNow').onclick = () => {
-      exportAnyPlakatPNG(rebuild(), 'Plakat_Retur_' + String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_'));
-    };
-    $('#notaWordPlakatNow').onclick = () => {
-      exportAnyPlakatWord(rebuild(), 'Plakat_Retur_' + String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_'));
-    };
+    const receipt = $('#printArea');
+    const notaActions = $('#notaActions') || host.previousElementSibling;
+
+    function showPlakatView() {
+      if (receipt) receipt.style.display = 'none';
+      // hide note action buttons above plakat mode (salin WA etc) except keep footer controls
+      document.querySelectorAll('.nota-view-only').forEach(el => el.style.display = 'none');
+      host.style.display = 'block';
+    }
+    function showNotaView() {
+      if (receipt) receipt.style.display = '';
+      document.querySelectorAll('.nota-view-only').forEach(el => el.style.display = '');
+      host.innerHTML = '';
+      host.style.display = 'none';
+    }
+
+    function renderPreview() {
+      const fields = getPlakatFields('notaPlakatFields');
+      const html = buildPlakatHtml(items, mode, fields);
+      host.innerHTML = `<div class="plakat-preview-frame" style="margin-top:4px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+          <strong>🏷️ Pratinjau Plakat Retur (${items.length} Item)</strong>
+          <span class="badge badge-warning">${esc(plakatModeLabel(mode,items.length))}</span>
+        </div>
+        <div class="plakat-preview-inner">${html.replace('class="plakat-sheet"','class="plakat-sheet" style="display:block"')}</div>
+        <div class="btn-group" style="margin-top:10px;justify-content:flex-end;flex-wrap:wrap;gap:6px;">
+          <button type="button" class="btn btn-primary" id="notaPrintPlakatNow">🖨 Cetak Plakat</button>
+          <button type="button" class="btn btn-outline" id="notaPngPlakatNow">🖼 PNG</button>
+          <button type="button" class="btn btn-outline" id="notaWordPlakatNow">📄 Word</button>
+          <button type="button" class="btn btn-outline" id="notaBackToNota">← Kembali ke Nota</button>
+        </div>
+      </div>`;
+      host.style.display = 'block';
+      const rebuild = () => buildPlakatHtml(items, mode, getPlakatFields('notaPlakatFields'));
+      $('#notaPrintPlakatNow').onclick = () => printPlakatSheetHtml(rebuild(), 'Plakat Retur', plakatModeLabel(mode, items.length));
+      $('#notaPngPlakatNow').onclick = () => exportAnyPlakatPNG(rebuild(), 'Plakat_Retur_' + String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_'));
+      $('#notaWordPlakatNow').onclick = () => exportAnyPlakatWord(rebuild(), 'Plakat_Retur_' + String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_'));
+      $('#notaBackToNota').onclick = () => showNotaView();
+    }
+
+    // Switch mode (pisah/gabung) updates preview if open
+    const modeSel = $('#notaPlakatMode');
+    if (modeSel) mode = modeSel.value || mode;
+
+    showPlakatView();
+    renderPreview();
+
+    // Live update when field chips change
+    bindPlakatFieldOptions('notaPlakatFields', () => {
+      if (host.style.display !== 'none') renderPreview();
+    });
+    // Live update when pisah/gabung toggled
+    const modeWrap = modeSel && modeSel.parentElement;
+    if (modeWrap) {
+      modeWrap.querySelectorAll('button[data-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setTimeout(() => {
+            mode = modeSel.value || 'single';
+            if (host.style.display !== 'none') renderPreview();
+          }, 10);
+        });
+      });
+    }
   }
   $('#notaPlakat').onclick = () => printPlakat($('#notaPlakatMode')?.value || 'single');
 
@@ -6989,7 +7080,7 @@ function parseExtraFields() {
 function getUniversalPlakatFields() {
   const keys = [];
   document.querySelectorAll('.plk-uni-field:checked').forEach(cb => keys.push(cb.dataset.fkey));
-  return keys.length ? keys : null;
+  return keys;
 }
 
 function buildUniversalPlakatHtml(items, mode) {
