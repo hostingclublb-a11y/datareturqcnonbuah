@@ -517,6 +517,8 @@ table.data-table .actions { display: flex; gap: 4px; }
 .plakat-page.full-page{height:277mm;min-height:277mm;}
 .plakat-card{border:2px solid #111;background:#fff;overflow:hidden;box-sizing:border-box;flex:1 1 50%;min-height:0;display:flex;flex-direction:column;border-radius:0;}
 .plakat-page.full-page .plakat-card{flex:1 1 100%;}
+.plakat-card.plakat-empty{border:1px dashed #cbd5e1;background:#fafafa;min-height:120px;flex:1 1 48%;visibility:visible;}
+.plakat-card.plakat-empty::after{content:"(kosong)";display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:12px;font-weight:600;}
 .plakat-cut{height:0;flex:0 0 0;border-top:2px dashed #777;position:relative;margin:0;}
 .plakat-cut::after{content:'✂  POTONG DI SINI';position:absolute;left:50%;top:-8px;transform:translateX(-50%);background:#fff;color:#555;font-size:9px;padding:0 8px;font-weight:700;letter-spacing:.4px;white-space:nowrap;}
 .plakat-head{background:#ffbd00;border-bottom:2px solid #111;padding:10px 12px;text-align:center;flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative;min-height:44px;}
@@ -1259,6 +1261,29 @@ table.data-table .actions { display: flex; gap: 4px; }
             </div>
           </div>
         </div>
+
+        <!-- Modul konversi PNG → Word (2 plakat / kertas A4) -->
+        <div class="card" style="margin-top:14px;">
+          <div class="card-header">
+            <div>
+              <h2>📄 Konversi PNG → Word</h2>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                Upload PNG plakat yang sudah di-download, otomatis disusun 2 gambar per kertas A4 + garis potong. Jumlah ganjil → sisi kosong otomatis.
+              </div>
+            </div>
+            <span class="badge badge-info">2 / A4</span>
+          </div>
+          <div class="card-body">
+            <input type="file" id="png2wordFiles" accept="image/png,image/jpeg,image/jpg,image/webp" multiple style="display:none;">
+            <div class="btn-group" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+              <button type="button" class="btn btn-primary" id="png2wordPickBtn">📁 Pilih PNG / Foto</button>
+              <button type="button" class="btn btn-outline" id="png2wordClearBtn">🗑 Kosongkan</button>
+              <button type="button" class="btn btn-primary" id="png2wordExportBtn" disabled>📄 Buat Word (2/A4)</button>
+            </div>
+            <div id="png2wordStatus" style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px;">Belum ada gambar. Pilih 1 atau lebih file PNG.</div>
+            <div id="png2wordList" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ==================== BANDING ==================== -->
@@ -1988,16 +2013,18 @@ function startCloudSync() {
     fn();
   };
 
-  // Nota Retur (semua DC) — filter pendingDeletes agar hapus tidak "muncul lagi"
-  syncUnsubs.push(db.collection('notaRetur').orderBy('tanggal', 'desc').limit(800)
-    .onSnapshot(snap => apply(() => {
+  // Nota Retur — Admin/Induk: semua; DC lain: where dcName == assignedDc
+  (function subscribeNotaRetur(useScope) {
+    const built = useScope
+      ? buildDcScopedQuery('notaRetur', 'tanggal', 800)
+      : { query: db.collection('notaRetur').orderBy('tanggal', 'desc').limit(800), scoped: false, dc: '' };
+    const unsub = built.query.onSnapshot(snap => apply(() => {
       const list = [];
       const pending = state.pendingDeletes || {};
       snap.forEach(doc => {
         const d = doc.data() || {};
         const key = String(d.nomor || doc.id || '').trim();
         if (!key) return;
-        // User sudah hapus → jangan tampilkan, dan paksa hapus di server
         if (pending[key] || pending[doc.id]) {
           db.collection('notaRetur').doc(doc.id).delete().catch(() => {});
           return;
@@ -2005,7 +2032,6 @@ function startCloudSync() {
         if (!d.nomor) d.nomor = key;
         list.push(d);
       });
-      // Pending yang sudah tidak ada di snapshot → anggap sukses, hapus flag
       Object.keys(pending).forEach(k => {
         const stillThere = snap.docs.some(doc => {
           const d = doc.data() || {};
@@ -2013,13 +2039,24 @@ function startCloudSync() {
         });
         if (!stillThere) delete pending[k];
       });
+      // Scoped di server → list sudah per-DC; tetap saring client sebagai jaring pengaman
       state.history = canViewAllDc() ? list : list.filter(h => canAccessDc(h.dcName));
       cacheLocal('history', state.history);
       if (state.page === 'riwayat-retur') renderHistory();
       if (state.page === 'dashboard') renderDashboard();
       if (state.page === 'laporan') renderLaporan();
       if (state.page === 'laporan-master') renderLaporanMasterData();
-    }), err => console.warn('[server] nota', err)));
+    }), err => {
+      console.warn('[server] nota', err);
+      // Composite index belum ada → fallback query tanpa where + filter client
+      if (useScope && err && (err.code === 'failed-precondition' || /index/i.test(String(err.message || '')))) {
+        console.warn('[server] nota: index dcName+tanggal belum ada, fallback client filter');
+        showToast('Index Firestore nota belum siap — filter DC sementara di perangkat');
+        subscribeNotaRetur(false);
+      }
+    });
+    syncUnsubs.push(unsub);
+  })(true);
 
   // Products — ambil semua (paginate via multiple listeners jika perlu)
   // Gunakan query tanpa limit ketat; Firestore onSnapshot default max reasonable
@@ -2063,9 +2100,12 @@ function startCloudSync() {
       }
     }), err => console.warn('[server] warehouses', err)));
 
-  // Audit history
-  syncUnsubs.push(db.collection('auditHistory').orderBy('tanggal', 'desc').limit(200)
-    .onSnapshot(snap => apply(() => {
+  // Audit history — scoped per DC di server
+  (function subscribeAuditHistory(useScope) {
+    const built = useScope
+      ? buildDcScopedQuery('auditHistory', 'tanggal', 200)
+      : { query: db.collection('auditHistory').orderBy('tanggal', 'desc').limit(200), scoped: false, dc: '' };
+    const unsub = built.query.onSnapshot(snap => apply(() => {
       const list = [];
       snap.forEach(doc => {
         const d = doc.data();
@@ -2074,7 +2114,15 @@ function startCloudSync() {
       state.auditHistory = canViewAllDc() ? list : list.filter(h => canAccessDc(h.dcName));
       cacheLocal('auditHistory', state.auditHistory);
       if (state.page === 'riwayat-audit') renderAuditHistory();
-    }), err => console.warn('[server] audit', err)));
+    }), err => {
+      console.warn('[server] audit', err);
+      if (useScope && err && (err.code === 'failed-precondition' || /index/i.test(String(err.message || '')))) {
+        console.warn('[server] audit: index belum ada, fallback client filter');
+        subscribeAuditHistory(false);
+      }
+    });
+    syncUnsubs.push(unsub);
+  })(true);
 
   // Meta: categories, racks, settings
   syncUnsubs.push(db.collection('meta').doc('categories')
@@ -2112,9 +2160,12 @@ function startCloudSync() {
       if (state.page === 'pengaturan') renderSettings();
     }), err => console.warn('[server] settings', err)));
 
-  // Activity log (terbaru)
-  syncUnsubs.push(db.collection('activityLog').orderBy('tanggal', 'desc').limit(300)
-    .onSnapshot(snap => apply(() => {
+  // Activity log — scoped per DC di server
+  (function subscribeActivityLog(useScope) {
+    const built = useScope
+      ? buildDcScopedQuery('activityLog', 'tanggal', 300)
+      : { query: db.collection('activityLog').orderBy('tanggal', 'desc').limit(300), scoped: false, dc: '' };
+    const unsub = built.query.onSnapshot(snap => apply(() => {
       const list = [];
       snap.forEach(doc => list.push(doc.data()));
       state.activityLog = canViewAllDc() ? list : list.filter(h => canAccessDc(h.dcName || h.dc));
@@ -2122,8 +2173,14 @@ function startCloudSync() {
       if (state.page === 'activity-log') renderLog();
       if (state.page === 'dashboard') renderDashboard();
     }), err => {
-      console.warn('[server] activityLog order', err);
-    }));
+      console.warn('[server] activityLog', err);
+      if (useScope && err && (err.code === 'failed-precondition' || /index/i.test(String(err.message || '')))) {
+        console.warn('[server] activityLog: index belum ada, fallback client filter');
+        subscribeActivityLog(false);
+      }
+    });
+    syncUnsubs.push(unsub);
+  })(true);
 
   // Users (Master User & Role) — realtime agar list stabil
   syncUnsubs.push(db.collection('users')
@@ -2174,7 +2231,18 @@ function startCloudSync() {
         }
       }
       if (state.page === 'master-user') paintUsers(getUsersList());
-    }), err => console.warn('[server] users', err)));
+    }), err => {
+      console.warn('[server] users', err);
+      if (state.page === 'master-user') {
+        const tbody = $('#userTbody');
+        if (tbody) {
+          const msg = (err && (err.code || err.message)) ? String(err.code || err.message) : 'error';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:left;padding:18px;color:#b91c1c;line-height:1.5;">Listener user gagal: <b>'
+            + esc(msg) + '</b><br>Coba tombol Refresh. Jika permission-denied, perbaiki Firestore Rules collection <code>users</code>.</td></tr>';
+        }
+        showToast('Listener Master User error: ' + ((err && err.code) || 'cek console'));
+      }
+    }));
 
 
   // Draft keranjang retur (per DC) — realtime antar browser/HP
@@ -2409,6 +2477,24 @@ function canViewAllDc() {
 function canAccessDc(dcName) {
   if (canViewAllDc()) return true;
   return normDc(dcName) === normDc(userAssignedDc());
+}
+
+/**
+ * Query Firestore scoped per DC.
+ * Admin / DC INDUK → semua data.
+ * DC SNACK / FROZEN → where dcName == assignedDc (hemat reads + selaras rules).
+ * Fallback tanpa where jika composite index belum ada.
+ */
+function buildDcScopedQuery(collectionName, orderField, limitN) {
+  let q = db.collection(collectionName);
+  const scoped = !canViewAllDc();
+  const dc = scoped ? String(userAssignedDc() || state.dcName || '').trim() : '';
+  if (scoped && dc) {
+    q = q.where('dcName', '==', dc);
+  }
+  if (orderField) q = q.orderBy(orderField, 'desc');
+  if (limitN) q = q.limit(limitN);
+  return { query: q, scoped: !!(scoped && dc), dc: dc || '' };
 }
 
 /** Filter daftar nota/sesi/log berdasarkan akses DC user — data DC lain tidak ikut */
@@ -3897,8 +3983,10 @@ function openAuditModal(session) {
     for(let i=0;i<groups.length;i+=2){
       const g1=groups[i],g2=groups[i+1];
       let inner=(g1.length===1&&mode==='single')?oneCard(g1[0],idx):groupCard(g1,idx); idx+=g1.length;
-      if(g2){inner+='<div class="plakat-cut"></div>'+((g2.length===1&&mode==='single')?oneCard(g2[0],idx):groupCard(g2,idx));idx+=g2.length;}
-      pages.push(`<div class="plakat-page${g2?'':' single'}">${inner}</div>`);
+      inner+='<div class="plakat-cut"></div>';
+      if(g2){inner+=((g2.length===1&&mode==='single')?oneCard(g2[0],idx):groupCard(g2,idx));idx+=g2.length;}
+      else {inner+='<div class="plakat-card plakat-empty" aria-hidden="true"></div>';}
+      pages.push(`<div class="plakat-page">${inner}</div>`);
     }
     return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
   }
@@ -4567,34 +4655,58 @@ function renderUsers() {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;">Hanya Administrator yang dapat mengelola user</td></tr>';
     return;
   }
-  // Jika server online, data di-update via listener; render dari state
-  if (firebaseReady && db) {
-    // One-shot refresh + state (listener juga update state.users)
-    db.collection('users').get().then(snap => {
-      const rows = [];
-      snap.forEach(doc => {
-        const d = doc.data() || {};
-        rows.push({
-          id: doc.id,
-          name: d.name || '',
-          username: d.username || '',
-          email: d.email || '',
-          role: normalizeRole(d.role),
-          locked: !!d.locked,
-          assignedDc: d.assignedDc || 'DC INDUK',
-          status: d.locked ? 'locked' : (normalizeRole(d.role) === 'pending' ? 'pending' : 'active')
-        });
-      });
-      state.users = rows;
-      cacheLocal('users', rows);
-      paintUsers(getUsersList());
-    }).catch(err => {
-      console.warn('[users]', err);
-      paintUsers(getUsersList());
-    });
-  } else {
-    paintUsers(getUsersList());
+  if (!firebaseReady || !db) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#b91c1c;">Server Firebase tidak terhubung. Login ulang atau cek koneksi.</td></tr>';
+    const badge = $('#userCountBadge');
+    if (badge) badge.textContent = 'offline';
+    return;
   }
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted);">Memuat user dari server…</td></tr>';
+  db.collection('users').get().then(snap => {
+    const rows = [];
+    snap.forEach(doc => {
+      const d = doc.data() || {};
+      rows.push({
+        id: doc.id,
+        name: d.name || '',
+        username: d.username || '',
+        email: d.email || '',
+        role: normalizeRole(d.role),
+        locked: !!d.locked,
+        assignedDc: d.assignedDc || 'DC INDUK',
+        status: d.locked ? 'locked' : (normalizeRole(d.role) === 'pending' ? 'pending' : 'active')
+      });
+    });
+    // Pastikan user yang sedang login ikut tampil (jika dokumennya ada di Auth tapi list sempat kosong)
+    if (state.user && state.user.uid && !rows.some(r => r.id === state.user.uid)) {
+      rows.unshift({
+        id: state.user.uid,
+        name: state.user.name || '',
+        username: state.user.username || '',
+        email: state.user.email || '',
+        role: normalizeRole(state.user.role),
+        locked: !!state.user.locked,
+        assignedDc: state.user.assignedDc || 'DC INDUK',
+        status: state.user.locked ? 'locked' : 'active'
+      });
+    }
+    state.users = rows;
+    cacheLocal('users', rows);
+    paintUsers(getUsersList());
+  }).catch(err => {
+    console.warn('[users]', err);
+    const msg = (err && (err.code || err.message)) ? String(err.code || err.message) : 'error';
+    const isPerm = /permission|insufficient|PERMISSION/i.test(msg);
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:left;padding:18px;line-height:1.55;color:#b91c1c;">'
+      + '<b>Gagal memuat daftar user dari server.</b><br>'
+      + (isPerm
+        ? 'Kemungkinan <b>Firestore Rules</b> menolak baca collection <code>users</code>. Admin Firebase Console → Firestore → Rules harus mengizinkan read/write untuk user terautentikasi (atau khusus role admin).'
+        : ('Detail: ' + esc(msg)))
+      + '<br><br>Tombol <b>Refresh</b> untuk coba lagi. Data aksi (ubah role / DC / hapus) tetap memakai server yang sama.</td></tr>';
+    const badge = $('#userCountBadge');
+    if (badge) badge.textContent = 'error';
+    showToast('Gagal muat user: ' + msg);
+  });
 }
 
 function paintUsers(list) {
@@ -4603,7 +4715,12 @@ function paintUsers(list) {
   const badge = $('#userCountBadge');
   if (badge) badge.textContent = list.length + ' user';
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">Belum ada user — minta rekan daftar, lalu approve di sini</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:left;padding:20px;line-height:1.55;color:var(--text-muted);">'
+      + '<b>Belum ada user di collection <code>users</code>.</b><br>'
+      + '• Minta rekan <b>Daftar</b> dari layar login (status pending), lalu Approve di sini.<br>'
+      + '• Atau klik <b>+ Tambah User</b> untuk buat akun langsung (role + penempatan DC).<br>'
+      + '• Jika Anda yakin sudah ada user tapi list kosong, cek <b>Firestore Rules</b> & pastikan dokumen ada di project Firebase yang sama.'
+      + '</td></tr>';
     return;
   }
   tbody.innerHTML = list.map((u, i) => {
@@ -5456,99 +5573,102 @@ async function exportAnyPlakatPNG(html, filenamePrefix) {
   }
 }
 
-/** Export HTML plakat → Word (.doc) via table layout (kompatibel Word Android/WPS) */
-function exportAnyPlakatWord(html, filenamePrefix) {
+/** Export plakat → Word: render tiap kartu jadi gambar, 2 kartu / halaman A4 */
+async function exportAnyPlakatWord(html, filenamePrefix) {
+  if (!window.html2canvas) return showToast('Library gambar belum siap');
   try {
     const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;box-sizing:border-box;padding:8px;';
     wrap.innerHTML = html;
-    const pages = wrap.querySelectorAll('.plakat-page');
-    const cards = wrap.querySelectorAll('.plakat-card');
-    if (!cards.length) return showToast('Tidak ada isi plakat untuk diekspor');
-
-    function cardToTable(card) {
-      const head = card.querySelector('.plakat-head');
-      const title = (head && head.querySelector('.title')) ? head.querySelector('.title').textContent.trim() : 'PLAKAT';
-      const pt = (head && head.querySelector('.pt')) ? head.querySelector('.pt').textContent.trim() : '';
-      const foot = card.querySelector('.plakat-foot');
-      const footTxt = foot ? foot.textContent.trim() : '';
-      let rows = '';
-      // Header bar
-      rows += '<tr><td colspan="2" style="background:#ffbd00;border:2px solid #111;padding:12px 10px;text-align:center;">'
-        + (pt ? '<div style="font-size:10px;font-weight:800;text-align:left;text-transform:uppercase;">' + esc(pt) + '</div>' : '')
-        + '<div style="font-size:22px;font-weight:900;letter-spacing:1px;text-transform:uppercase;">' + esc(title) + '</div>'
-        + '</td></tr>';
-      // Data rows
-      card.querySelectorAll('.plakat-row').forEach(r => {
-        const lbl = (r.querySelector('.lbl') || {}).textContent || '';
-        const val = (r.querySelector('.val') || {}).textContent || '';
-        rows += '<tr>'
-          + '<td style="border:1px solid #ccc;padding:6px 8px;font-weight:700;width:32%;vertical-align:top;font-size:12px;">' + esc(lbl) + '</td>'
-          + '<td style="border:1px solid #ccc;padding:6px 8px;font-weight:800;font-size:13px;">' + esc(val) + '</td>'
-          + '</tr>';
-      });
-      // Group items
-      card.querySelectorAll('.plakat-item-block').forEach(b => {
-        const name = (b.querySelector('.iname') || {}).textContent || '';
-        const meta = (b.querySelector('.imeta') || {}).textContent || '';
-        rows += '<tr><td colspan="2" style="border:1px solid #333;padding:7px 8px;">'
-          + '<div style="font-weight:900;font-size:13px;">' + esc(name) + '</div>'
-          + (meta ? '<div style="font-size:11px;margin-top:2px;">' + esc(meta) + '</div>' : '')
-          + '</td></tr>';
-      });
-      if (footTxt) {
-        rows += '<tr><td colspan="2" style="border-top:1px dashed #777;padding:6px;text-align:center;font-size:9px;color:#444;">' + esc(footTxt) + '</td></tr>';
-      }
-      return '<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:2px solid #111;margin:0 0 14px 0;width:100%;">' + rows + '</table>';
+    const sheet = wrap.querySelector('.plakat-sheet');
+    if (sheet) {
+      sheet.style.display = 'block';
+      sheet.classList.add('capture-full');
     }
+    // Normalisasi kartu untuk capture
+    const cards = Array.from(wrap.querySelectorAll('.plakat-card'));
+    if (!cards.length) return showToast('Tidak ada isi plakat untuk diekspor');
+    cards.forEach(c => {
+      c.style.width = '100%';
+      c.style.maxWidth = '760px';
+      c.style.margin = '0 auto 8px';
+      c.style.boxSizing = 'border-box';
+      c.style.background = '#fff';
+      if (c.classList.contains('plakat-empty')) {
+        c.style.minHeight = '280px';
+        c.style.border = '1px dashed #cbd5e1';
+      }
+    });
+    document.body.appendChild(wrap);
+    showToast('Menyiapkan Word (gambar plakat)…');
+    await new Promise(r => setTimeout(r, 60));
 
-    let bodyHtml = '';
-    if (pages.length) {
-      pages.forEach((page, pi) => {
-        const pageCards = page.querySelectorAll('.plakat-card');
-        pageCards.forEach(c => { bodyHtml += cardToTable(c); });
-        if (pi < pages.length - 1) {
-          bodyHtml += '<br clear="all" style="page-break-after:always;" />';
-        }
-      });
-    } else {
-      cards.forEach(c => { bodyHtml += cardToTable(c); });
+    // Capture tiap kartu (skip empty yang benar-benar kosong visual boleh ikut)
+    const images = [];
+    for (const card of cards) {
+      try {
+        const canvas = await html2canvas(card, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+        images.push(canvas.toDataURL('image/jpeg', 0.92));
+      } catch (err) {
+        console.error('card capture fail', err);
+      }
+    }
+    if (wrap.parentNode) document.body.removeChild(wrap);
+    if (!images.length) return showToast('Gagal render gambar plakat');
+
+    // Pasangkan 2 gambar per halaman A4
+    let body = '';
+    for (let i = 0; i < images.length; i += 2) {
+      const img1 = images[i];
+      const img2 = images[i + 1] || null;
+      body += '<div style="width:100%;page-break-after:always;page-break-inside:avoid;">';
+      body += '<div style="text-align:center;margin:0 0 6px 0;">'
+        + '<img src="' + img1 + '" width="640" style="width:640px;max-width:100%;height:auto;border:1px solid #111;" />'
+        + '</div>';
+      body += '<div style="text-align:center;color:#666;font-size:10px;letter-spacing:2px;margin:6px 0;">— potong di sini —</div>';
+      body += '<div style="border-top:1px dashed #999;margin:0 0 8px 0;"></div>';
+      if (img2) {
+        body += '<div style="text-align:center;">'
+          + '<img src="' + img2 + '" width="640" style="width:640px;max-width:100%;height:auto;border:1px solid #111;" />'
+          + '</div>';
+      } else {
+        body += '<div style="height:280px;border:1px dashed #cbd5e1;background:#fafafa;"></div>';
+      }
+      body += '</div>';
     }
 
     const safeTitle = String(filenamePrefix || 'Plakat').replace(/[^\w.\- ]+/g, ' ').trim() || 'Plakat';
     const fname = safeTitle.replace(/\s+/g, '_') + '_' + todayStr() + '.doc';
+    const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+      + '<head><meta charset="utf-8">'
+      + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
+      + '<title>' + esc(safeTitle) + '</title>'
+      + '<style>'
+      + '@page { size: A4; margin: 12mm; }'
+      + 'body { font-family: Arial, sans-serif; margin: 0; }'
+      + 'img { -ms-interpolation-mode: bicubic; }'
+      + '</style></head><body>'
+      + body
+      + '</body></html>';
 
-    const doc = '<!DOCTYPE html>\n'
-      + '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">\n'
-      + '<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n'
-      + '<meta charset="utf-8">\n'
-      + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom>'
-      + '<w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->\n'
-      + '<title>' + esc(safeTitle) + '</title>\n'
-      + '<style>\n'
-      + '  @page { size: A4; margin: 12mm; }\n'
-      + '  body { font-family: Arial, Helvetica, sans-serif; color: #111; }\n'
-      + '  table { page-break-inside: avoid; }\n'
-      + '</style>\n</head>\n<body>\n'
-      + bodyHtml
-      + '\n</body>\n</html>';
-
-    // Word on Android prefers application/msword with UTF-8 BOM
     const blob = new Blob(['\ufeff' + doc], { type: 'application/msword' });
-    if (window.saveAs) {
-      saveAs(blob, fname);
-    } else {
+    if (window.saveAs) saveAs(blob, fname);
+    else {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = fname;
-      document.body.appendChild(a);
-      a.click();
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
     }
-    showToast('Word disimpan: ' + fname);
+    showToast('Word disimpan: ' + fname + ' (' + images.length + ' plakat)');
   } catch (e) {
     console.error(e);
-    showToast('Gagal membuat Word: ' + (e.message || 'error'));
+    showToast('Gagal Word: ' + (e.message || 'error'));
   }
 }
 
@@ -5777,15 +5897,19 @@ function openNotaModal(nota, isHistory) {
 
     const pages = [];
     let idx = 0;
+    // Selalu format 2 plakat / lembar A4 (sisi bawah kosong jika ganjil)
     for (let i = 0; i < groups.length; i += 2) {
       const g1 = groups[i], g2 = groups[i + 1];
       let inner = g1.length === 1 && mode === 'single' ? oneCard(g1[0], idx) : groupCard(g1, idx);
       idx += g1.length;
+      inner += '<div class="plakat-cut"></div>';
       if (g2) {
-        inner += '<div class="plakat-cut"></div>' + (g2.length === 1 && mode === 'single' ? oneCard(g2[0], idx) : groupCard(g2, idx));
+        inner += g2.length === 1 && mode === 'single' ? oneCard(g2[0], idx) : groupCard(g2, idx);
         idx += g2.length;
+      } else {
+        inner += '<div class="plakat-card plakat-empty" aria-hidden="true"></div>';
       }
-      pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
+      pages.push(`<div class="plakat-page">${inner}</div>`);
     }
     return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
   }
@@ -7149,12 +7273,14 @@ function buildUniversalPlakatHtml(items, mode) {
       const g1 = groups[i], g2 = groups[i+1];
       let inner = g1.length === 1 && mode === 'single' ? oneCard(g1[0], index) : groupCard(g1, index);
       index += g1.length;
+      inner += '<div class="plakat-cut"></div>';
       if (g2) {
-        inner += '<div class="plakat-cut"></div>';
         inner += g2.length === 1 && mode === 'single' ? oneCard(g2[0], index) : groupCard(g2, index);
         index += g2.length;
+      } else {
+        inner += '<div class="plakat-card plakat-empty" aria-hidden="true"></div>';
       }
-      pages.push(`<div class="plakat-page${g2 ? '' : ' single'}">${inner}</div>`);
+      pages.push(`<div class="plakat-page">${inner}</div>`);
     }
   }
   return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
@@ -7278,6 +7404,118 @@ function exportPlakatWord() {
   logActivity('EXPORT', 'Cetak Plakat', 'Word · ' + plakatState.items.length + ' item');
 }
 
+/** Modul: konversi file PNG/JPG → Word 2 gambar per A4 */
+const png2wordState = { items: [] }; // {id, name, dataUrl}
+
+function renderPng2WordList() {
+  const list = $('#png2wordList');
+  const status = $('#png2wordStatus');
+  const expBtn = $('#png2wordExportBtn');
+  if (!list) return;
+  if (!png2wordState.items.length) {
+    list.innerHTML = '';
+    if (status) status.textContent = 'Belum ada gambar. Pilih 1 atau lebih file PNG.';
+    if (expBtn) expBtn.disabled = true;
+    return;
+  }
+  const pages = Math.ceil(png2wordState.items.length / 2);
+  if (status) {
+    status.textContent = png2wordState.items.length + ' gambar → ' + pages + ' kertas A4 (2 plakat/lembar'
+      + (png2wordState.items.length % 2 ? ', 1 sisi kosong' : '') + ')';
+  }
+  if (expBtn) expBtn.disabled = false;
+  list.innerHTML = png2wordState.items.map((it, idx) =>
+    '<div style="width:110px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;position:relative;">'
+    + '<div style="font-size:10px;padding:4px 6px;background:#f1f5f9;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (idx + 1) + '. ' + esc(it.name) + '</div>'
+    + '<img src="' + it.dataUrl + '" alt="" style="display:block;width:100%;height:90px;object-fit:contain;background:#fff;">'
+    + '<button type="button" data-rm="' + esc(it.id) + '" style="position:absolute;top:22px;right:4px;border:none;background:#fee2e2;color:#b91c1c;border-radius:6px;font-size:11px;padding:2px 6px;cursor:pointer;">✕</button>'
+    + '</div>'
+  ).join('');
+  list.onclick = (e) => {
+    const btn = e.target.closest('button[data-rm]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-rm');
+    png2wordState.items = png2wordState.items.filter(x => x.id !== id);
+    renderPng2WordList();
+  };
+}
+
+function addPng2WordFiles(fileList) {
+  const files = Array.from(fileList || []).filter(f => /^image\//i.test(f.type) || /\.(png|jpe?g|webp)$/i.test(f.name || ''));
+  if (!files.length) return showToast('Pilih file gambar (PNG/JPG)');
+  let left = files.length;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      png2wordState.items.push({
+        id: 'p2w-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+        name: file.name || 'gambar.png',
+        dataUrl: String(reader.result || '')
+      });
+      left--;
+      if (left <= 0) {
+        renderPng2WordList();
+        showToast(files.length + ' gambar ditambahkan');
+      }
+    };
+    reader.onerror = () => { left--; if (left <= 0) renderPng2WordList(); };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function exportPng2Word() {
+  if (!png2wordState.items.length) return showToast('Belum ada gambar');
+  try {
+    showToast('Menyusun Word 2/A4…');
+    const images = png2wordState.items.map(x => x.dataUrl);
+    let body = '';
+    for (let i = 0; i < images.length; i += 2) {
+      const img1 = images[i];
+      const img2 = images[i + 1] || null;
+      body += '<div style="width:100%;page-break-after:always;page-break-inside:avoid;">';
+      body += '<div style="text-align:center;margin:0 0 6px 0;">'
+        + '<img src="' + img1 + '" width="640" style="width:640px;max-width:100%;height:auto;border:1px solid #111;" />'
+        + '</div>';
+      body += '<div style="text-align:center;color:#666;font-size:10px;letter-spacing:2px;margin:6px 0;">— potong di sini —</div>';
+      if (img2) {
+        body += '<div style="text-align:center;margin:6px 0 0 0;">'
+          + '<img src="' + img2 + '" width="640" style="width:640px;max-width:100%;height:auto;border:1px solid #111;" />'
+          + '</div>';
+      } else {
+        body += '<div style="text-align:center;margin:6px 0 0 0;border:1px dashed #cbd5e1;min-height:280px;color:#94a3b8;font-size:12px;padding-top:120px;">(kosong)</div>';
+      }
+      body += '</div>';
+    }
+    const safeTitle = 'Plakat_PNG_' + todayStr();
+    const fname = safeTitle + '.doc';
+    const doc = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+      + '<head><meta charset="utf-8">'
+      + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
+      + '<title>' + esc(safeTitle) + '</title>'
+      + '<style>'
+      + '@page { size: A4; margin: 12mm; }'
+      + 'body { font-family: Arial, sans-serif; margin: 0; }'
+      + 'img { -ms-interpolation-mode: bicubic; }'
+      + '</style></head><body>'
+      + body
+      + '</body></html>';
+    const blob = new Blob(['\ufeff' + doc], { type: 'application/msword' });
+    if (window.saveAs) saveAs(blob, fname);
+    else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    }
+    showToast('Word disimpan: ' + fname + ' (' + images.length + ' gambar / ' + Math.ceil(images.length / 2) + ' kertas)');
+    logActivity('EXPORT', 'Cetak Plakat', 'PNG→Word · ' + images.length + ' gambar');
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal Word: ' + (e.message || 'error'));
+  }
+}
+
 function bindCetakPlakatEvents() {
   document.querySelectorAll('.plk-template-tab').forEach(btn => btn.addEventListener('click', () => {
     const t=btn.dataset.template||'karantina'; const sel=$('#plkTemplate'); if(sel) sel.value=t;
@@ -7305,6 +7543,17 @@ function bindCetakPlakatEvents() {
   });
   $('#plkPngBtn')?.addEventListener('click', () => exportPlakatPNG());
   $('#plkWordBtn')?.addEventListener('click', () => exportPlakatWord());
+  // PNG → Word converter
+  $('#png2wordPickBtn')?.addEventListener('click', () => $('#png2wordFiles')?.click());
+  $('#png2wordFiles')?.addEventListener('change', (e) => {
+    addPng2WordFiles(e.target.files);
+    e.target.value = '';
+  });
+  $('#png2wordClearBtn')?.addEventListener('click', () => {
+    png2wordState.items = [];
+    renderPng2WordList();
+  });
+  $('#png2wordExportBtn')?.addEventListener('click', () => exportPng2Word());
   ['plkTitle','plkSub','plkExtra'].forEach(id => {
     const el = $('#'+id);
     if (el) { el.addEventListener('input', updatePlakatLivePreview); el.addEventListener('change', updatePlakatLivePreview); }
