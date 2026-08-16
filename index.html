@@ -511,60 +511,83 @@ table.data-table .actions { display: flex; gap: 4px; }
 /* ==================== PLAKAT A4 — STABLE PRINT ENGINE ==================== */
 
 
+/* ===== TEMPLATE LABEL 10 × 13,5 cm (portrait, rounded) ===== */
 .plakat-sheet{display:none;background:#fff;color:#111;box-sizing:border-box;width:100%;}
-.plakat-page{box-sizing:border-box;width:100%;height:277mm;min-height:277mm;display:flex;flex-direction:column;gap:0;page-break-after:always;break-after:page;background:#fff;overflow:hidden;}
+.plakat-page{
+  box-sizing:border-box;width:100%;min-height:277mm;height:auto;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  gap:8mm;padding:8mm 0;page-break-after:always;break-after:page;background:#fff;overflow:visible;
+}
 .plakat-page:last-child{page-break-after:auto;break-after:auto;}
-.plakat-page.full-page{height:277mm;min-height:277mm;}
-.plakat-card{border:2px solid #111;background:#fff;overflow:hidden;box-sizing:border-box;flex:1 1 50%;min-height:0;display:flex;flex-direction:column;border-radius:0;}
-.plakat-page.full-page .plakat-card{flex:1 1 100%;}
-.plakat-card.plakat-empty{border:1px dashed #cbd5e1;background:#fafafa;min-height:120px;flex:1 1 48%;visibility:visible;}
-.plakat-card.plakat-empty::after{content:"(kosong)";display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:12px;font-weight:600;}
-.plakat-cut{height:0;flex:0 0 0;border-top:2px dashed #777;position:relative;margin:0;}
-.plakat-cut::after{content:'✂  POTONG DI SINI';position:absolute;left:50%;top:-8px;transform:translateX(-50%);background:#fff;color:#555;font-size:9px;padding:0 8px;font-weight:700;letter-spacing:.4px;white-space:nowrap;}
-.plakat-head{background:#ffbd00;border-bottom:2px solid #111;padding:10px 12px;text-align:center;flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative;min-height:44px;}
-.plakat-head .pt{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:800;text-transform:uppercase;max-width:28%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.plakat-head .title{font-weight:950;letter-spacing:1.2px;line-height:1.1;text-transform:uppercase;font-size:22px;padding:0 8px;}
-.plakat-body{padding:8px 12px 7px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;min-height:0;}
-.plakat-row{display:flex;align-items:flex-start;gap:6px;margin:0;border-bottom:1px solid #e3e3e3;padding:5px 0;font-size:12px;line-height:1.25;}
-.plakat-row .lbl{font-weight:700;font-size:11px;flex:0 0 110px;max-width:38%;}
+.plakat-page.full-page{min-height:277mm;}
+/* Kartu label fisik: 10cm × 13,5cm */
+.plakat-card{
+  width:100mm;height:135mm;max-width:100mm;max-height:135mm;
+  border:1.25pt solid #111;background:#fff;overflow:hidden;box-sizing:border-box;
+  display:flex;flex-direction:column;border-radius:8px;
+  flex:0 0 auto;margin:0 auto;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+}
+.plakat-page.full-page .plakat-card{width:100mm;height:135mm;}
+.plakat-card.plakat-empty{
+  border:1.25pt dashed #94a3b8;background:#fafafa;visibility:visible;
+}
+.plakat-card.plakat-empty::after{
+  content:"(template kosong)";display:flex;align-items:center;justify-content:center;
+  height:100%;color:#94a3b8;font-size:11px;font-weight:600;
+}
+.plakat-card.plakat-blank .plakat-body{min-height:0;}
+.plakat-cut{width:100mm;height:0;flex:0 0 0;border-top:1.5px dashed #777;position:relative;margin:2mm 0;}
+.plakat-cut::after{
+  content:'✂  POTONG DI SINI';position:absolute;left:50%;top:-8px;transform:translateX(-50%);
+  background:#fff;color:#555;font-size:9px;padding:0 8px;font-weight:700;letter-spacing:.4px;white-space:nowrap;
+}
+.plakat-head{
+  background:#ffbd00;border-bottom:1.25pt solid #111;padding:8px 10px;text-align:center;
+  flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative;min-height:36px;
+  border-radius:7px 7px 0 0;
+}
+.plakat-head .pt{
+  position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  font-size:9px;font-weight:800;text-transform:uppercase;max-width:26%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.plakat-head .title{
+  font-weight:950;letter-spacing:1px;line-height:1.1;text-transform:uppercase;
+  font-size:18px;padding:0 6px;
+}
+.plakat-body{padding:7px 10px 6px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;min-height:0;overflow:hidden;}
+.plakat-row{display:flex;align-items:flex-start;gap:5px;margin:0;border-bottom:1px solid #e5e5e5;padding:4px 0;font-size:11px;line-height:1.25;}
+.plakat-row .lbl{font-weight:700;font-size:10px;flex:0 0 88px;max-width:36%;}
 .plakat-row .sep{font-weight:800;flex:0 0 auto;}
 .plakat-row .val{font-weight:800;word-break:break-word;overflow-wrap:anywhere;flex:1 1 auto;min-width:0;}
 .plakat-qty{
   display:inline-block;font-weight:950;color:#0f766e;
-  background:#ccfbf1;border:1.5px solid #2dd4bf;border-radius:6px;
-  padding:1px 8px;letter-spacing:.2px;line-height:1.25;
+  background:#ccfbf1;border:1.5px solid #2dd4bf;border-radius:5px;
+  padding:1px 7px;letter-spacing:.2px;line-height:1.25;
 }
-.plakat-page.single .plakat-qty{font-size:1.15em;padding:2px 10px;}
-.plakat-page.full-page .plakat-qty{font-size:1.2em;padding:3px 12px;}
 .plakat-item-block .plakat-qty{
   color:#0f766e;background:#ccfbf1;border:1px solid #5eead4;
   border-radius:4px;padding:0 5px;font-weight:900;
 }
-.plakat-foot{margin-top:auto;padding-top:5px;border-top:1px dashed #777;font-size:8.5px;color:#444;text-align:center;flex:0 0 auto;line-height:1.1;}
-.plakat-page.single .plakat-head{min-height:52px;padding:12px 14px;}
-.plakat-page.single .plakat-head .title{font-size:28px;}
-.plakat-page.single .plakat-row{font-size:14px;padding:6px 0;}
-.plakat-page.single .plakat-row .lbl{font-size:12px;flex-basis:120px;}
-.plakat-page.single .plakat-body{padding:12px 16px 10px;}
-.plakat-page.full-page .plakat-head{min-height:66px;padding:14px 18px;}
-.plakat-page.full-page .plakat-head .title{font-size:36px;}
-.plakat-page.full-page .plakat-row{font-size:18px;padding:8px 0;}
-.plakat-page.full-page .plakat-row .lbl{font-size:15px;flex-basis:140px;}
-.plakat-page.full-page .plakat-body{padding:16px 20px 12px;}
-.plakat-card.combo .plakat-items{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;overflow:hidden;}
-.plakat-card.combo .plakat-item-block{border:1px solid #333;border-radius:3px;padding:5px 7px;min-height:0;overflow:hidden;}
-.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:12px;margin-bottom:3px;line-height:1.15;overflow-wrap:anywhere;}
-.plakat-card.combo .plakat-item-block .imeta{font-size:9.5px;line-height:1.25;overflow-wrap:anywhere;}
+.plakat-foot{margin-top:auto;padding-top:4px;border-top:1px dashed #777;font-size:8px;color:#444;text-align:center;flex:0 0 auto;line-height:1.1;}
+.plakat-card.combo .plakat-items{flex:1;display:flex;flex-direction:column;gap:4px;min-height:0;overflow:hidden;}
+.plakat-card.combo .plakat-item-block{border:1px solid #333;border-radius:4px;padding:4px 6px;min-height:0;overflow:hidden;}
+.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:11px;margin-bottom:2px;line-height:1.15;overflow-wrap:anywhere;}
+.plakat-card.combo .plakat-item-block .imeta{font-size:9px;line-height:1.25;overflow-wrap:anywhere;}
 .plakat-card.all-items .plakat-item-block{padding:3px 5px;}
-.plakat-card.all-items .plakat-item-block .iname{font-size:10.5px;}
-.plakat-card.all-items .plakat-item-block .imeta{font-size:8.5px;}
+.plakat-card.all-items .plakat-item-block .iname{font-size:10px;}
+.plakat-card.all-items .plakat-item-block .imeta{font-size:8px;}
 .plakat-card.all-items .plakat-items{gap:2px;}
-.plakat-card.all-items .plakat-row{font-size:10px;padding:3px 0;}
-/* Preview: skala agar muat di layar HP, tidak potong kiri */
+.plakat-card.all-items .plakat-row{font-size:9.5px;padding:3px 0;}
+/* Preview layar */
 .plakat-preview-frame{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:12px;overflow-x:auto;overflow-y:visible;max-height:none;}
 .plakat-preview-frame .plakat-sheet{display:block!important;width:100%!important;max-width:100%!important;margin:0 auto;transform:none!important;}
-.plakat-preview-frame .plakat-page{box-shadow:0 2px 10px rgba(15,23,42,.12);margin-bottom:12px;height:auto!important;min-height:0!important;overflow:visible!important;}
-.plakat-preview-frame .plakat-card{min-height:180px;}
+.plakat-preview-frame .plakat-page{box-shadow:none;margin-bottom:12px;height:auto!important;min-height:0!important;overflow:visible!important;padding:8px 0;}
+.plakat-preview-frame .plakat-card{
+  width:min(100%,280px);height:auto;min-height:360px;max-width:280px;max-height:none;
+  box-shadow:0 2px 12px rgba(15,23,42,.12);
+}
 .plakat-control-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;}
 .plakat-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .plakat-toggle button{min-height:42px;border:1px solid #d1d5db;background:#fff;border-radius:10px;font-weight:800;color:#475569;cursor:pointer;font-size:12.5px;padding:8px 6px;}
@@ -585,12 +608,17 @@ table.data-table .actions { display: flex; gap: 4px; }
   height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
 }
 @media print{
-  body.print-plakat .plakat-card.all-items{min-height:0;}
   body.print-plakat .plakat-sheet{display:block!important;width:100%;}
-  body.print-plakat .plakat-page{height:277mm;min-height:277mm;}
-  body.print-plakat .plakat-page.full-page{height:277mm;min-height:277mm;}
-  body.print-plakat .plakat-card{border:2px solid #000!important;border-radius:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  body.print-plakat .plakat-head{background:#ffbd00!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body.print-plakat .plakat-page{min-height:277mm;height:auto;padding:8mm 0;}
+  body.print-plakat .plakat-card{
+    width:100mm!important;height:135mm!important;max-width:100mm!important;max-height:135mm!important;
+    border:1.25pt solid #000!important;border-radius:8px!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  body.print-plakat .plakat-head{
+    background:#ffbd00!important;border-radius:7px 7px 0 0!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
   body.print-plakat .plakat-cut::after{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body.print-plakat .plakat-qty{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
@@ -1192,8 +1220,13 @@ table.data-table .actions { display: flex; gap: 4px; }
       <div class="page" id="page-cetak-plakat">
         <div class="card">
           <div class="card-header">
-            <div><h2>Cetak Plakat Barang Gudang Standar</h2><div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Pilih template, masukkan daftar barang, dan cetak plakat standar gudang (A4 Ready).</div></div>
-            <span class="badge badge-success">A4 Ready</span>
+            <div>
+              <h2>Cetak Plakat / Label Template</h2>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                Template label <b>10 × 13,5 cm</b> (portrait, sudut membulat, border hitam tipis). Bisa polosan atau isi bebas — cetak di kertas A4.
+              </div>
+            </div>
+            <span class="badge badge-success">10×13,5 cm</span>
           </div>
           <div class="card-body">
             <div class="plakat-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
@@ -1201,32 +1234,37 @@ table.data-table .actions { display: flex; gap: 4px; }
               <button type="button" class="btn btn-sm btn-outline plk-template-tab" data-template="kedatangan">Kedatangan</button>
               <button type="button" class="btn btn-sm btn-outline plk-template-tab" data-template="exp">Audit EXP</button>
               <button type="button" class="btn btn-sm btn-outline plk-template-tab" data-template="custom">Custom</button>
+              <button type="button" class="btn btn-sm btn-outline plk-template-tab" data-template="polosan">Polosan</button>
             </div>
             <select id="plkTemplate" style="display:none;">
-              <option value="karantina">Karantina / Retur</option><option value="kedatangan">Kedatangan Barang</option><option value="exp">Audit EXP</option><option value="custom">Custom</option>
+              <option value="karantina">Karantina / Retur</option>
+              <option value="kedatangan">Kedatangan Barang</option>
+              <option value="exp">Audit EXP</option>
+              <option value="custom">Custom</option>
+              <option value="polosan">Polosan (border saja)</option>
             </select>
             <div class="form-row">
-              <div class="form-group"><label>Judul Utama Plakat</label><input type="text" id="plkTitle" value="KARANTINA" placeholder="KARANTINA"></div>
-              <div class="form-group"><label>Sub Judul / Gudang DC</label><input type="text" id="plkSub" placeholder="DC INDUK"></div>
+              <div class="form-group"><label>Judul Header (kuning)</label><input type="text" id="plkTitle" value="KARANTINA" placeholder="KARANTINA / kosongkan untuk polosan"></div>
+              <div class="form-group"><label>Sub / DC (kiri header)</label><input type="text" id="plkSub" placeholder="DC INDUK"></div>
             </div>
             <div class="plakat-control-card">
-              <label style="font-weight:800;display:block;margin-bottom:7px;">Format Tampilan Plakat</label>
+              <label style="font-weight:800;display:block;margin-bottom:7px;">Mode Isi Label</label>
               <div class="plakat-toggle" id="plkFormatToggle">
-                <button type="button" data-mode="single" class="active">🏷️ Pisah (1 Plakat / Item)</button>
-                <button type="button" data-mode="all">📚 Gabung (1 Plakat All-Item)</button>
+                <button type="button" data-mode="single" class="active">🏷️ 1 Label / Item</button>
+                <button type="button" data-mode="all">📚 Gabung All-Item</button>
               </div>
-              <div class="plakat-helper">Pisah = setiap item menjadi 1 plakat. Gabung = semua item menjadi 1 plakat.</div>
+              <div class="plakat-helper">Tanpa barang = cetak template polosan (border + header). Centang field di bawah untuk isi bebas.</div>
             </div>
             <div class="plakat-control-card">
-              <label style="font-weight:800;display:block;margin-bottom:7px;">Layout Kertas Cetak A4</label>
+              <label style="font-weight:800;display:block;margin-bottom:7px;">Layout Kertas A4</label>
               <div class="plakat-toggle teal" id="plkPaperToggle">
-                <button type="button" data-paper="half" class="active">📄 2 Plakat / Lembar A4</button>
-                <button type="button" data-paper="full">📄 1 Plakat Full / A4</button>
+                <button type="button" data-paper="half" class="active">📄 2 Label / A4 (10×13,5 cm)</button>
+                <button type="button" data-paper="full">📄 1 Label / A4</button>
               </div>
-              <div class="plakat-helper">Ukuran otomatis dikunci agar 1 item tidak melebar/acak saat dicetak.</div>
+              <div class="plakat-helper">Setiap label dikunci <b>10 × 13,5 cm</b>, border ±1,25 pt, sudut membulat.</div>
             </div>
             <div class="plakat-control-card" id="plkFieldsCard">
-              <label style="font-weight:800;display:block;margin-bottom:7px;">Field yang Ditampilkan (bisa pilih beberapa)</label>
+              <label style="font-weight:800;display:block;margin-bottom:7px;">Field isi (centang yang mau tampil — boleh kosong semua = polosan)</label>
               <div class="field-chip-group" id="plkFieldsChips">
                 <label class="field-chip on"><input type="checkbox" class="plk-uni-field" data-fkey="nama" checked> Nama</label>
                 <label class="field-chip on"><input type="checkbox" class="plk-uni-field" data-fkey="kode" checked> Kode</label>
@@ -1235,29 +1273,33 @@ table.data-table .actions { display: flex; gap: 4px; }
                 <label class="field-chip on"><input type="checkbox" class="plk-uni-field" data-fkey="catatan" checked> Catatan</label>
                 <label class="field-chip on"><input type="checkbox" class="plk-uni-field" data-fkey="extra" checked> Catatan Tambahan</label>
               </div>
-              <div class="plakat-helper">Centang field yang ingin muncul di plakat. Header judul (warning sign) tetap besar otomatis.</div>
+              <div class="plakat-helper">Header kuning tetap ada. Uncheck semua field = body putih polos (template border).</div>
             </div>
             <input type="hidden" id="plkLayout" value="single">
             <input type="hidden" id="plkPaperLayout" value="half">
             <div class="form-group">
-              <label>Cari & Pilih Barang dari Master Data</label>
-              <div style="position:relative;"><input type="text" id="plkSearch" placeholder="Ketik nama barang, kode, barcode, atau vendor…" autocomplete="off"><div class="suggest-list" id="plkSuggest" style="display:none;"></div></div>
-              <div class="btn-group" style="margin-top:7px;"><button type="button" class="btn btn-outline btn-sm" id="plkPickMaster">☑ Pilih Banyak / Semua dari Master</button></div>
+              <label>Cari & Pilih Barang dari Master Data <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
+              <div style="position:relative;"><input type="text" id="plkSearch" placeholder="Ketik nama barang, kode, barcode…" autocomplete="off"><div class="suggest-list" id="plkSuggest" style="display:none;"></div></div>
+              <div class="btn-group" style="margin-top:7px;">
+                <button type="button" class="btn btn-outline btn-sm" id="plkPickMaster">☑ Pilih Banyak dari Master</button>
+                <button type="button" class="btn btn-outline btn-sm" id="plkBlankBtn">▢ + Template Polosan</button>
+              </div>
             </div>
             <div id="plkSelectedBox" class="nota-item-picker" style="margin-top:8px;">
-              <div class="picker-head"><div class="picker-head-top"><div><strong style="font-size:13px;">Daftar Barang Terpilih</strong><div class="sel-count" id="plkCount">0 barang</div></div><div class="picker-actions"><button type="button" class="btn btn-sm btn-outline" id="plkClear">✕ Kosongkan</button></div></div></div>
-              <div id="plkItemList"><div class="empty-state" style="padding:20px;"><p>Belum ada barang dipilih. Gunakan pencarian di atas untuk menambahkan barang ke plakat.</p></div></div>
+              <div class="picker-head"><div class="picker-head-top"><div><strong style="font-size:13px;">Daftar Label</strong><div class="sel-count" id="plkCount">0 label</div></div><div class="picker-actions"><button type="button" class="btn btn-sm btn-outline" id="plkClear">✕ Kosongkan</button></div></div></div>
+              <div id="plkItemList"><div class="empty-state" style="padding:20px;"><p>Belum ada item. Boleh cetak polosan (border + header saja) atau tambah barang di atas.</p></div></div>
             </div>
-            <div class="form-group" style="margin-top:12px;"><label>Catatan Tambahan (opsional)</label><textarea id="plkExtra" rows="2" placeholder="Contoh: Surat Jalan|SJ-001"></textarea></div>
+            <div class="form-group" style="margin-top:12px;"><label>Catatan Tambahan / baris bebas (opsional)</label><textarea id="plkExtra" rows="2" placeholder="Contoh: Surat Jalan|SJ-001  — format Label|Isi per baris"></textarea></div>
             <div class="btn-group" style="margin-top:8px;flex-wrap:wrap;">
-              <button class="btn btn-primary" id="plkPrintBtn">🖨 Cetak Plakat A4</button>
-              <button class="btn btn-outline" id="plkPreviewBtn">👁 Pratinjau Layar</button>
-              <button class="btn btn-outline" id="plkPngBtn">🖼 Simpan PNG</button>
-              <button class="btn btn-outline" id="plkWordBtn">📄 Simpan Word</button>
+              <button class="btn btn-primary" id="plkPrintBtn">🖨 Cetak A4</button>
+              <button class="btn btn-outline" id="plkPreviewBtn">👁 Pratinjau</button>
+              <button class="btn btn-outline" id="plkPngBtn">🖼 PNG</button>
+              <button class="btn btn-outline" id="plkWordBtn">📄 Word</button>
+              <button class="btn btn-outline" id="plkExcelBtn">📊 Excel</button>
             </div>
             <div class="plakat-preview-frame" id="plkLivePreviewWrap">
-              <div style="font-weight:800;font-size:13px;margin-bottom:8px;">👁 Live Pratinjau Standar Gudang (A4) <span style="font-weight:400;color:var(--text-muted);">Sesuai dengan hasil cetakan printer</span></div>
-              <div id="plkLivePreview"><div class="empty-state" style="padding:30px;"><div class="ico">📄</div><h3>Pratinjau Plakat Kosong</h3><p>Pilih barang di atas untuk melihat tampilan plakat standar gudang.</p></div></div>
+              <div style="font-weight:800;font-size:13px;margin-bottom:8px;">👁 Live Pratinjau Label 10×13,5 cm <span style="font-weight:400;color:var(--text-muted);">— sama dengan hasil cetak</span></div>
+              <div id="plkLivePreview"><div class="empty-state" style="padding:30px;"><div class="ico">🏷️</div><h3>Template siap</h3><p>Kosongkan field untuk polosan, atau pilih barang / isi catatan tambahan.</p></div></div>
             </div>
           </div>
         </div>
@@ -7124,7 +7166,7 @@ function renderCetakPlakat() {
 function updatePlakatLivePreview(){
   const host = $('#plkLivePreview');
   if (!host) return;
-  if (!plakatState.items.length) { host.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="ico">📄</div><h3>Pratinjau Plakat Kosong</h3><p>Pilih barang di atas untuk melihat tampilan plakat standar gudang.</p></div>'; return; }
+  // Boleh 0 item → template polosan (border + header)
   host.innerHTML = buildUniversalPlakatHtml(plakatState.items, $('#plkLayout')?.value || 'single');
   const sheet=host.querySelector('.plakat-sheet'); if(sheet) sheet.style.display='block';
 }
@@ -7184,7 +7226,17 @@ function applyPlakatTemplate() {
   if (t === 'karantina') title.value = 'KARANTINA';
   else if (t === 'kedatangan') title.value = 'KEDATANGAN BARANG';
   else if (t === 'exp') title.value = 'AUDIT EXP';
+  else if (t === 'polosan') title.value = '';
   else if (t === 'custom' && !title.value) title.value = 'PLAKAT';
+  // Polosan: uncheck semua field isi
+  if (t === 'polosan') {
+    document.querySelectorAll('.plk-uni-field').forEach(cb => {
+      cb.checked = false;
+      const lab = cb.closest('.field-chip');
+      if (lab) lab.classList.remove('on');
+    });
+  }
+  updatePlakatLivePreview();
 }
 
 function parseExtraFields() {
@@ -7209,36 +7261,55 @@ function getUniversalPlakatFields() {
 
 function buildUniversalPlakatHtml(items, mode) {
   mode = mode || 'single';
-  const title = ($('#plkTitle')?.value || 'PLAKAT').trim() || 'PLAKAT';
-  const dc = ($('#plkSub')?.value || state.dcName || 'DC').trim();
+  const title = ($('#plkTitle')?.value || '').trim();
+  const dc = ($('#plkSub')?.value || state.dcName || '').trim();
   const extras = parseExtraFields();
-  const groups = getPlakatGroups(items, mode);
-  const total = items.length;
   const fieldKeys = getUniversalPlakatFields();
+  const list = Array.isArray(items) ? items.slice() : [];
+  // 0 item → 1 label polosan (template border)
+  if (!list.length) {
+    list.push({ id: 'blank', nama: '', kode: '', barcode: '', qty: '', satuan: '', note: '', _blank: true });
+  }
+  const groups = getPlakatGroups(list, mode);
+  const total = list.length;
+
+  function headHtml() {
+    return `<div class="plakat-head">${dc ? `<div class="pt">${esc(dc)}</div>` : ''}<div class="title">${esc(title || ' ')}</div></div>`;
+  }
 
   function oneCard(it, i) {
-    const allRows = [
-      { key:'nama', lbl:'Nama Barang', val: it.nama || '-' },
-      { key:'kode', lbl:'Kode Barang', val: it.kode || '-' },
-      { key:'barcode', lbl:'Barcode', val: it.barcode || '-' },
-      { key:'qty', lbl:'Qty / Satuan', val: (it.qty || 0) + ' ' + (it.satuan || 'PCS'), isQty:true },
-    ];
-    if (it.note) allRows.push({ key:'catatan', lbl:'Catatan', val: it.note });
+    const isBlank = !!(it && it._blank);
+    const allRows = [];
+    if (!isBlank) {
+      allRows.push(
+        { key:'nama', lbl:'Nama Barang', val: it.nama || '-' },
+        { key:'kode', lbl:'Kode Barang', val: it.kode || '-' },
+        { key:'barcode', lbl:'Barcode', val: it.barcode || '-' },
+        { key:'qty', lbl:'Qty / Satuan', val: (it.qty || 0) + ' ' + (it.satuan || 'PCS'), isQty:true }
+      );
+      if (it.note) allRows.push({ key:'catatan', lbl:'Catatan', val: it.note });
+    }
     if (!fieldKeys || fieldKeys.includes('extra')) {
       extras.forEach(ex => allRows.push({ key:'extra', lbl: ex.lbl, val: ex.val }));
     }
-    const rows = filterPlakatRows(allRows, fieldKeys);
+    const rows = isBlank && (!fieldKeys || !fieldKeys.length)
+      ? []
+      : filterPlakatRows(allRows, fieldKeys);
     const rowsHtml = rows.map(r => plakatRowHtml(r.lbl, r.val, r.isQty)).join('');
-    return `<div class="plakat-card">
-      <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+    const foot = isBlank
+      ? `${esc(dc || '')} · Template 10×13,5 cm`
+      : `${i+1}/${total} · ${esc(dc)} · 10×13,5 cm`;
+    return `<div class="plakat-card${isBlank ? ' plakat-blank' : ''}">
+      ${headHtml()}
       <div class="plakat-body">${rowsHtml}
-        <div class="plakat-foot">${i+1}/${total} · ${esc(dc)} · Tempel di kardus</div>
+        <div class="plakat-foot">${foot}</div>
       </div>
     </div>`;
   }
 
   function groupCard(group, startIndex) {
     const blocks = group.map((it, j) => {
+      if (it._blank) return '';
       const parts = [];
       if (!fieldKeys || fieldKeys.includes('kode')) parts.push('Kode: <b>'+esc(it.kode||'-')+'</b>');
       if (!fieldKeys || fieldKeys.includes('barcode')) parts.push('BC: <b>'+esc(it.barcode||'-')+'</b>');
@@ -7252,9 +7323,9 @@ function buildUniversalPlakatHtml(items, mode) {
       extraHtml = extras.map(ex => plakatRowHtml(ex.lbl, ex.val, false)).join('');
     }
     return `<div class="plakat-card combo ${group.length === total ? 'all-items' : ''}">
-      <div class="plakat-head"><div class="pt">${esc(dc)}</div><div class="title">${esc(title)}</div></div>
+      ${headHtml()}
       <div class="plakat-body">${extraHtml}<div class="plakat-items">${blocks}</div>
-        <div class="plakat-foot">${group.length} item · ${esc(dc)} · Tempel di kardus</div>
+        <div class="plakat-foot">${group.length} item · ${esc(dc)} · 10×13,5 cm</div>
       </div>
     </div>`;
   }
@@ -7278,7 +7349,8 @@ function buildUniversalPlakatHtml(items, mode) {
         inner += g2.length === 1 && mode === 'single' ? oneCard(g2[0], index) : groupCard(g2, index);
         index += g2.length;
       } else {
-        inner += '<div class="plakat-card plakat-empty" aria-hidden="true"></div>';
+        // Sisi kosong: template polosan (bukan dashed kosong) agar bisa dipotong & dipakai
+        inner += oneCard({ _blank: true, nama:'', kode:'', barcode:'', qty:'', satuan:'', note:'' }, index);
       }
       pages.push(`<div class="plakat-page">${inner}</div>`);
     }
@@ -7287,8 +7359,7 @@ function buildUniversalPlakatHtml(items, mode) {
 }
 
 function printUniversalPlakat(previewOnly) {
-  if (!plakatState.items.length) return showToast('Pilih minimal 1 produk');
-  // sync qty from inputs
+  // 0 item = template polosan — diizinkan
   $$('.plk-qty').forEach(el => {
     const i = parseInt(el.dataset.i, 10);
     if (plakatState.items[i]) plakatState.items[i].qty = parseFloat(el.value) || 0;
@@ -7310,15 +7381,14 @@ function printUniversalPlakat(previewOnly) {
     root.innerHTML = `<div class="modal-backdrop" id="plkPrevBackdrop">
       <div class="modal-sheet" style="max-width:720px;">
         <div class="handle"></div>
-        <div class="modal-header"><h3>Pratinjau Plakat</h3>
+        <div class="modal-header"><h3>Pratinjau Label 10×13,5 cm</h3>
           <button class="btn btn-icon btn-outline" id="plkPrevClose">✕</button></div>
-        <div class="modal-body">${html.replace('display: none', 'display:block').replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"')}</div>
+        <div class="modal-body">${html.replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"')}</div>
         <div class="modal-footer">
-          <button class="btn btn-primary" id="plkPrevPrint">🟨 Cetak</button>
+          <button class="btn btn-primary" id="plkPrevPrint">🖨 Cetak</button>
           <button class="btn btn-outline" id="plkPrevClose2">Tutup</button>
         </div>
       </div></div>`;
-    // force show
     const sheet = root.querySelector('.plakat-sheet');
     if (sheet) sheet.style.display = 'block';
     const close = () => { root.innerHTML = ''; };
@@ -7346,8 +7416,9 @@ function printUniversalPlakat(previewOnly) {
   };
   window.addEventListener('afterprint', cleanup);
   setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 80);
-  logPrint('Cetak Plakat', plakatModeLabel(mode, plakatState.items.length) + ' · ' + ($('#plkTitle')?.value || 'PLAKAT'), { format: 'print-plakat', count: plakatState.items.length, title: ($('#plkTitle')?.value || ''), mode });
-  showToast('Mencetak plakat: ' + plakatModeLabel(mode, plakatState.items.length));
+  const n = plakatState.items.length || 1;
+  logPrint('Cetak Plakat', (plakatState.items.length ? plakatModeLabel(mode, n) : 'Polosan') + ' · ' + ($('#plkTitle')?.value || 'TEMPLATE'), { format: 'print-plakat', count: n, title: ($('#plkTitle')?.value || ''), mode });
+  showToast(plakatState.items.length ? ('Mencetak: ' + plakatModeLabel(mode, n)) : 'Mencetak template polosan 10×13,5 cm');
 }
 
 function openPlakatMasterPicker() {
@@ -7387,21 +7458,68 @@ function openPlakatMasterPicker() {
 }
 
 async function exportPlakatPNG() {
-  if (!plakatState.items.length) return showToast('Pilih minimal 1 produk');
   const mode = $('#plkLayout')?.value || 'single';
   const html = buildUniversalPlakatHtml(plakatState.items, mode);
-  const title = ($('#plkTitle')?.value || 'PLAKAT').trim() || 'PLAKAT';
+  const title = ($('#plkTitle')?.value || 'Label').trim() || 'Label';
   await exportAnyPlakatPNG(html, 'Plakat_' + title);
-  logActivity('EXPORT', 'Cetak Plakat', 'PNG · ' + plakatState.items.length + ' item');
+  logActivity('EXPORT', 'Cetak Plakat', 'PNG · ' + (plakatState.items.length || 1) + ' label');
 }
 
 function exportPlakatWord() {
-  if (!plakatState.items.length) return showToast('Pilih minimal 1 produk');
   const mode = $('#plkLayout')?.value || 'single';
   const html = buildUniversalPlakatHtml(plakatState.items, mode);
-  const title = ($('#plkTitle')?.value || 'PLAKAT').trim() || 'PLAKAT';
+  const title = ($('#plkTitle')?.value || 'Label').trim() || 'Label';
   exportAnyPlakatWord(html, 'Plakat_' + title);
-  logActivity('EXPORT', 'Cetak Plakat', 'Word · ' + plakatState.items.length + ' item');
+  logActivity('EXPORT', 'Cetak Plakat', 'Word · ' + (plakatState.items.length || 1) + ' label');
+}
+
+function exportPlakatExcel() {
+  if (typeof XLSX === 'undefined') return showToast('Library Excel belum siap');
+  const title = ($('#plkTitle')?.value || 'Label').trim() || 'Label';
+  const dc = ($('#plkSub')?.value || state.dcName || '').trim();
+  const extras = parseExtraFields();
+  const headers = ['No', 'Judul', 'DC', 'Nama', 'Kode', 'Barcode', 'Qty', 'Satuan', 'Catatan', 'Ukuran Label'];
+  extras.forEach(ex => headers.push(ex.lbl));
+  const list = plakatState.items.length
+    ? plakatState.items
+    : [{ nama: '', kode: '', barcode: '', qty: '', satuan: '', note: '', _blank: true }];
+  const rows = list.map((it, i) => {
+    const row = [
+      i + 1,
+      title,
+      dc,
+      it._blank ? '' : (it.nama || ''),
+      it._blank ? '' : (it.kode || ''),
+      it._blank ? '' : (it.barcode || ''),
+      it._blank ? '' : (it.qty || ''),
+      it._blank ? '' : (it.satuan || ''),
+      it._blank ? '' : (it.note || ''),
+      '10 x 13.5 cm'
+    ];
+    extras.forEach(ex => row.push(ex.val || ''));
+    return row;
+  });
+  try {
+    const wb = XLSX.utils.book_new();
+    const aoa = [
+      ['DC NONBUAH — Label Template 10×13,5 cm'],
+      ['Judul', title],
+      ['DC', dc],
+      ['Tanggal', todayStr()],
+      [],
+      headers
+    ].concat(rows);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = headers.map(() => ({ wch: 14 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Label');
+    const fname = 'Plakat_' + title.replace(/[^\w.-]+/g, '_') + '_' + todayStr() + '.xlsx';
+    XLSX.writeFile(wb, fname);
+    logActivity('EXPORT', 'Cetak Plakat', 'Excel · ' + list.length + ' baris');
+    showToast('Excel disimpan: ' + fname);
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal Excel: ' + (e.message || 'error'));
+  }
 }
 
 /** Modul: konversi file PNG/JPG → Word 2 gambar per A4 */
@@ -7543,6 +7661,23 @@ function bindCetakPlakatEvents() {
   });
   $('#plkPngBtn')?.addEventListener('click', () => exportPlakatPNG());
   $('#plkWordBtn')?.addEventListener('click', () => exportPlakatWord());
+  $('#plkExcelBtn')?.addEventListener('click', () => exportPlakatExcel());
+  $('#plkBlankBtn')?.addEventListener('click', () => {
+    // Cetak/pratinjau template polosan tanpa harus pilih barang
+    plakatState.items = [];
+    paintPlakatItems();
+    const title = $('#plkTitle');
+    if (title && !title.value.trim()) title.value = '';
+    document.querySelectorAll('.plk-uni-field').forEach(cb => {
+      cb.checked = false;
+      const lab = cb.closest('.field-chip');
+      if (lab) lab.classList.remove('on');
+    });
+    const tab = document.querySelector('.plk-template-tab[data-template="polosan"]');
+    if (tab) tab.click();
+    updatePlakatLivePreview();
+    showToast('Template polosan 10×13,5 cm siap — Cetak / PNG / Word');
+  });
   // PNG → Word converter
   $('#png2wordPickBtn')?.addEventListener('click', () => $('#png2wordFiles')?.click());
   $('#png2wordFiles')?.addEventListener('change', (e) => {
