@@ -542,25 +542,55 @@ table.data-table .actions { display: flex; gap: 4px; }
   content:'✂  POTONG DI SINI';position:absolute;left:50%;top:-8px;transform:translateX(-50%);
   background:#fff;color:#555;font-size:9px;padding:0 8px;font-weight:700;letter-spacing:.4px;white-space:nowrap;
 }
+.plakat-sheet{
+  --plk-font: Arial, Helvetica, sans-serif;
+  --plk-title-size: 20px;
+  --plk-sub-size: 10px;
+  --plk-body-size: 11px;
+  --plk-label-size: 10px;
+  --plk-name-size: 12px;
+  --plk-foot-size: 8px;
+  --plk-head-align: center;
+  --plk-body-align: left;
+  --plk-body-justify: flex-start;
+  --plk-row-pad: 6px;
+  --plk-body-pad: 10px;
+  --plk-line-height: 1.35;
+  --plk-row-gap: 0px;
+  font-family: var(--plk-font);
+}
 .plakat-head{
-  background:#ffbd00;border-bottom:1.25pt solid #111;padding:8px 10px;text-align:center;
-  flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative;min-height:36px;
-  border-radius:7px 7px 0 0;
+  background:#ffbd00;border-bottom:1.25pt solid #111;padding:12px 12px;
+  flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative;
+  min-height:52px;border-radius:7px 7px 0 0;
+  text-align: var(--plk-head-align);
 }
 .plakat-head .pt{
-  position:absolute;left:8px;top:50%;transform:translateY(-50%);
-  font-size:9px;font-weight:800;text-transform:uppercase;max-width:26%;
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  font-size: var(--plk-sub-size);font-weight:800;text-transform:uppercase;max-width:28%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family: var(--plk-font);
 }
 .plakat-head .title{
   font-weight:950;letter-spacing:1px;line-height:1.1;text-transform:uppercase;
-  font-size:18px;padding:0 6px;
+  font-size: var(--plk-title-size);padding:0 8px;
+  font-family: var(--plk-font);width:100%;
+  text-align: var(--plk-head-align);
 }
-.plakat-body{padding:7px 10px 6px;flex:1 1 auto;display:flex;flex-direction:column;justify-content:flex-start;min-height:0;overflow:hidden;}
-.plakat-row{display:flex;align-items:flex-start;gap:5px;margin:0;border-bottom:1px solid #e5e5e5;padding:4px 0;font-size:11px;line-height:1.25;}
-.plakat-row .lbl{font-weight:700;font-size:10px;flex:0 0 88px;max-width:36%;}
+.plakat-body{
+  padding: var(--plk-body-pad) 11px;flex:1 1 auto;display:flex;flex-direction:column;
+  justify-content: var(--plk-body-justify);min-height:0;overflow:hidden;
+  text-align: var(--plk-body-align);
+  font-family: var(--plk-font);
+  gap: var(--plk-row-gap);
+}
+.plakat-row{
+  display:flex;align-items:flex-start;gap:5px;margin:0;border-bottom:1px solid #e5e5e5;
+  padding: var(--plk-row-pad) 0;font-size:var(--plk-body-size);line-height: var(--plk-line-height);
+}
+.plakat-row .lbl{font-weight:700;font-size:var(--plk-label-size);flex:0 0 88px;max-width:36%;}
 .plakat-row .sep{font-weight:800;flex:0 0 auto;}
-.plakat-row .val{font-weight:800;word-break:break-word;overflow-wrap:anywhere;flex:1 1 auto;min-width:0;}
+.plakat-row .val{font-weight:800;word-break:break-word;overflow-wrap:anywhere;flex:1 1 auto;min-width:0;font-size:var(--plk-body-size);line-height:var(--plk-line-height);}
 .plakat-qty{
   display:inline-block;font-weight:950;color:#0f766e;
   background:#ccfbf1;border:1.5px solid #2dd4bf;border-radius:5px;
@@ -570,13 +600,13 @@ table.data-table .actions { display: flex; gap: 4px; }
   color:#0f766e;background:#ccfbf1;border:1px solid #5eead4;
   border-radius:4px;padding:0 5px;font-weight:900;
 }
-.plakat-foot{margin-top:auto;padding-top:4px;border-top:1px dashed #777;font-size:8px;color:#444;text-align:center;flex:0 0 auto;line-height:1.1;}
+.plakat-foot{margin-top:auto;padding-top:4px;border-top:1px dashed #777;font-size:var(--plk-foot-size);color:#444;text-align:center;flex:0 0 auto;line-height:1.1;}
 .plakat-card.combo .plakat-items{flex:1;display:flex;flex-direction:column;gap:4px;min-height:0;overflow:hidden;}
 .plakat-card.combo .plakat-item-block{border:1px solid #333;border-radius:4px;padding:4px 6px;min-height:0;overflow:hidden;}
-.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:11px;margin-bottom:2px;line-height:1.15;overflow-wrap:anywhere;}
-.plakat-card.combo .plakat-item-block .imeta{font-size:9px;line-height:1.25;overflow-wrap:anywhere;}
+.plakat-card.combo .plakat-item-block .iname{font-weight:900;font-size:var(--plk-name-size);margin-bottom:2px;line-height:1.15;overflow-wrap:anywhere;}
+.plakat-card.combo .plakat-item-block .imeta{font-size:var(--plk-label-size);line-height:1.25;overflow-wrap:anywhere;}
 .plakat-card.all-items .plakat-item-block{padding:3px 5px;}
-.plakat-card.all-items .plakat-item-block .iname{font-size:10px;}
+.plakat-card.all-items .plakat-item-block .iname{font-size:var(--plk-name-size);}
 .plakat-card.all-items .plakat-item-block .imeta{font-size:8px;}
 .plakat-card.all-items .plakat-items{gap:2px;}
 .plakat-card.all-items .plakat-row{font-size:9.5px;padding:3px 0;}
@@ -617,6 +647,7 @@ table.data-table .actions { display: flex; gap: 4px; }
   }
   body.print-plakat .plakat-head{
     background:#ffbd00!important;border-radius:7px 7px 0 0!important;
+    min-height:52px!important;padding:12px 12px!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
   }
   body.print-plakat .plakat-cut::after{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -1274,6 +1305,96 @@ table.data-table .actions { display: flex; gap: 4px; }
                 <label class="field-chip on"><input type="checkbox" class="plk-uni-field" data-fkey="extra" checked> Catatan Tambahan</label>
               </div>
               <div class="plakat-helper">Header kuning tetap ada. Uncheck semua field = body putih polos (template border).</div>
+            </div>
+            <div class="plakat-control-card" id="plkFontCard">
+              <label style="font-weight:800;display:block;margin-bottom:8px;">🔤 Ukuran Font & Spasi (isi ruang kosong)</label>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Jenis Font</label>
+                  <select id="plkFontFamily">
+                    <option value="Arial, Helvetica, sans-serif" selected>Arial</option>
+                    <option value="'Arial Black', Gadget, sans-serif">Arial Black</option>
+                    <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                    <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+                    <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                    <option value="'Courier New', Courier, monospace">Courier New</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Sebaran Isi (isi kekosongan)</label>
+                  <select id="plkBodyJustify">
+                    <option value="flex-start" selected>Rapat atas</option>
+                    <option value="center">Tengah vertikal</option>
+                    <option value="space-between">Renggang (isi penuh)</option>
+                    <option value="space-around">Renggang merata</option>
+                    <option value="space-evenly">Sangat renggang</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Ukuran Judul Header <span id="plkTitleSizeVal" style="color:var(--text-muted)">20px</span></label>
+                  <input type="range" id="plkTitleSize" min="12" max="36" value="20" step="1">
+                </div>
+                <div class="form-group">
+                  <label>Ukuran Sub DC <span id="plkSubSizeVal" style="color:var(--text-muted)">10px</span></label>
+                  <input type="range" id="plkSubSize" min="7" max="16" value="10" step="1">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Ukuran Isi Body <span id="plkBodySizeVal" style="color:var(--text-muted)">11px</span></label>
+                  <input type="range" id="plkBodySize" min="8" max="22" value="11" step="1">
+                </div>
+                <div class="form-group">
+                  <label>Ukuran Label Field <span id="plkLabelSizeVal" style="color:var(--text-muted)">10px</span></label>
+                  <input type="range" id="plkLabelSize" min="7" max="16" value="10" step="1">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Ukuran Nama Item <span id="plkNameSizeVal" style="color:var(--text-muted)">12px</span></label>
+                  <input type="range" id="plkNameSize" min="9" max="22" value="12" step="1">
+                </div>
+                <div class="form-group">
+                  <label>Posisi Teks (kiri/tengah/kanan)</label>
+                  <select id="plkBodyAlign">
+                    <option value="left" selected>Kiri</option>
+                    <option value="center">Tengah</option>
+                    <option value="right">Kanan</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Posisi Judul Header</label>
+                  <select id="plkHeadAlign">
+                    <option value="center" selected>Tengah</option>
+                    <option value="left">Kiri</option>
+                    <option value="right">Kanan</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Spasi antar baris <span id="plkRowPadVal" style="color:var(--text-muted)">6px</span></label>
+                  <input type="range" id="plkRowPad" min="2" max="20" value="6" step="1">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Padding body <span id="plkBodyPadVal" style="color:var(--text-muted)">10px</span></label>
+                  <input type="range" id="plkBodyPad" min="4" max="24" value="10" step="1">
+                </div>
+                <div class="form-group">
+                  <label>Kerenggangan baris (line) <span id="plkLineHVal" style="color:var(--text-muted)">1.35</span></label>
+                  <input type="range" id="plkLineH" min="110" max="200" value="135" step="5">
+                </div>
+              </div>
+              <div class="plakat-helper">
+                Tips isi kekosongan: naikkan <b>Ukuran Isi</b> + <b>Spasi antar baris</b>, lalu pilih sebaran
+                <b>Renggang (isi penuh)</b> agar baris menyebar memenuhi label 10×13,5 cm.
+              </div>
             </div>
             <input type="hidden" id="plkLayout" value="single">
             <input type="hidden" id="plkPaperLayout" value="half">
@@ -7259,6 +7380,61 @@ function getUniversalPlakatFields() {
   return keys;
 }
 
+/** Baca pengaturan font dari form Cetak Plakat */
+function getPlakatFontStyle() {
+  const num = (id, def) => {
+    const v = parseInt($('#' + id)?.value, 10);
+    return Number.isFinite(v) ? v : def;
+  };
+  const setVal = (id, text) => { const el = $('#' + id); if (el) el.textContent = text; };
+  const titleSize = num('plkTitleSize', 20);
+  const subSize = num('plkSubSize', 10);
+  const bodySize = num('plkBodySize', 11);
+  const labelSize = num('plkLabelSize', 10);
+  const nameSize = num('plkNameSize', 12);
+  const rowPad = num('plkRowPad', 6);
+  const bodyPad = num('plkBodyPad', 10);
+  const lineHRaw = num('plkLineH', 135);
+  const lineHeight = (lineHRaw / 100).toFixed(2);
+  setVal('plkTitleSizeVal', titleSize + 'px');
+  setVal('plkSubSizeVal', subSize + 'px');
+  setVal('plkBodySizeVal', bodySize + 'px');
+  setVal('plkLabelSizeVal', labelSize + 'px');
+  setVal('plkNameSizeVal', nameSize + 'px');
+  setVal('plkRowPadVal', rowPad + 'px');
+  setVal('plkBodyPadVal', bodyPad + 'px');
+  setVal('plkLineHVal', lineHeight);
+  return {
+    font: $('#plkFontFamily')?.value || 'Arial, Helvetica, sans-serif',
+    titleSize, subSize, bodySize, labelSize, nameSize,
+    rowPad, bodyPad, lineHeight,
+    headAlign: $('#plkHeadAlign')?.value || 'center',
+    bodyAlign: $('#plkBodyAlign')?.value || 'left',
+    bodyJustify: $('#plkBodyJustify')?.value || 'flex-start'
+  };
+}
+
+function plakatFontStyleAttr() {
+  const s = getPlakatFontStyle();
+  return [
+    '--plk-font:' + s.font,
+    '--plk-title-size:' + s.titleSize + 'px',
+    '--plk-sub-size:' + s.subSize + 'px',
+    '--plk-body-size:' + s.bodySize + 'px',
+    '--plk-label-size:' + s.labelSize + 'px',
+    '--plk-name-size:' + s.nameSize + 'px',
+    '--plk-foot-size:8px',
+    '--plk-head-align:' + s.headAlign,
+    '--plk-body-align:' + s.bodyAlign,
+    '--plk-body-justify:' + s.bodyJustify,
+    '--plk-row-pad:' + s.rowPad + 'px',
+    '--plk-body-pad:' + s.bodyPad + 'px',
+    '--plk-line-height:' + s.lineHeight,
+    '--plk-row-gap:0px',
+    'font-family:' + s.font
+  ].join(';');
+}
+
 function buildUniversalPlakatHtml(items, mode) {
   mode = mode || 'single';
   const title = ($('#plkTitle')?.value || '').trim();
@@ -7355,7 +7531,7 @@ function buildUniversalPlakatHtml(items, mode) {
       pages.push(`<div class="plakat-page">${inner}</div>`);
     }
   }
-  return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
+  return `<div class="plakat-sheet" id="plakatPrintArea" style="${plakatFontStyleAttr()}">${pages.join('')}</div>`;
 }
 
 function printUniversalPlakat(previewOnly) {
@@ -7662,6 +7838,18 @@ function bindCetakPlakatEvents() {
   $('#plkPngBtn')?.addEventListener('click', () => exportPlakatPNG());
   $('#plkWordBtn')?.addEventListener('click', () => exportPlakatWord());
   $('#plkExcelBtn')?.addEventListener('click', () => exportPlakatExcel());
+  // Font settings — live preview
+  ['plkFontFamily','plkHeadAlign','plkBodyAlign','plkBodyJustify'].forEach(id => {
+    const el = $('#' + id);
+    if (el) el.addEventListener('change', updatePlakatLivePreview);
+  });
+  ['plkTitleSize','plkSubSize','plkBodySize','plkLabelSize','plkNameSize','plkRowPad','plkBodyPad','plkLineH'].forEach(id => {
+    const el = $('#' + id);
+    if (el) {
+      el.addEventListener('input', updatePlakatLivePreview);
+      el.addEventListener('change', updatePlakatLivePreview);
+    }
+  });
   $('#plkBlankBtn')?.addEventListener('click', () => {
     // Cetak/pratinjau template polosan tanpa harus pilih barang
     plakatState.items = [];
