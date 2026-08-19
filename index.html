@@ -877,7 +877,11 @@ table.data-table .actions { display: flex; gap: 4px; }
     </div>
     <div class="form-group">
       <label>Password</label>
-      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+      <div style="position:relative;">
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" style="padding-right:44px;">
+        <button type="button" id="loginPassToggle" title="Tampilkan password" aria-label="Tampilkan password"
+          style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:transparent;cursor:pointer;font-size:16px;padding:4px 6px;color:#64748b;">👁</button>
+      </div>
     </div>
     <div class="auth-error" id="loginError"></div>
     <button class="btn btn-primary" style="width:100%;margin-top:14px;" id="loginBtn">Masuk</button>
@@ -906,7 +910,11 @@ table.data-table .actions { display: flex; gap: 4px; }
     </div>
     <div class="form-group">
       <label>Password (min. 6 karakter)</label>
-      <input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password">
+      <div style="position:relative;">
+        <input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password" style="padding-right:44px;">
+        <button type="button" id="regPassToggle" title="Tampilkan password" aria-label="Tampilkan password"
+          style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:transparent;cursor:pointer;font-size:16px;padding:4px 6px;color:#64748b;">👁</button>
+      </div>
     </div>
     <div class="auth-error" id="regError"></div>
     <button class="btn btn-primary" style="width:100%;margin-top:14px;" id="registerBtn">Daftar</button>
@@ -6455,21 +6463,27 @@ function openNotaModal(nota, isHistory) {
           <div id="plakatHost" class="no-print" style="display:none;"></div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
-          <div class="nota-view-only" style="width:100%;margin-bottom:6px;">
-            <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-muted);">Salin teks WA — pilih yang ditampilkan:</div>
+          <div class="nota-view-only" style="width:100%;margin-bottom:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px;">
+            <div style="font-size:12.5px;font-weight:800;margin-bottom:6px;">📋 Salin teks WA — pilih field yang ikut:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <button type="button" class="btn btn-sm btn-outline" id="waPresetNamaQty">Nama + Qty saja</button>
+              <button type="button" class="btn btn-sm btn-outline" id="waPresetRingkas">Ringkas</button>
+              <button type="button" class="btn btn-sm btn-outline" id="waPresetLengkap">Lengkap</button>
+            </div>
             <div class="field-chip-group" id="notaWaFields">
               <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="header" checked> Judul/DC/No</label>
               <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="nama" checked> Nama</label>
               <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="qty" checked> Qty</label>
-              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="kode" checked> Kode</label>
+              <label class="field-chip"><input type="checkbox" class="nota-wa-cb" data-fkey="kode"> Kode</label>
               <label class="field-chip"><input type="checkbox" class="nota-wa-cb" data-fkey="barcode"> Barcode</label>
-              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="vendor" checked> Vendor</label>
-              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="pic" checked> PIC</label>
-              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="kondisi" checked> Kondisi</label>
-              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="alasan" checked> Alasan</label>
-              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="catatan" checked> Catatan</label>
+              <label class="field-chip"><input type="checkbox" class="nota-wa-cb" data-fkey="vendor"> Vendor</label>
+              <label class="field-chip"><input type="checkbox" class="nota-wa-cb" data-fkey="pic"> PIC</label>
+              <label class="field-chip"><input type="checkbox" class="nota-wa-cb" data-fkey="kondisi"> Kondisi</label>
+              <label class="field-chip"><input type="checkbox" class="nota-wa-cb" data-fkey="alasan"> Alasan</label>
+              <label class="field-chip"><input type="checkbox" class="nota-wa-cb" data-fkey="catatan"> Catatan</label>
               <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="total" checked> Total</label>
             </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Contoh: tekan <b>Nama + Qty saja</b> lalu Salin WA.</div>
           </div>
           <button class="btn btn-primary nota-view-only" id="notaCopy">📋 Salin WA</button>
           <button class="btn btn-outline nota-view-only" id="notaPdf">📑 PDF</button>
@@ -6597,12 +6611,25 @@ function openNotaModal(nota, isHistory) {
   $('#notaJudul')?.addEventListener('input', () => refreshView());
 
   // Toggle chip style for WA field options
-  $$('#notaWaFields .nota-wa-cb').forEach(cb => {
-    cb.addEventListener('change', () => {
+  function refreshWaChipStyles() {
+    $$('#notaWaFields .nota-wa-cb').forEach(cb => {
       const lab = cb.closest('.field-chip');
       if (lab) lab.classList.toggle('on', cb.checked);
     });
+  }
+  $$('#notaWaFields .nota-wa-cb').forEach(cb => {
+    cb.addEventListener('change', refreshWaChipStyles);
   });
+  function setWaFields(keys) {
+    const set = new Set(keys);
+    $$('#notaWaFields .nota-wa-cb').forEach(cb => {
+      cb.checked = set.has(cb.dataset.fkey);
+    });
+    refreshWaChipStyles();
+  }
+  $('#waPresetNamaQty')?.addEventListener('click', () => setWaFields(['header', 'nama', 'qty', 'total']));
+  $('#waPresetRingkas')?.addEventListener('click', () => setWaFields(['header', 'nama', 'qty', 'vendor', 'pic', 'total']));
+  $('#waPresetLengkap')?.addEventListener('click', () => setWaFields(['header', 'nama', 'qty', 'kode', 'barcode', 'vendor', 'pic', 'kondisi', 'alasan', 'catatan', 'total']));
 
   function getNotaWaFields() {
     const keys = [];
@@ -7022,8 +7049,10 @@ function openNotaEditModal(nota) {
           <input type="number" min="0.01" step="any" class="edit-qty" data-idx="${i}" value="${c.qty != null ? esc(String(c.qty)) : '1'}" inputmode="decimal">
         </div>
         <div class="form-group" style="flex:1;margin-bottom:6px;">
-          <label style="font-size:11px;">Satuan</label>
-          <input type="text" class="edit-satuan" data-idx="${i}" value="${esc(c.satuan||'PCS')}">
+          <label style="font-size:11px;">UOM</label>
+          <select class="edit-satuan" data-idx="${i}">
+            ${UOM_LIST.map(u => `<option value="${u}"${normalizeUom(c.satuan||'PCS')===u?' selected':''}>${u}</option>`).join('')}
+          </select>
         </div>
         <div class="form-group" style="flex:1;margin-bottom:6px;">
           <label style="font-size:11px;">Kondisi</label>
@@ -7066,6 +7095,29 @@ function openNotaEditModal(nota) {
             <input type="text" id="editNotaSearch" placeholder="Cari nama/kode produk..." autocomplete="off">
             <div id="editNotaSuggest" class="suggest-list" style="display:none;position:absolute;z-index:20;left:0;right:0;"></div>
           </div>
+          <div id="editNotaAddPanel" style="display:none;background:#f0fdfa;border:1.5px solid #99f6e4;border-radius:12px;padding:12px;margin-bottom:12px;">
+            <div style="font-weight:800;font-size:13px;margin-bottom:4px;" id="editNotaAddName">—</div>
+            <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;" id="editNotaAddMeta">—</div>
+            <div class="form-row" style="gap:8px;align-items:flex-end;">
+              <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">Qty *</label>
+                <input type="number" id="editNotaAddQty" min="0.01" step="any" value="1" inputmode="decimal" style="font-size:16px;font-weight:700;">
+              </div>
+              <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">UOM</label>
+                <select id="editNotaAddUom" style="width:100%;">
+                  <option value="RENTENG">RENTENG</option>
+                  <option value="PCS" selected>PCS</option>
+                  <option value="BALL">BALL</option>
+                  <option value="DUS">DUS</option>
+                  <option value="BOX">BOX</option>
+                  <option value="PACK">PACK</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary" id="editNotaAddConfirm" style="flex:0 0 auto;">+ Tambah</button>
+              <button type="button" class="btn btn-outline" id="editNotaAddCancel" style="flex:0 0 auto;">Batal</button>
+            </div>
+          </div>
           <div id="editNotaItems">${renderItemsHtml()}</div>
         </div>
         <div class="modal-footer">
@@ -7106,8 +7158,7 @@ function openNotaEditModal(nota) {
       inp.onchange = handler;
     });
     $$('#editNotaItems .edit-satuan').forEach(inp => {
-      const handler = () => { items[+inp.dataset.idx].satuan = inp.value.trim(); };
-      inp.oninput = handler;
+      const handler = () => { items[+inp.dataset.idx].satuan = normalizeUom(inp.value || 'PCS'); };
       inp.onchange = handler;
     });
     $$('#editNotaItems .edit-kondisi').forEach(inp => {
@@ -7137,9 +7188,31 @@ function openNotaEditModal(nota) {
   }
   bindItemInputs();
 
-  // Cari & tambah produk baru ke nota
+  // Cari produk → panel qty di atas (tanpa scroll ke bawah)
   const searchInput = $('#editNotaSearch');
   const suggestBox = $('#editNotaSuggest');
+  const addPanel = $('#editNotaAddPanel');
+  let pendingProduct = null;
+
+  function hideAddPanel() {
+    pendingProduct = null;
+    if (addPanel) addPanel.style.display = 'none';
+  }
+  function showAddPanel(p) {
+    pendingProduct = p;
+    const uom = normalizeUom(p.satuan || p.uom || 'PCS');
+    $('#editNotaAddName').textContent = p.nama || '-';
+    $('#editNotaAddMeta').textContent = (p.kode || '-') + ' · ' + (p.vendor || '-') + (p.pic ? ' · PIC: ' + p.pic : '');
+    $('#editNotaAddQty').value = '1';
+    $('#editNotaAddUom').value = uom;
+    addPanel.style.display = 'block';
+    // Fokus qty langsung — tidak perlu scroll
+    setTimeout(() => {
+      const q = $('#editNotaAddQty');
+      if (q) { q.focus(); q.select(); }
+    }, 50);
+  }
+
   searchInput.addEventListener('input', () => {
     const term = searchInput.value.trim();
     if (term.length < 1) { suggestBox.style.display = 'none'; return; }
@@ -7157,17 +7230,30 @@ function openNotaEditModal(nota) {
     const el = e.target.closest('.suggest-item');
     if (!el || !el.dataset.kode) return;
     const p = state.products.find(x => x.kode === el.dataset.kode);
-    if (p) {
-      items.push({
-        id: uid(), nama: p.nama, kode: p.kode, barcode: p.barcode,
-        kategori: p.kategori, vendor: p.vendor, pic: resolveItemPic(p) || p.pic || '',
-        qty: 1, satuan: 'PCS', kondisi: 'Bad', alasan: '', catatan: ''
-      });
-      $('#editNotaItems').innerHTML = renderItemsHtml();
-      bindItemInputs();
-    }
     suggestBox.style.display = 'none';
     searchInput.value = '';
+    if (p) showAddPanel(p);
+  });
+  $('#editNotaAddCancel').onclick = () => hideAddPanel();
+  $('#editNotaAddConfirm').onclick = () => {
+    if (!pendingProduct) return;
+    const qty = parseFloat($('#editNotaAddQty').value);
+    if (!qty || qty <= 0) return showToast('Isi qty lebih dari 0');
+    const satuan = normalizeUom($('#editNotaAddUom').value || 'PCS');
+    const p = pendingProduct;
+    // Item baru di atas daftar — mudah terlihat
+    items.unshift({
+      id: uid(), nama: p.nama, kode: p.kode, barcode: p.barcode,
+      kategori: p.kategori, vendor: p.vendor, pic: resolveItemPic(p) || p.pic || '',
+      qty, satuan, kondisi: 'Bad', alasan: '', catatan: ''
+    });
+    hideAddPanel();
+    $('#editNotaItems').innerHTML = renderItemsHtml();
+    bindItemInputs();
+    showToast('Item ditambahkan: ' + p.nama + ' · ' + qty + ' ' + satuan);
+  };
+  $('#editNotaAddQty')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $('#editNotaAddConfirm')?.click(); }
   });
   document.addEventListener('click', function outsideClick(e) {
     if (!root.contains(e.target)) { document.removeEventListener('click', outsideClick); return; }
@@ -8466,6 +8552,21 @@ function bindEvents() {
 
   // Mode offline ditiadakan — semua aktivitas lewat server Firebase
   $('#loginPass').addEventListener('keydown', e => { if(e.key==='Enter') $('#loginBtn').click(); });
+
+  // Show / hide password (login & daftar)
+  function bindPassToggle(inputId, btnId) {
+    const inp = $('#' + inputId);
+    const btn = $('#' + btnId);
+    if (!inp || !btn) return;
+    btn.addEventListener('click', () => {
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁';
+      btn.title = show ? 'Sembunyikan password' : 'Tampilkan password';
+    });
+  }
+  bindPassToggle('loginPass', 'loginPassToggle');
+  bindPassToggle('regPassword', 'regPassToggle');
 
   // Nav
   $$('.nav-item').forEach(btn => btn.addEventListener('click', () => navigate(btn.dataset.page)));
