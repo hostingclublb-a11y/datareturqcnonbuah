@@ -1549,7 +1549,7 @@ table.data-table .actions { display: flex; gap: 4px; }
               <thead>
                 <tr>
                   <th>No</th><th>Kode</th><th>Barcode</th><th>Nama Item</th>
-                  <th>UOM</th><th>Vendor</th><th>Aksi</th>
+                  <th>UOM</th><th>UOM DC</th><th>UOM Store</th><th>Konversi</th><th>Vendor</th><th>Aksi</th>
                 </tr>
               </thead>
               <tbody id="dataItemTbody"></tbody>
@@ -2572,7 +2572,7 @@ async function bootstrapServer() {
 const DEFAULT_CATEGORIES = ['Snack','Minuman','Sembako','Frozen food','Kebutuhan','Grosir','Oprasional'];
 
 /** UOM standar di semua modul */
-const UOM_LIST = ['RENTENG', 'PCS', 'BALL', 'DUS', 'BOX', 'PACK'];
+const UOM_LIST = ['RENTENG', 'PCS', 'BALL', 'DUS', 'BOX', 'PACK', 'KG'];
 
 function uomChipsHtml(activeVal, extraClass) {
   const act = String(activeVal || 'PCS').toUpperCase();
@@ -2592,10 +2592,20 @@ function uomSelectHtml(id, selected, cls) {
 function normalizeUom(v) {
   const s = String(v || 'PCS').trim().toUpperCase();
   if (UOM_LIST.includes(s)) return s;
-  // alias lama
-  if (s === 'KARTON' || s === 'CTN') return 'DUS';
+  // alias lama / dari Excel UOM DC
+  if (s === 'KARTON' || s === 'CTN' || s === 'KARUNG') return 'DUS';
   if (s === 'PC' || s === 'PIECE') return 'PCS';
+  if (s === 'LUSIN') return 'PCS';
   return s || 'PCS';
+}
+
+/** Ambil UOM dari teks Excel "1.00 BOX : 1.00 BOX" → BOX */
+function parseUomFromDcText(raw) {
+  const s = String(raw || '').trim().toUpperCase();
+  if (!s) return 'PCS';
+  const m = s.match(/[\d.]+\s*([A-Z]+)/);
+  if (m) return normalizeUom(m[1]);
+  return normalizeUom(s);
 }
 const DEFAULT_WAREHOUSES = [
   { id:'w1', name:'DC INDUK', code:'DCI', address:'' },
@@ -4602,7 +4612,7 @@ function renderDataItem() {
   const tbody = $('#dataItemTbody');
   if (!tbody) return;
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">Belum ada data item</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-muted);">Belum ada data item</td></tr>';
     const info = $('#dataItemPageInfo'); if (info) info.textContent = '';
     const prev = $('#prevDataItemPage'); if (prev) prev.disabled = true;
     const next = $('#nextDataItemPage'); if (next) next.disabled = true;
@@ -4624,6 +4634,9 @@ function renderDataItem() {
       <td class="mono">${esc(p.barcode || '-')}</td>
       <td>${esc(p.nama)}</td>
       <td><span class="badge badge-muted">${esc(uom)}</span></td>
+      <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;" title="${esc(p.uomDc||'')}">${esc(p.uomDc || '-')}</td>
+      <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;" title="${esc(p.uomStore||'')}">${esc(p.uomStore || '-')}</td>
+      <td class="mono">${esc(p.konversiStore || '-')}</td>
       <td>${esc(p.vendor || '-')}</td>
       <td class="actions">
         ${can('edit') ? `<button class="btn btn-icon btn-outline btn-sm" onclick="editDataItem('${esc(kodeSafe)}')" title="Edit">✏️</button>` : ''}
@@ -7467,14 +7480,18 @@ function handleImportProduk(file) {
       const colBarcode = findCol('barcode','bar code');
       const colNama = findCol('nama produk','nama','name','produk');
       const colKode = findCol('kode produk','kode','code','sku');
-      const colKat = findCol('kategori','category');
+      const colKat = findCol('kategori','kategory','category');
       const colPic = findCol('pic');
       const colVendor = findCol('vendor','supplier');
+      const colSatuan = findCol('satuan','uom');
+      const colUomDc = findCol('uom dc');
+      const colUomStore = findCol('uom store');
+      const colKonv = findCol('konversi');
 
       if (!colNama) return showToast('Kolom Nama Produk tidak ditemukan');
 
       const map = {};
-      // Keep existing
+      // Keep existing (barcode/vendor/pic tetap jika file baru tidak punya)
       state.products.forEach(p => { map[(p.kode||p.nama).toLowerCase()] = p; });
 
       let added = 0, updated = 0;
@@ -7488,16 +7505,37 @@ function handleImportProduk(file) {
         const kategori = colKat ? String(row[colKat]||'').trim() : '';
         const pic = colPic ? String(row[colPic]||'').trim() : '';
         const vendor = colVendor ? String(row[colVendor]||'').trim() : '';
+        const uomDc = colUomDc ? String(row[colUomDc]||'').trim() : '';
+        const uomStore = colUomStore ? String(row[colUomStore]||'').trim() : '';
+        const konversiStore = colKonv != null ? String(row[colKonv]||'').trim() : '';
+        let satuan = colSatuan ? String(row[colSatuan]||'').trim() : '';
+        if (!satuan && uomDc) satuan = parseUomFromDcText(uomDc);
+        satuan = normalizeUom(satuan || 'PCS');
         const key = kode.toLowerCase();
         if (map[key]) {
-          // merge
+          // merge — jangan hapus barcode lama jika file baru kosong
           if (barcode && barcode!=='-') map[key].barcode = barcode;
           if (kategori && kategori!=='-') map[key].kategori = kategori;
           if (pic && !pic.includes('Tidak ditemukan')) map[key].pic = pic;
           if (vendor && !vendor.includes('Tidak ditemukan')) map[key].vendor = vendor;
+          if (nama) map[key].nama = nama;
+          map[key].satuan = satuan;
+          map[key].uom = satuan;
+          if (uomDc) map[key].uomDc = uomDc;
+          if (uomStore) map[key].uomStore = uomStore;
+          if (konversiStore) map[key].konversiStore = konversiStore;
           updated++;
         } else {
-          map[key] = { kode, barcode: barcode==='-'?'':barcode, nama, kategori: kategori==='-'?'':kategori, vendor: vendor.includes('Tidak ditemukan')?'':vendor, pic: pic.includes('Tidak ditemukan')?'':pic };
+          map[key] = {
+            kode,
+            barcode: barcode==='-'?'':barcode,
+            nama,
+            kategori: kategori==='-'?'':kategori,
+            vendor: vendor.includes('Tidak ditemukan')?'':vendor,
+            pic: pic.includes('Tidak ditemukan')?'':pic,
+            satuan, uom: satuan,
+            uomDc, uomStore, konversiStore
+          };
           added++;
         }
         touchedKeys.push(key);
