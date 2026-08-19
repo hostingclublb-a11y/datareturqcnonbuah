@@ -1569,6 +1569,7 @@ table.data-table .actions { display: flex; gap: 4px; }
           <div class="search-box"><input type="text" id="produkSearch" placeholder="Cari nama / kode / barcode..."></div>
           <button class="btn btn-outline btn-sm" id="importProdukBtn"><i data-lucide="file-up"></i> Import Excel</button>
           <input type="file" id="importProdukFile" accept=".xlsx,.xls,.csv" style="display:none;">
+          <button class="btn btn-outline btn-sm" id="dedupeProdukBtn" title="Hapus produk dobel berdasarkan kode"><i data-lucide="filter"></i> Bersihkan Duplikat</button>
           <button class="btn btn-primary btn-sm" id="addProdukBtn"><i data-lucide="plus"></i> Tambah Produk</button>
         </div>
         <div class="card">
@@ -7541,19 +7542,22 @@ function handleImportProduk(file) {
         touchedKeys.push(key);
       });
       state.products = Object.values(map);
+      // Selalu rapikan duplikat kode setelah import
+      const before = state.products.length;
+      state.products = dedupeProductsList(state.products);
+      const dropped = before - state.products.length;
       // Update categories & vendors from products
       const cats = new Set(state.categories);
-      const vendors = new Set();
       state.products.forEach(p => {
         if (p.kategori) cats.add(p.kategori);
-        if (p.vendor) vendors.add(p.vendor);
       });
       state.categories = Array.from(cats).sort();
       storage.set('products', state.products);
       storage.set('categories', state.categories);
-      logActivity('IMPORT', 'Master Produk', `+${added} baru, ${updated} update · total ${state.products.length}`);
-      showToast(`Import selesai: +${added} baru, ${updated} diupdate. Total ${state.products.length} produk`);
+      logActivity('IMPORT', 'Master Produk', `+${added} baru, ${updated} update · total ${state.products.length}` + (dropped ? ` · buang ${dropped} duplikat` : ''));
+      showToast(`Import selesai: +${added} baru, ${updated} diupdate. Total ${state.products.length} produk` + (dropped ? ` (hapus ${dropped} dobel)` : ''));
       renderProduk();
+      if (typeof renderDataItem === 'function') renderDataItem();
 
       // Dorong item yang baru/berubah ke Firestore supaya seluruh tim ikut ter-update
       if (firebaseReady && db && touchedKeys.length) {
@@ -7573,6 +7577,68 @@ function handleImportProduk(file) {
   };
   reader.readAsArrayBuffer(file);
 }
+
+/** Rapikan produk: 1 kode = 1 item. Prioritas: punya barcode, kode LB (bukan AUTO-), nama terisi. */
+function dedupeProductsList(list) {
+  const map = new Map();
+  (list || []).forEach(p => {
+    if (!p) return;
+    const key = String(p.kode || p.nama || '').trim().toLowerCase();
+    if (!key) return;
+    const cur = map.get(key);
+    if (!cur) {
+      map.set(key, Object.assign({}, p));
+      return;
+    }
+    // merge: keep best fields
+    const score = (x) => {
+      let s = 0;
+      if (x.barcode) s += 4;
+      if (x.kode && !String(x.kode).startsWith('AUTO-')) s += 3;
+      if (x.vendor) s += 1;
+      if (x.pic) s += 1;
+      if (x.uomDc || x.satuan) s += 1;
+      return s;
+    };
+    const winner = score(p) >= score(cur) ? p : cur;
+    const loser = winner === p ? cur : p;
+    map.set(key, Object.assign({}, loser, winner, {
+      barcode: winner.barcode || loser.barcode || '',
+      vendor: winner.vendor || loser.vendor || '',
+      pic: winner.pic || loser.pic || '',
+      kategori: winner.kategori || loser.kategori || '',
+      satuan: winner.satuan || winner.uom || loser.satuan || loser.uom || 'PCS',
+      uom: winner.uom || winner.satuan || loser.uom || loser.satuan || 'PCS',
+      uomDc: winner.uomDc || loser.uomDc || '',
+      uomStore: winner.uomStore || loser.uomStore || '',
+      konversiStore: winner.konversiStore || loser.konversiStore || '',
+      nama: winner.nama || loser.nama || '',
+      kode: (winner.kode && !String(winner.kode).startsWith('AUTO-')) ? winner.kode
+        : ((loser.kode && !String(loser.kode).startsWith('AUTO-')) ? loser.kode : (winner.kode || loser.kode))
+    }));
+  });
+  return Array.from(map.values());
+}
+
+window.dedupeMasterProduk = function() {
+  if (!can('edit') && !isAdmin()) return showToast('Tidak punya akses');
+  const before = (state.products || []).length;
+  state.products = dedupeProductsList(state.products);
+  const after = state.products.length;
+  const cats = new Set();
+  state.products.forEach(p => { if (p.kategori) cats.add(p.kategori); });
+  if (cats.size) state.categories = Array.from(cats).sort();
+  try { storage.set('products', state.products); storage.set('categories', state.categories); } catch (_) {}
+  logActivity('CLEAN', 'Master Produk', `Duplikat dibersihkan: ${before} → ${after}`);
+  showToast(`Selesai: ${before} → ${after} produk (hapus ${before - after} dobel)`);
+  renderProduk();
+  if (typeof renderDataItem === 'function') renderDataItem();
+  if (typeof renderDashboard === 'function') renderDashboard();
+  // optional cloud: push cleaned set in background
+  if (firebaseReady && db && state.products.length) {
+    pushProductsBatch(state.products).then(() => showToast('Cloud disinkronkan ☁')).catch(() => {});
+  }
+};
 
 /** Dorong banyak produk ke Firestore sekaligus pakai batch write (maks 450/batch, limit Firestore 500). */
 async function pushProductsBatch(products) {
@@ -8874,6 +8940,10 @@ function bindEvents() {
     this.value = '';
   });
   $('#addProdukBtn').onclick = () => showToast('Gunakan Import Excel untuk menambah banyak produk');
+  $('#dedupeProdukBtn')?.addEventListener('click', () => {
+    if (!confirm('Bersihkan produk dobel berdasarkan KODE?\nItem dengan barcode/vendor akan diutamakan.')) return;
+    dedupeMasterProduk();
+  });
 
   // Kategori
   $('#addKategoriBtn').onclick = () => {
