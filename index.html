@@ -459,7 +459,20 @@ table.data-table .actions { display: flex; gap: 4px; }
 .receipt hr { border: none; border-top: 1.5px dashed #d6d3d1; margin: var(--r-hr, 10px) 0; }
 .receipt .meta-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: var(--r-meta, 12px); }
 .receipt .rline { padding: var(--r-rline-pad, 6px 0); border-bottom: 1px dotted #e7e5e4; }
-.receipt .rline .top { display: flex; justify-content: space-between; font-weight: 700; gap: 8px; }
+.receipt .rline .top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  font-weight: 700; gap: 6px;
+}
+.receipt .rline .rname { flex: 1 1 auto; min-width: 0; line-height: 1.3; }
+.receipt .rline .rqty-sep {
+  flex: 0 0 auto; color: #a8a29e; font-weight: 600; padding: 0 4px;
+  user-select: none;
+}
+.receipt .rline .rqty {
+  flex: 0 0 auto; white-space: nowrap; font-variant-numeric: tabular-nums;
+  background: #f5f5f4; border: 1px solid #e7e5e4; border-radius: 6px;
+  padding: 1px 8px; font-size: 0.95em; line-height: 1.35;
+}
 .receipt .rline .sub { color: #78716c; font-size: var(--r-sub, 11.5px); margin-top: 2px; }
 .receipt .totals { display: flex; justify-content: space-between; font-weight: 800; margin-top: 8px; font-size: var(--r-body, 13px); }
 
@@ -938,6 +951,7 @@ table.data-table .actions { display: flex; gap: 4px; }
       </div>
       <div class="nav-section">
         <div class="nav-section-title">Master Data</div>
+        <button class="nav-item" data-page="data-item"><i data-lucide="list"></i><span class="label">Data Item</span></button>
         <button class="nav-item" data-page="master-produk"><i data-lucide="package"></i><span class="label">Master Produk</span></button>
         <button class="nav-item" data-page="master-kategori"><i data-lucide="tag"></i><span class="label">Master Kategori</span></button>
         <button class="nav-item" data-page="master-vendor"><i data-lucide="building-2"></i><span class="label">Master Vendor</span></button>
@@ -1061,14 +1075,23 @@ table.data-table .actions { display: flex; gap: 4px; }
                 <input type="number" id="returQty" min="0" placeholder="0" inputmode="numeric">
               </div>
               <div class="form-group">
-                <label>Satuan</label>
-                <input type="text" id="returSatuan" placeholder="PCS / DUS / KARTON">
+                <label>Satuan (UOM)</label>
+                <select id="returSatuan" style="width:100%;">
+                  <option value="RENTENG">RENTENG</option>
+                  <option value="PCS" selected>PCS</option>
+                  <option value="BALL">BALL</option>
+                  <option value="DUS">DUS</option>
+                  <option value="BOX">BOX</option>
+                  <option value="PACK">PACK</option>
+                </select>
               </div>
             </div>
             <div class="chip-group" id="satuanChips" style="margin-bottom:12px;">
-              <span class="chip" data-val="PCS">PCS</span>
+              <span class="chip" data-val="RENTENG">RENTENG</span>
+              <span class="chip active" data-val="PCS">PCS</span>
+              <span class="chip" data-val="BALL">BALL</span>
               <span class="chip" data-val="DUS">DUS</span>
-              <span class="chip" data-val="KARTON">KARTON</span>
+              <span class="chip" data-val="BOX">BOX</span>
               <span class="chip" data-val="PACK">PACK</span>
             </div>
             <div class="form-group">
@@ -1178,13 +1201,28 @@ table.data-table .actions { display: flex; gap: 4px; }
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>Satuan</label>
-                <input type="text" id="auditSatuan" placeholder="PCS / DUS" value="PCS">
+                <label>Satuan (UOM)</label>
+                <select id="auditSatuan" style="width:100%;">
+                  <option value="RENTENG">RENTENG</option>
+                  <option value="PCS" selected>PCS</option>
+                  <option value="BALL">BALL</option>
+                  <option value="DUS">DUS</option>
+                  <option value="BOX">BOX</option>
+                  <option value="PACK">PACK</option>
+                </select>
               </div>
               <div class="form-group">
                 <label>Lokasi Rak</label>
                 <select id="auditRak"><option value="">— Pilih rak —</option></select>
               </div>
+            </div>
+            <div class="chip-group" id="auditSatuanChips" style="margin-bottom:12px;">
+              <span class="chip" data-val="RENTENG">RENTENG</span>
+              <span class="chip active" data-val="PCS">PCS</span>
+              <span class="chip" data-val="BALL">BALL</span>
+              <span class="chip" data-val="DUS">DUS</span>
+              <span class="chip" data-val="BOX">BOX</span>
+              <span class="chip" data-val="PACK">PACK</span>
             </div>
             <div class="form-group">
               <label>Kondisi</label>
@@ -1481,6 +1519,39 @@ table.data-table .actions { display: flex; gap: 4px; }
         <div class="card" id="bandingListCard" style="display:none;">
           <div class="card-header"><h2>Sudah Diinput (<span id="bandingCount">0</span>)</h2></div>
           <div class="card-body" id="bandingList"></div>
+        </div>
+      </div>
+
+      <!-- ==================== DATA ITEM ==================== -->
+      <div class="page" id="page-data-item">
+        <div class="toolbar">
+          <div class="search-box"><input type="text" id="dataItemSearch" placeholder="Cari nama / kode / barcode item..."></div>
+          <button class="btn btn-primary btn-sm" id="addDataItemBtn"><i data-lucide="plus"></i> Tambah Item</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Data Item</h2>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Data item saja — kode, barcode, nama, UOM standar (Renteng, PCS, Ball, Dus, Box, Pack).</div>
+            </div>
+            <span class="badge badge-muted" id="dataItemCount">0 item</span>
+          </div>
+          <div class="card-body table-wrap">
+            <table class="data-table" id="dataItemTable">
+              <thead>
+                <tr>
+                  <th>No</th><th>Kode</th><th>Barcode</th><th>Nama Item</th>
+                  <th>UOM</th><th>Vendor</th><th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="dataItemTbody"></tbody>
+            </table>
+          </div>
+          <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--border);padding-top:12px;">
+            <button class="btn btn-outline btn-sm" id="prevDataItemPage"><i data-lucide="chevron-left"></i> Sebelumnya</button>
+            <span id="dataItemPageInfo" style="font-size:12.5px;color:var(--text-muted);"></span>
+            <button class="btn btn-outline btn-sm" id="nextDataItemPage">Berikutnya <i data-lucide="chevron-right"></i></button>
+          </div>
         </div>
       </div>
 
@@ -2491,6 +2562,33 @@ async function bootstrapServer() {
 
 
 const DEFAULT_CATEGORIES = ['Snack','Minuman','Sembako','Frozen food','Kebutuhan','Grosir','Oprasional'];
+
+/** UOM standar di semua modul */
+const UOM_LIST = ['RENTENG', 'PCS', 'BALL', 'DUS', 'BOX', 'PACK'];
+
+function uomChipsHtml(activeVal, extraClass) {
+  const act = String(activeVal || 'PCS').toUpperCase();
+  return UOM_LIST.map(u =>
+    `<span class="chip${u === act ? ' active' : ''}${extraClass ? ' ' + extraClass : ''}" data-val="${u}">${u}</span>`
+  ).join('');
+}
+
+function uomSelectHtml(id, selected, cls) {
+  const sel = String(selected || 'PCS').toUpperCase();
+  const opts = UOM_LIST.map(u =>
+    `<option value="${u}"${u === sel ? ' selected' : ''}>${u}</option>`
+  ).join('');
+  return `<select id="${id || ''}" class="${cls || ''}" style="width:100%;">${opts}</select>`;
+}
+
+function normalizeUom(v) {
+  const s = String(v || 'PCS').trim().toUpperCase();
+  if (UOM_LIST.includes(s)) return s;
+  // alias lama
+  if (s === 'KARTON' || s === 'CTN') return 'DUS';
+  if (s === 'PC' || s === 'PIECE') return 'PCS';
+  return s || 'PCS';
+}
 const DEFAULT_WAREHOUSES = [
   { id:'w1', name:'DC INDUK', code:'DCI', address:'' },
   { id:'w2', name:'DC SNACK', code:'DCS', address:'' },
@@ -2530,25 +2628,25 @@ const ROLE_PAGES = {
   ],
   'Anggota Tim': [
     'dashboard','retur','riwayat-retur','audit','riwayat-audit','banding','cetak-plakat',
-    'master-gudang','laporan'
+    'data-item','master-gudang','laporan'
   ],
   'Moderator': [
     'dashboard','retur','riwayat-retur','audit','riwayat-audit','banding','cetak-plakat',
-    'master-gudang','master-vendor','laporan','laporan-master'
+    'data-item','master-gudang','master-vendor','laporan','laporan-master'
   ],
   'Kepala Tim': [
     'dashboard','retur','riwayat-retur','audit','riwayat-audit','banding','cetak-plakat',
-    'master-produk','master-kategori','master-vendor','master-rak','master-gudang',
+    'data-item','master-produk','master-kategori','master-vendor','master-rak','master-gudang',
     'laporan','laporan-master'
   ],
   'Supervisor': [
     'dashboard','retur','riwayat-retur','audit','riwayat-audit','banding','cetak-plakat',
-    'master-produk','master-kategori','master-vendor','master-rak','master-gudang',
+    'data-item','master-produk','master-kategori','master-vendor','master-rak','master-gudang',
     'laporan','laporan-master','activity-log'
   ],
   'Administrator': [
     'dashboard','retur','riwayat-retur','audit','riwayat-audit','banding','cetak-plakat',
-    'master-produk','master-kategori','master-vendor','master-rak','master-gudang',
+    'data-item','master-produk','master-kategori','master-vendor','master-rak','master-gudang',
     'master-user','laporan','laporan-master','activity-log','pengaturan'
   ]
 };
@@ -2924,10 +3022,13 @@ const ExportEngine = {
     const lines = items.map((c, i) => {
       const pic = (typeof resolveItemPic === 'function' ? resolveItemPic(c) : null) || c.pic || '-';
       const kond = (c.kondisi || 'Bad') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
+      const nm = String(c.nama || '').replace(/</g,'&lt;');
+      const qty = String(c.qty ?? '').replace(/</g,'&lt;') + ' ' + String(c.satuan || 'PCS').replace(/</g,'&lt;');
       return `<div style="padding:8px 0;border-bottom:1px dotted #e7e5e4;">
-        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:13px;gap:8px;">
-          <span>${i + 1}. ${String(c.nama || '').replace(/</g,'&lt;')}</span>
-          <span style="white-space:nowrap;">${String(c.qty ?? '').replace(/</g,'&lt;')} ${String(c.satuan || 'PCS').replace(/</g,'&lt;')}</span>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;font-weight:700;font-size:13px;gap:6px;">
+          <span style="flex:1;min-width:0;line-height:1.3;">${i + 1}. ${nm}</span>
+          <span style="color:#a8a29e;padding:0 4px;flex-shrink:0;">|</span>
+          <span style="white-space:nowrap;flex-shrink:0;background:#f5f5f4;border:1px solid #e7e5e4;border-radius:6px;padding:1px 8px;">${qty}</span>
         </div>
         <div style="color:#78716c;font-size:11.5px;margin-top:3px;">Kode: ${String(c.kode || '-').replace(/</g,'&lt;')} · Vendor: ${String(c.vendor || '-').replace(/</g,'&lt;')} · <b>${kond}</b></div>
         <div style="font-weight:700;color:#0f766e;font-size:11.5px;margin-top:2px;">PIC Purchasing: ${String(pic).replace(/</g,'&lt;')}</div>
@@ -3521,6 +3622,7 @@ const PAGE_META = {
   'riwayat-audit': { title:'Riwayat Audit', sub:'Sesi audit yang sudah disimpan' },
   'cetak-plakat': { title:'Cetak Plakat', sub:'Label A4 serbaguna — karantina, kedatangan, EXP, custom' },
   'banding': { title:'Banding Stok', sub:'Bandingkan stok sistem vs fisik' },
+  'data-item': { title:'Data Item', sub:'Data item saja — kode, nama, barcode, UOM' },
   'master-produk': { title:'Master Produk', sub:'Kelola data produk & barcode' },
   'master-kategori': { title:'Master Kategori', sub:'Kelola kategori produk' },
   'master-vendor': { title:'Master Vendor', sub:'Daftar supplier / vendor' },
@@ -3567,6 +3669,7 @@ function renderPage(page) {
     case 'riwayat-audit': renderAuditHistory(); break;
     case 'cetak-plakat': renderCetakPlakat(); break;
     case 'banding': renderBanding(); break;
+    case 'data-item': renderDataItem(); break;
     case 'master-produk': renderProduk(); break;
     case 'master-kategori': renderKategori(); break;
     case 'master-vendor': renderVendor(); break;
@@ -4471,6 +4574,145 @@ function renderProduk() {
   $('#produkPageInfo').textContent = `Halaman ${state.produkPage+1} dari ${totalPages} (${list.length} produk)`;
   $('#prevProdukPage').disabled = state.produkPage === 0;
   $('#nextProdukPage').disabled = state.produkPage >= totalPages - 1;
+}
+
+/** Modul Data Item — fokus data item + UOM */
+function renderDataItem() {
+  let list = Array.isArray(state.products) ? state.products.slice() : [];
+  const term = ($('#dataItemSearch')?.value || '').toLowerCase();
+  if (term) {
+    list = list.filter(p =>
+      (p.nama || '').toLowerCase().includes(term) ||
+      (p.kode || '').toLowerCase().includes(term) ||
+      (p.barcode || '').toLowerCase().includes(term) ||
+      (p.vendor || '').toLowerCase().includes(term) ||
+      String(p.satuan || p.uom || '').toLowerCase().includes(term)
+    );
+  }
+  const cnt = $('#dataItemCount');
+  if (cnt) cnt.textContent = list.length + ' item';
+  const tbody = $('#dataItemTbody');
+  if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">Belum ada data item</td></tr>';
+    const info = $('#dataItemPageInfo'); if (info) info.textContent = '';
+    const prev = $('#prevDataItemPage'); if (prev) prev.disabled = true;
+    const next = $('#nextDataItemPage'); if (next) next.disabled = true;
+    return;
+  }
+  const perPage = 100;
+  const totalPages = Math.max(1, Math.ceil(list.length / perPage));
+  if (!state.dataItemPage) state.dataItemPage = 0;
+  if (state.dataItemPage >= totalPages) state.dataItemPage = totalPages - 1;
+  if (state.dataItemPage < 0) state.dataItemPage = 0;
+  const start = state.dataItemPage * perPage;
+  const show = list.slice(start, start + perPage);
+  tbody.innerHTML = show.map((p, i) => {
+    const uom = normalizeUom(p.satuan || p.uom || 'PCS');
+    const kodeSafe = String(p.kode || '').replace(/'/g, "\\'");
+    return `<tr>
+      <td>${start + i + 1}</td>
+      <td class="mono">${esc(p.kode)}</td>
+      <td class="mono">${esc(p.barcode || '-')}</td>
+      <td>${esc(p.nama)}</td>
+      <td><span class="badge badge-muted">${esc(uom)}</span></td>
+      <td>${esc(p.vendor || '-')}</td>
+      <td class="actions">
+        ${can('edit') ? `<button class="btn btn-icon btn-outline btn-sm" onclick="editDataItem('${esc(kodeSafe)}')" title="Edit">✏️</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+  const info = $('#dataItemPageInfo');
+  if (info) info.textContent = `Halaman ${state.dataItemPage + 1} dari ${totalPages} (${list.length} item)`;
+  const prev = $('#prevDataItemPage'); if (prev) prev.disabled = state.dataItemPage === 0;
+  const next = $('#nextDataItemPage'); if (next) next.disabled = state.dataItemPage >= totalPages - 1;
+}
+
+function editDataItem(kode) {
+  const p = (state.products || []).find(x => String(x.kode) === String(kode));
+  if (!p) return showToast('Item tidak ditemukan');
+  openDataItemModal(p);
+}
+
+function openDataItemModal(item) {
+  const root = $('#modalRoot');
+  if (!root) return;
+  const isNew = !item;
+  const it = item || { kode: '', barcode: '', nama: '', satuan: 'PCS', vendor: '', kategori: '' };
+  const uom = normalizeUom(it.satuan || it.uom || 'PCS');
+  root.innerHTML = `<div class="modal-backdrop" id="dataItemBackdrop">
+    <div class="modal-sheet" style="max-width:480px;">
+      <div class="handle"></div>
+      <div class="modal-header"><h3>${isNew ? 'Tambah Item' : 'Edit Item'}</h3>
+        <button class="btn btn-icon btn-outline" id="dataItemClose">✕</button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>Kode Item</label>
+          <input type="text" id="diKode" value="${esc(it.kode || '')}" ${isNew ? '' : 'readonly'} placeholder="Kode unik"></div>
+        <div class="form-group"><label>Barcode</label>
+          <input type="text" id="diBarcode" value="${esc(it.barcode || '')}" placeholder="Opsional"></div>
+        <div class="form-group"><label>Nama Item</label>
+          <input type="text" id="diNama" value="${esc(it.nama || '')}" placeholder="Nama barang"></div>
+        <div class="form-group"><label>UOM / Satuan</label>
+          <select id="diUom" style="width:100%;">
+            ${UOM_LIST.map(u => `<option value="${u}"${u === uom ? ' selected' : ''}>${u}</option>`).join('')}
+          </select>
+          <div class="chip-group" id="diUomChips" style="margin-top:8px;">${uomChipsHtml(uom)}</div>
+        </div>
+        <div class="form-group"><label>Vendor</label>
+          <input type="text" id="diVendor" value="${esc(it.vendor || '')}" placeholder="Opsional"></div>
+        <div class="form-group"><label>Kategori</label>
+          <input type="text" id="diKategori" value="${esc(it.kategori || '')}" placeholder="Opsional"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="dataItemSave">💾 Simpan</button>
+        <button class="btn btn-outline" id="dataItemClose2">Batal</button>
+      </div>
+    </div>
+  </div>`;
+  const close = () => { root.innerHTML = ''; };
+  $('#dataItemClose').onclick = close;
+  $('#dataItemClose2').onclick = close;
+  $('#dataItemBackdrop').onclick = e => { if (e.target.id === 'dataItemBackdrop') close(); };
+  $$('#diUomChips .chip').forEach(c => c.addEventListener('click', () => {
+    $$('#diUomChips .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    $('#diUom').value = c.dataset.val;
+  }));
+  $('#diUom').onchange = () => {
+    const v = $('#diUom').value;
+    $$('#diUomChips .chip').forEach(x => x.classList.toggle('active', x.dataset.val === v));
+  };
+  $('#dataItemSave').onclick = () => {
+    const kode = ($('#diKode').value || '').trim();
+    const nama = ($('#diNama').value || '').trim();
+    if (!kode || !nama) return showToast('Kode dan Nama wajib diisi');
+    const payload = {
+      kode,
+      barcode: ($('#diBarcode').value || '').trim(),
+      nama,
+      satuan: normalizeUom($('#diUom').value),
+      uom: normalizeUom($('#diUom').value),
+      vendor: ($('#diVendor').value || '').trim(),
+      kategori: ($('#diKategori').value || '').trim()
+    };
+    const idx = (state.products || []).findIndex(x => String(x.kode) === String(kode));
+    if (idx >= 0) {
+      state.products[idx] = Object.assign({}, state.products[idx], payload);
+    } else {
+      if (!isNew) return showToast('Item tidak ditemukan');
+      if ((state.products || []).some(x => String(x.kode) === kode)) return showToast('Kode sudah ada');
+      state.products = state.products || [];
+      state.products.push(payload);
+    }
+    try { storage.set('products', state.products); } catch (_) {}
+    if (typeof cloudSaveProducts === 'function') {
+      try { cloudSaveProducts(); } catch (_) {}
+    }
+    showToast(isNew ? 'Item ditambahkan' : 'Item disimpan');
+    close();
+    renderDataItem();
+    if (typeof renderProduk === 'function') renderProduk();
+  };
 }
 
 function renderKategori() {
@@ -5737,70 +5979,89 @@ async function exportAnyPlakatPNG(html, filenamePrefix) {
 }
 
 /** Export plakat → Word: render tiap kartu jadi gambar, 2 kartu / halaman A4 */
+/**
+ * Word export — tabel HTML (bisa dibuka & diedit di Word/WPS Android).
+ * Ukuran label ≈ 10 × 13,5 cm, mengikuti pratinjau web.
+ */
+function plakatCardToWordTable(card, style) {
+  const s = style || getPlakatFontStyle();
+  const isEmpty = card.classList.contains('plakat-empty');
+  const border = isEmpty ? '1.25pt dashed #94a3b8' : '1.25pt solid #111';
+  const title = (card.querySelector('.plakat-head .title')?.textContent || '').trim();
+  const pt = (card.querySelector('.plakat-head .pt')?.textContent || '').trim();
+  const foot = (card.querySelector('.plakat-foot')?.textContent || '').trim();
+  const titleSize = (s.titleSize || 20) + 'pt';
+  const bodySize = (s.bodySize || 11) + 'pt';
+  const labelSize = (s.labelSize || 10) + 'pt';
+  const nameSize = (s.nameSize || 12) + 'pt';
+  const font = s.font || 'Arial, Helvetica, sans-serif';
+  const headAlign = s.headAlign || 'center';
+
+  let rows = '';
+  // Header kuning
+  rows += '<tr><td colspan="2" style="background:#ffbd00;border-bottom:1.25pt solid #111;padding:10pt 8pt;text-align:'
+    + headAlign + ';">'
+    + (pt ? '<span style="font-size:' + labelSize + ';font-weight:bold;float:left;">' + esc(pt) + '</span>' : '')
+    + '<span style="font-size:' + titleSize + ';font-weight:bold;text-transform:uppercase;letter-spacing:1px;">'
+    + esc(title || ' ') + '</span></td></tr>';
+
+  if (!isEmpty) {
+    // Baris field
+    card.querySelectorAll('.plakat-body > .plakat-row').forEach(row => {
+      const lbl = (row.querySelector('.lbl')?.textContent || '').trim();
+      const val = (row.querySelector('.val')?.textContent || '').trim();
+      rows += '<tr>'
+        + '<td style="width:35%;border-bottom:1px solid #e5e5e5;padding:4pt 6pt;font-size:' + labelSize + ';font-weight:bold;vertical-align:top;">' + esc(lbl) + '</td>'
+        + '<td style="border-bottom:1px solid #e5e5e5;padding:4pt 6pt;font-size:' + bodySize + ';font-weight:bold;vertical-align:top;">' + esc(val) + '</td>'
+        + '</tr>';
+    });
+    // Item blocks (mode gabung)
+    card.querySelectorAll('.plakat-item-block').forEach(block => {
+      const iname = (block.querySelector('.iname')?.textContent || '').trim();
+      const imeta = (block.querySelector('.imeta')?.textContent || '').trim();
+      rows += '<tr><td colspan="2" style="border:1px solid #333;padding:5pt 6pt;margin:2pt 0;">'
+        + '<div style="font-size:' + nameSize + ';font-weight:bold;margin-bottom:2pt;">' + esc(iname) + '</div>'
+        + '<div style="font-size:' + labelSize + ';">' + esc(imeta) + '</div>'
+        + '</td></tr>';
+    });
+  } else {
+    rows += '<tr><td colspan="2" style="height:80pt;text-align:center;color:#94a3b8;font-size:10pt;">(template kosong)</td></tr>';
+  }
+
+  if (foot) {
+    rows += '<tr><td colspan="2" style="border-top:1px dashed #777;padding:4pt 6pt;text-align:center;font-size:8pt;color:#444;">' + esc(foot) + '</td></tr>';
+  }
+
+  return '<table cellspacing="0" cellpadding="0" style="width:10cm;height:13.5cm;border:' + border
+    + ';border-collapse:collapse;border-radius:8px;font-family:' + font
+    + ';margin:0 auto 8pt auto;table-layout:fixed;">'
+    + rows + '</table>';
+}
+
 async function exportAnyPlakatWord(html, filenamePrefix) {
-  if (!window.html2canvas) return showToast('Library gambar belum siap');
   try {
+    showToast('Menyiapkan Word (tabel bisa diedit)…');
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;box-sizing:border-box;padding:8px;';
     wrap.innerHTML = html;
-    const sheet = wrap.querySelector('.plakat-sheet');
-    if (sheet) {
-      sheet.style.display = 'block';
-      sheet.classList.add('capture-full');
-    }
-    // Normalisasi kartu untuk capture
     const cards = Array.from(wrap.querySelectorAll('.plakat-card'));
     if (!cards.length) return showToast('Tidak ada isi plakat untuk diekspor');
-    cards.forEach(c => {
-      c.style.width = '100%';
-      c.style.maxWidth = '760px';
-      c.style.margin = '0 auto 8px';
-      c.style.boxSizing = 'border-box';
-      c.style.background = '#fff';
-      if (c.classList.contains('plakat-empty')) {
-        c.style.minHeight = '280px';
-        c.style.border = '1px dashed #cbd5e1';
-      }
-    });
-    document.body.appendChild(wrap);
-    showToast('Menyiapkan Word (gambar plakat)…');
-    await new Promise(r => setTimeout(r, 60));
 
-    // Capture tiap kartu (skip empty yang benar-benar kosong visual boleh ikut)
-    const images = [];
-    for (const card of cards) {
-      try {
-        const canvas = await html2canvas(card, {
-          backgroundColor: '#ffffff',
-          scale: 2,
-          useCORS: true,
-          logging: false
-        });
-        images.push(canvas.toDataURL('image/jpeg', 0.92));
-      } catch (err) {
-        console.error('card capture fail', err);
-      }
-    }
-    if (wrap.parentNode) document.body.removeChild(wrap);
-    if (!images.length) return showToast('Gagal render gambar plakat');
-
-    // Pasangkan 2 gambar per halaman A4
+    const style = (typeof getPlakatFontStyle === 'function') ? getPlakatFontStyle() : {};
     let body = '';
-    for (let i = 0; i < images.length; i += 2) {
-      const img1 = images[i];
-      const img2 = images[i + 1] || null;
-      body += '<div style="width:100%;page-break-after:always;page-break-inside:avoid;">';
-      body += '<div style="text-align:center;margin:0 0 6px 0;">'
-        + '<img src="' + img1 + '" width="640" style="width:640px;max-width:100%;height:auto;border:1px solid #111;" />'
-        + '</div>';
-      body += '<div style="text-align:center;color:#666;font-size:10px;letter-spacing:2px;margin:6px 0;">— potong di sini —</div>';
-      body += '<div style="border-top:1px dashed #999;margin:0 0 8px 0;"></div>';
-      if (img2) {
-        body += '<div style="text-align:center;">'
-          + '<img src="' + img2 + '" width="640" style="width:640px;max-width:100%;height:auto;border:1px solid #111;" />'
-          + '</div>';
+    for (let i = 0; i < cards.length; i += 2) {
+      const c1 = cards[i];
+      const c2 = cards[i + 1] || null;
+      body += '<div style="width:100%;page-break-after:always;page-break-inside:avoid;text-align:center;">';
+      body += plakatCardToWordTable(c1, style);
+      body += '<div style="text-align:center;color:#666;font-size:9pt;letter-spacing:2px;margin:8pt 0;">— potong di sini —</div>';
+      if (c2) {
+        body += plakatCardToWordTable(c2, style);
       } else {
-        body += '<div style="height:280px;border:1px dashed #cbd5e1;background:#fafafa;"></div>';
+        // Sisi kosong: tabel border putus-putus ukuran sama
+        const empty = document.createElement('div');
+        empty.className = 'plakat-card plakat-empty';
+        empty.innerHTML = '<div class="plakat-head"><div class="title"> </div></div><div class="plakat-body"></div>';
+        body += plakatCardToWordTable(empty, style);
       }
       body += '</div>';
     }
@@ -5808,18 +6069,19 @@ async function exportAnyPlakatWord(html, filenamePrefix) {
     const safeTitle = String(filenamePrefix || 'Plakat').replace(/[^\w.\- ]+/g, ' ').trim() || 'Plakat';
     const fname = safeTitle.replace(/\s+/g, '_') + '_' + todayStr() + '.doc';
     const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
-      + '<head><meta charset="utf-8">'
-      + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
+      + '<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">'
+      + '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom>'
+      + '<w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->'
       + '<title>' + esc(safeTitle) + '</title>'
       + '<style>'
       + '@page { size: A4; margin: 12mm; }'
-      + 'body { font-family: Arial, sans-serif; margin: 0; }'
-      + 'img { -ms-interpolation-mode: bicubic; }'
+      + 'body { font-family: Arial, Helvetica, sans-serif; margin: 0; }'
+      + 'table { border-collapse: collapse; }'
       + '</style></head><body>'
       + body
       + '</body></html>';
 
-    const blob = new Blob(['\ufeff' + doc], { type: 'application/msword' });
+    const blob = new Blob(['\ufeff' + doc], { type: 'application/msword;charset=utf-8' });
     if (window.saveAs) saveAs(blob, fname);
     else {
       const url = URL.createObjectURL(blob);
@@ -5828,7 +6090,7 @@ async function exportAnyPlakatWord(html, filenamePrefix) {
       document.body.appendChild(a); a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
     }
-    showToast('Word disimpan: ' + fname + ' (' + images.length + ' plakat)');
+    showToast('Word disimpan: ' + fname + ' (' + cards.length + ' label · tabel bisa diedit)');
   } catch (e) {
     console.error(e);
     showToast('Gagal Word: ' + (e.message || 'error'));
@@ -5912,9 +6174,14 @@ function openNotaModal(nota, isHistory) {
     return items.map((c, i) => {
       const pic = resolveItemPic(c) || c.pic || '-';
       const kond = (c.kondisi || 'Bad') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
+      const qtyStr = `${esc(c.qty)} ${esc(c.satuan || 'PCS')}`;
       return `
       <div class="rline">
-        <div class="top"><span>${i + 1}. ${esc(c.nama)}</span><span>${esc(c.qty)} ${esc(c.satuan)}</span></div>
+        <div class="top">
+          <span class="rname">${i + 1}. ${esc(c.nama)}</span>
+          <span class="rqty-sep">|</span>
+          <span class="rqty">${qtyStr}</span>
+        </div>
         <div class="sub">Kode: ${esc(c.kode || '-')} · Vendor: ${esc(c.vendor || '-')} · <b>${kond}</b></div>
         <div class="sub" style="font-weight:700;color:#0f766e;">PIC Purchasing: ${esc(pic)}</div>
         ${c.alasan ? `<div class="sub">Alasan: ${esc(c.alasan)}</div>` : ''}
@@ -6074,10 +6341,68 @@ function openNotaModal(nota, isHistory) {
       }
       pages.push(`<div class="plakat-page">${inner}</div>`);
     }
-    return `<div class="plakat-sheet" id="plakatPrintArea">${pages.join('')}</div>`;
+    const styleAttr = (typeof plakatFontStyleAttr === 'function') ? plakatFontStyleAttr() : '';
+    return `<div class="plakat-sheet" id="plakatPrintArea" style="display:block;${styleAttr}">${pages.join('')}</div>`;
   }
 
-
+  function notaPlakatStylePanelHtml() {
+    return `<div class="plakat-control-card" id="notaPlakatStylePanel" style="margin:10px 0;">
+      <label style="font-weight:800;display:block;margin-bottom:8px;">🔤 Ukuran Font & Spasi</label>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Jenis Font</label>
+          <select id="plkFontFamily">
+            <option value="Arial, Helvetica, sans-serif" selected>Arial</option>
+            <option value="'Arial Black', Gadget, sans-serif">Arial Black</option>
+            <option value="Tahoma, Geneva, sans-serif">Tahoma</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Sebaran Isi</label>
+          <select id="plkBodyJustify">
+            <option value="flex-start" selected>Rapat atas</option>
+            <option value="center">Tengah vertikal</option>
+            <option value="space-between">Renggang (isi penuh)</option>
+            <option value="space-around">Renggang merata</option>
+            <option value="space-evenly">Sangat renggang</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Judul Header <span id="plkTitleSizeVal" style="color:var(--text-muted)">20px</span></label>
+          <input type="range" id="plkTitleSize" min="12" max="36" value="20" step="1">
+        </div>
+        <div class="form-group">
+          <label>Isi Body <span id="plkBodySizeVal" style="color:var(--text-muted)">11px</span></label>
+          <input type="range" id="plkBodySize" min="8" max="22" value="11" step="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nama Item <span id="plkNameSizeVal" style="color:var(--text-muted)">12px</span></label>
+          <input type="range" id="plkNameSize" min="9" max="22" value="12" step="1">
+        </div>
+        <div class="form-group">
+          <label>Spasi baris <span id="plkRowPadVal" style="color:var(--text-muted)">6px</span></label>
+          <input type="range" id="plkRowPad" min="2" max="20" value="6" step="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Padding body <span id="plkBodyPadVal" style="color:var(--text-muted)">10px</span></label>
+          <input type="range" id="plkBodyPad" min="4" max="24" value="10" step="1">
+        </div>
+        <div class="form-group">
+          <label>Line height <span id="plkLineHVal" style="color:var(--text-muted)">1.35</span></label>
+          <input type="range" id="plkLineH" min="110" max="200" value="135" step="5">
+        </div>
+      </div>
+      <div class="plakat-helper">Geser slider — pratinjau & Word ikut berubah. Word = tabel bisa diedit di WPS/Word.</div>
+    </div>`;
+  }
 
   const picFilterHtml = picSet.length > 1 ? `
     <div class="form-group no-print" style="margin-bottom:12px;">
@@ -6130,6 +6455,22 @@ function openNotaModal(nota, isHistory) {
           <div id="plakatHost" class="no-print" style="display:none;"></div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap;">
+          <div class="nota-view-only" style="width:100%;margin-bottom:6px;">
+            <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-muted);">Salin teks WA — pilih yang ditampilkan:</div>
+            <div class="field-chip-group" id="notaWaFields">
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="header" checked> Judul/DC/No</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="nama" checked> Nama</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="qty" checked> Qty</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="kode" checked> Kode</label>
+              <label class="field-chip"><input type="checkbox" class="nota-wa-cb" data-fkey="barcode"> Barcode</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="vendor" checked> Vendor</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="pic" checked> PIC</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="kondisi" checked> Kondisi</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="alasan" checked> Alasan</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="catatan" checked> Catatan</label>
+              <label class="field-chip on"><input type="checkbox" class="nota-wa-cb" data-fkey="total" checked> Total</label>
+            </div>
+          </div>
           <button class="btn btn-primary nota-view-only" id="notaCopy">📋 Salin WA</button>
           <button class="btn btn-outline nota-view-only" id="notaPdf">📑 PDF</button>
           <button class="btn btn-outline nota-view-only" id="notaPng">🖼 PNG</button>
@@ -6255,40 +6596,76 @@ function openNotaModal(nota, isHistory) {
 
   $('#notaJudul')?.addEventListener('input', () => refreshView());
 
+  // Toggle chip style for WA field options
+  $$('#notaWaFields .nota-wa-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const lab = cb.closest('.field-chip');
+      if (lab) lab.classList.toggle('on', cb.checked);
+    });
+  });
+
+  function getNotaWaFields() {
+    const keys = [];
+    $$('#notaWaFields .nota-wa-cb:checked').forEach(cb => keys.push(cb.dataset.fkey));
+    return keys;
+  }
+
   $('#notaCopy').onclick = () => {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
+    const wa = getNotaWaFields();
+    const has = (k) => wa.includes(k);
+    if (!wa.length) return showToast('Centang minimal 1 field untuk Salin WA');
     const t = buildTotalsHtml(items);
-    const lines = [
-      `🧾 *${($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim() || 'NOTA PENGAJUAN RETUR'}*`,
-      nota.dcName || '',
-      `No: ${nota.nomor}`,
-      `Tanggal: ${nota.tanggalLabel}`,
-    ];
-    if (activePic) lines.push(`PIC: ${activePic}`);
-    lines.push('');
+    const lines = [];
+
+    // Header rapi
+    if (has('header')) {
+      const judul = ($('#notaJudul')?.value || nota.judul || 'NOTA PENGAJUAN RETUR').trim() || 'NOTA PENGAJUAN RETUR';
+      lines.push(`🧾 *${judul}*`);
+      if (nota.dcName) lines.push(String(nota.dcName));
+      lines.push(`No: ${nota.nomor || '-'}`);
+      lines.push(`Tanggal: ${nota.tanggalLabel || nota.tanggal || '-'}`);
+      if (activePic) lines.push(`Filter PIC: ${activePic}`);
+      lines.push('');
+    }
+
+    // Tiap item: 1 info per baris (rapi di WA)
     items.forEach((c, i) => {
       const pic = (resolveItemPic(c) || c.pic || '').trim();
       const vendor = (c.vendor || '').trim();
       const sat = c.satuan || 'PCS';
-      lines.push(`${i + 1}. ${c.nama}`);
-      let detail = `Qty: ${c.qty} ${sat}`;
-      if (vendor && vendor !== '-') detail += ` | Vendor: ${vendor}`;
-      if (pic && pic !== '-') detail += ` | PIC: ${pic}`;
-      lines.push(detail);
-      if (c.alasan) lines.push(`Alasan: ${c.alasan}`);
-      if (c.catatan) lines.push(`Catatan: ${c.catatan}`);
+      const kond = (c.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek';
+      const nama = (c.nama || '-').trim();
+
+      if (has('nama')) lines.push(`${i + 1}. ${nama}`);
+      else lines.push(`${i + 1}.`);
+
+      if (has('qty')) lines.push(`Qty: ${c.qty} ${sat}`);
+      if (has('kode') && c.kode) lines.push(`Kode: ${c.kode}`);
+      if (has('barcode') && c.barcode) lines.push(`Barcode: ${c.barcode}`);
+      if (has('vendor') && vendor && vendor !== '-') lines.push(`Vendor: ${vendor}`);
+      if (has('pic') && pic && pic !== '-') lines.push(`PIC: ${pic}`);
+      if (has('kondisi')) lines.push(`Kondisi: ${kond}`);
+      if (has('alasan') && c.alasan) lines.push(`Alasan: ${c.alasan}`);
+      if (has('catatan') && c.catatan) lines.push(`Catatan: ${c.catatan}`);
       lines.push('');
     });
-    const bySat = {};
-    items.forEach(c => {
-      const s = (c.satuan || 'PCS').toUpperCase();
-      bySat[s] = (bySat[s] || 0) + (parseFloat(c.qty) || 0);
-    });
-    const qtyText = Object.entries(bySat).map(([s, q]) => q + ' ' + s).join(' + ') || (t.totalQty + ' PCS');
-    lines.push(`Total: ${items.length} Produk | Qty: ${qtyText}`);
-    lines.push('', 'Mohon diajukan retur ke vendor. Terima kasih.');
-    navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Disalin ke clipboard' + (activePic ? ' (filter: ' + activePic + ')' : ''))).catch(() => showToast('Gagal salin'));
+
+    if (has('total')) {
+      const bySat = {};
+      items.forEach(c => {
+        const s = (c.satuan || 'PCS').toUpperCase();
+        bySat[s] = (bySat[s] || 0) + (parseFloat(c.qty) || 0);
+      });
+      const qtyText = Object.entries(bySat).map(([s, q]) => q + ' ' + s).join(' + ') || (t.totalQty + ' PCS');
+      lines.push(`Total: ${items.length} Produk | Qty: ${qtyText}`);
+      lines.push('');
+      lines.push('Mohon diajukan retur ke vendor. Terima kasih.');
+    }
+
+    const text = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    navigator.clipboard.writeText(text).then(() => showToast('Teks WA rapi disalin' + (activePic ? ' (filter: ' + activePic + ')' : ''))).catch(() => showToast('Gagal salin'));
   };
 
   $('#notaPdf').onclick = () => {
@@ -6353,13 +6730,20 @@ function openNotaModal(nota, isHistory) {
 
     function renderPreview() {
       const fields = getPlakatFields('notaPlakatFields');
+      // Simpan nilai style panel sebelum rebuild (jika sudah ada)
+      const savedStyle = {};
+      ['plkFontFamily','plkBodyJustify','plkTitleSize','plkBodySize','plkNameSize','plkRowPad','plkBodyPad','plkLineH'].forEach(id => {
+        const el = $('#' + id);
+        if (el) savedStyle[id] = el.value;
+      });
       const html = buildPlakatHtml(items, mode, fields);
       host.innerHTML = `<div class="plakat-preview-frame" style="margin-top:4px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
           <strong>🏷️ Pratinjau Plakat Retur (${items.length} Item)</strong>
           <span class="badge badge-warning">${esc(plakatModeLabel(mode,items.length))}</span>
         </div>
-        <div class="plakat-preview-inner">${html.replace('class="plakat-sheet"','class="plakat-sheet" style="display:block"')}</div>
+        ${notaPlakatStylePanelHtml()}
+        <div class="plakat-preview-inner" id="notaPlakatPreviewInner">${html}</div>
         <div class="btn-group" style="margin-top:10px;justify-content:flex-end;flex-wrap:wrap;gap:6px;">
           <button type="button" class="btn btn-primary" id="notaPrintPlakatNow">🖨 Cetak Plakat</button>
           <button type="button" class="btn btn-outline" id="notaPngPlakatNow">🖼 PNG</button>
@@ -6368,11 +6752,46 @@ function openNotaModal(nota, isHistory) {
         </div>
       </div>`;
       host.style.display = 'block';
-      const rebuild = () => buildPlakatHtml(items, mode, getPlakatFields('notaPlakatFields'));
+      // Restore style values
+      Object.keys(savedStyle).forEach(id => {
+        const el = $('#' + id);
+        if (el && savedStyle[id] != null) el.value = savedStyle[id];
+      });
+      // Apply style to current preview sheet
+      const applyStyle = () => {
+        const sheet = host.querySelector('.plakat-sheet');
+        if (sheet && typeof plakatFontStyleAttr === 'function') {
+          sheet.setAttribute('style', 'display:block;' + plakatFontStyleAttr());
+        }
+      };
+      applyStyle();
+      const rebuild = () => {
+        applyStyle();
+        return buildPlakatHtml(items, mode, getPlakatFields('notaPlakatFields'));
+      };
+      const refreshPreviewOnly = () => {
+        const inner = $('#notaPlakatPreviewInner');
+        if (inner) {
+          inner.innerHTML = buildPlakatHtml(items, mode, getPlakatFields('notaPlakatFields'));
+          applyStyle();
+        }
+      };
       $('#notaPrintPlakatNow').onclick = () => printPlakatSheetHtml(rebuild(), 'Plakat Retur', plakatModeLabel(mode, items.length));
       $('#notaPngPlakatNow').onclick = () => exportAnyPlakatPNG(rebuild(), 'Plakat_Retur_' + String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_'));
       $('#notaWordPlakatNow').onclick = () => exportAnyPlakatWord(rebuild(), 'Plakat_Retur_' + String(nota.nomor || todayStr()).replace(/[^\w.-]+/g, '_'));
       $('#notaBackToNota').onclick = () => showNotaView();
+      // Live style controls
+      ['plkFontFamily','plkBodyJustify'].forEach(id => {
+        const el = $('#' + id);
+        if (el) el.onchange = refreshPreviewOnly;
+      });
+      ['plkTitleSize','plkBodySize','plkNameSize','plkRowPad','plkBodyPad','plkLineH'].forEach(id => {
+        const el = $('#' + id);
+        if (el) {
+          el.oninput = refreshPreviewOnly;
+          el.onchange = refreshPreviewOnly;
+        }
+      });
     }
 
     // Switch mode (pisah/gabung) updates preview if open
@@ -7314,7 +7733,9 @@ function paintPlakatItems() {
           </div>
           <div class="form-group" style="margin:0;">
             <label style="font-size:11px;">Satuan</label>
-            <input type="text" class="plk-sat" data-i="${i}" value="${esc(it.satuan||'PCS')}" style="padding:6px 8px;">
+            <select class="plk-sat" data-i="${i}" style="padding:6px 8px;">
+              ${UOM_LIST.map(u => `<option value="${u}"${normalizeUom(it.satuan||'PCS')===u?' selected':''}>${u}</option>`).join('')}
+            </select>
           </div>
         </div>
         <div class="form-group" style="margin-top:6px;margin-bottom:0;">
@@ -7893,7 +8314,7 @@ function bindCetakPlakatEvents() {
         kode: p.kode,
         barcode: p.barcode || '',
         qty: 1,
-        satuan: 'PCS',
+        satuan: normalizeUom(p.satuan || p.uom || 'PCS'),
         note: ''
       });
       paintPlakatItems();
@@ -8086,15 +8507,22 @@ function bindEvents() {
       </div>`;
     $('#returDetailCard').style.display = 'block';
     $('#returQty').value = '';
-    $('#returSatuan').value = 'PCS';
+    const defUom = normalizeUom(p.satuan || p.uom || 'PCS');
+    $('#returSatuan').value = defUom;
+    $$('#satuanChips .chip').forEach(x => x.classList.toggle('active', x.dataset.val === defUom));
     $('#returAlasan').value = '';
     $('#returCatatan').value = '';
   });
   $$('#satuanChips .chip').forEach(c => c.addEventListener('click', () => {
-    $$('#satuanChips .chip').forEach(x=>x.classList.remove('active'));
+    $$('#satuanChips .chip').forEach(x => x.classList.remove('active'));
     c.classList.add('active');
     $('#returSatuan').value = c.dataset.val;
   }));
+  $('#returSatuan')?.addEventListener('change', () => {
+    const v = normalizeUom($('#returSatuan').value);
+    $('#returSatuan').value = v;
+    $$('#satuanChips .chip').forEach(x => x.classList.toggle('active', x.dataset.val === v));
+  });
   $$('#kondisiChips .chip').forEach(c => c.addEventListener('click', () => {
     $$('#kondisiChips .chip').forEach(x=>x.classList.remove('active'));
     c.classList.add('active');
@@ -8107,7 +8535,7 @@ function bindEvents() {
     if (!state.selectedProduct) return showToast('Pilih produk dulu');
     const qty = parseFloat($('#returQty').value);
     if (!qty || qty<=0) return showToast('Isi jumlah');
-    const satuan = ($('#returSatuan').value||'PCS').trim();
+    const satuan = normalizeUom($('#returSatuan').value || 'PCS');
     let alasan = $('#returAlasan').value;
     if (alasan==='__other__') alasan = $('#returAlasanOther').value.trim();
     const kondisi = $('#returKondisi').value || 'Bad';
@@ -8183,7 +8611,7 @@ function bindEvents() {
       kode: state.selectedAudit.kode,
       expDate: exp,
       qty,
-      satuan: ($('#auditSatuan').value||'PCS').trim(),
+      satuan: normalizeUom($('#auditSatuan').value || 'PCS'),
       rak: ($('#auditRak')?.value||'').trim(),
       kondisi: $('#auditKondisi')?.value || 'Good',
       catatan: $('#auditCatatan').value.trim()
@@ -8269,6 +8697,27 @@ function bindEvents() {
     $('#bandingQty').value = '';
     renderBanding();
   };
+
+  // Data Item
+  $('#dataItemSearch')?.addEventListener('input', () => { state.dataItemPage = 0; renderDataItem(); });
+  $('#prevDataItemPage')?.addEventListener('click', () => { state.dataItemPage = (state.dataItemPage || 0) - 1; renderDataItem(); });
+  $('#nextDataItemPage')?.addEventListener('click', () => { state.dataItemPage = (state.dataItemPage || 0) + 1; renderDataItem(); });
+  $('#addDataItemBtn')?.addEventListener('click', () => {
+    if (!can('edit')) return showToast('Tidak punya akses edit');
+    openDataItemModal(null);
+  });
+
+  // Audit UOM chips
+  $$('#auditSatuanChips .chip').forEach(c => c.addEventListener('click', () => {
+    $$('#auditSatuanChips .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    const el = $('#auditSatuan'); if (el) el.value = c.dataset.val;
+  }));
+  $('#auditSatuan')?.addEventListener('change', () => {
+    const v = normalizeUom($('#auditSatuan').value);
+    $('#auditSatuan').value = v;
+    $$('#auditSatuanChips .chip').forEach(x => x.classList.toggle('active', x.dataset.val === v));
+  });
 
   // Master Produk
   $('#produkSearch')?.addEventListener('input', () => { state.produkPage = 0; renderProduk(); });
