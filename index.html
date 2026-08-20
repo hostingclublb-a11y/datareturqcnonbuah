@@ -1158,6 +1158,7 @@ table.data-table .actions { display: flex; gap: 4px; }
             <option value="Good">🟢 Bagus (Good)</option>
             <option value="Bad">🔴 Jelek (Bad)</option>
           </select>
+          <button class="btn btn-outline btn-sm" id="histRestoreBtn" title="Pulihkan dari cache lokal & unggah ke server">♻ Pulihkan Riwayat</button>
           <div class="export-menu">
             <button class="btn btn-outline btn-sm" id="histExportBtn">📤 Export ▾</button>
             <div class="export-dropdown" id="histExportDropdown">
@@ -1570,6 +1571,7 @@ table.data-table .actions { display: flex; gap: 4px; }
           <button class="btn btn-outline btn-sm" id="importProdukBtn"><i data-lucide="file-up"></i> Import Excel</button>
           <input type="file" id="importProdukFile" accept=".xlsx,.xls,.csv" style="display:none;">
           <button class="btn btn-outline btn-sm" id="dedupeProdukBtn" title="Hapus produk dobel berdasarkan kode"><i data-lucide="filter"></i> Bersihkan Duplikat</button>
+          <button class="btn btn-outline btn-sm" id="uploadProdukCloudBtn" title="Unggah semua produk lokal ke server"><i data-lucide="cloud-upload"></i> Unggah ke Server</button>
           <button class="btn btn-primary btn-sm" id="addProdukBtn"><i data-lucide="plus"></i> Tambah Produk</button>
         </div>
         <div class="card">
@@ -2201,40 +2203,142 @@ function cloudSaveAuditList() {
   }, { merge: true }).catch(err => console.warn('[server] audit draft', err));
 }
 
-/** Seed produk ke server sekali (jika koleksi masih kosong) */
+/** Payload produk untuk Firestore (field lengkap termasuk UOM) */
+function productCloudPayload(p, extra) {
+  const satuan = normalizeUom(p.satuan || p.uom || 'PCS');
+  return Object.assign({
+    kode: p.kode,
+    barcode: p.barcode || '',
+    barcodes: p.barcodes || [],
+    nama: p.nama || '',
+    kategori: p.kategori || '',
+    vendor: p.vendor || '',
+    pic: p.pic || '',
+    satuan: satuan,
+    uom: satuan,
+    uomDc: p.uomDc || '',
+    uomStore: p.uomStore || '',
+    konversiStore: p.konversiStore || '',
+    updatedAt: tsNow(),
+    updatedBy: actorName()
+  }, extra || {});
+}
+
+/**
+ * Gabungkan list produk by kode — tidak pernah buang item hanya karena snapshot parsial.
+ * Cloud menang untuk field yang terisi; lokal mengisi yang kosong.
+ */
+function mergeProductLists(localList, cloudList) {
+  const map = new Map();
+  const put = (p, preferCloud) => {
+    if (!p) return;
+    const key = String(p.kode || '').trim().toLowerCase();
+    if (!key) return;
+    const cur = map.get(key);
+    if (!cur) {
+      map.set(key, Object.assign({}, p));
+      return;
+    }
+    // merge field-by-field: keep non-empty, preferCloud for conflicts when both filled
+    const pick = (a, b) => {
+      const av = a != null && String(a).trim() !== '' ? a : '';
+      const bv = b != null && String(b).trim() !== '' ? b : '';
+      if (preferCloud) return bv || av;
+      return av || bv;
+    };
+    map.set(key, {
+      kode: cur.kode || p.kode,
+      nama: pick(cur.nama, p.nama) || pick(p.nama, cur.nama),
+      barcode: preferCloud ? (p.barcode || cur.barcode || '') : (cur.barcode || p.barcode || ''),
+      barcodes: (preferCloud ? (p.barcodes || cur.barcodes) : (cur.barcodes || p.barcodes)) || [],
+      kategori: preferCloud ? (p.kategori || cur.kategori || '') : (cur.kategori || p.kategori || ''),
+      vendor: preferCloud ? (p.vendor || cur.vendor || '') : (cur.vendor || p.vendor || ''),
+      pic: preferCloud ? (p.pic || cur.pic || '') : (cur.pic || p.pic || ''),
+      satuan: normalizeUom(preferCloud ? (p.satuan || p.uom || cur.satuan || cur.uom) : (cur.satuan || cur.uom || p.satuan || p.uom)),
+      uom: normalizeUom(preferCloud ? (p.uom || p.satuan || cur.uom || cur.satuan) : (cur.uom || cur.satuan || p.uom || p.satuan)),
+      uomDc: preferCloud ? (p.uomDc || cur.uomDc || '') : (cur.uomDc || p.uomDc || ''),
+      uomStore: preferCloud ? (p.uomStore || cur.uomStore || '') : (cur.uomStore || p.uomStore || ''),
+      konversiStore: preferCloud ? (p.konversiStore || cur.konversiStore || '') : (cur.konversiStore || p.konversiStore || '')
+    });
+  };
+  (localList || []).forEach(p => put(p, false));
+  (cloudList || []).forEach(p => put(p, true));
+  return Array.from(map.values());
+}
+
+/** Seed / lengkapi produk di server — lanjut unggah jika cloud masih kurang dari seed */
 async function ensureProductsOnServer() {
   if (!requireServer(true)) return;
   try {
-    const snap = await db.collection('products').limit(5).get();
-    if (!snap.empty) {
-      console.log('[server] products sudah ada di cloud');
+    const seed = (typeof window.GUDANGPRO_SEED !== 'undefined') ? window.GUDANGPRO_SEED : null;
+    const seedList = (seed && seed.products) ? seed.products : [];
+    const localList = state.products || [];
+    const source = seedList.length >= localList.length ? seedList : localList;
+    if (!source.length) return;
+
+    // Hitung berapa yang sudah di cloud (sample + count via get — bisa mahal; pakai limit check)
+    let cloudCount = 0;
+    try {
+      const agg = await db.collection('products').get();
+      cloudCount = agg.size;
+    } catch (e) {
+      console.warn('[server] count products', e);
       return;
     }
-    const seed = (typeof window.GUDANGPRO_SEED !== 'undefined') ? window.GUDANGPRO_SEED : null;
-    const list = (seed && seed.products) ? seed.products : (state.products || []);
-    if (!list.length) return;
-    showToast('Mengunggah master produk ke server…');
+    console.log('[server] products cloud:', cloudCount, 'source:', source.length);
+
+    // Jika cloud sudah ≥ 95% source, anggap cukup
+    if (cloudCount >= Math.floor(source.length * 0.95) && cloudCount > 0) {
+      console.log('[server] products cloud sudah lengkap');
+      return;
+    }
+
+    // Unggah yang belum ada / merge
+    showToast('Melengkapi master produk di server… (' + cloudCount + ' → ' + source.length + ')');
+    const existing = new Set();
+    try {
+      const all = await db.collection('products').get();
+      all.forEach(doc => existing.add(String(doc.id).toLowerCase()));
+    } catch (_) {}
+
+    const toUpload = source.filter(p => p && p.kode && !existing.has(String(p.kode).toLowerCase()));
+    // Juga re-upload sebagian field penting untuk yang sudah ada? skip agar cepat — hanya missing
     const BATCH = 400;
-    for (let i = 0; i < list.length; i += BATCH) {
+    let done = 0;
+    for (let i = 0; i < toUpload.length; i += BATCH) {
       const batch = db.batch();
-      list.slice(i, i + BATCH).forEach(p => {
-        if (!p || !p.kode) return;
+      toUpload.slice(i, i + BATCH).forEach(p => {
         const ref = db.collection('products').doc(String(p.kode));
-        batch.set(ref, {
-          kode: p.kode, barcode: p.barcode || '', barcodes: p.barcodes || [],
-          nama: p.nama || '', kategori: p.kategori || '', vendor: p.vendor || '',
-          pic: p.pic || '', seeded: true, updatedAt: tsNow(), updatedBy: 'seed'
-        }, { merge: true });
+        batch.set(ref, productCloudPayload(p, { seeded: true, updatedBy: 'seed' }), { merge: true });
       });
       await batch.commit();
+      done += Math.min(BATCH, toUpload.length - i);
+      if (i % 800 === 0 && i > 0) showToast('Upload produk: ' + done + '/' + toUpload.length);
     }
     if (seed && seed.categories) await cloudSaveCategories(seed.categories);
-    console.log('[server] Seed produk selesai:', list.length);
-    showToast('Master produk tersimpan di server (' + list.length + ' item)');
+    console.log('[server] Seed/lengkapi produk selesai. Missing uploaded:', toUpload.length);
+    showToast('Master produk server dilengkapi (+' + toUpload.length + ' item)');
   } catch (e) {
     console.warn('[server] ensureProducts', e);
   }
 }
+
+/** Admin: paksa unggah SEMUA produk lokal ke cloud (merge) */
+window.forceUploadAllProducts = async function() {
+  if (!isAdmin()) return showToast('Hanya admin');
+  if (!requireServer()) return;
+  const list = dedupeProductsList(state.products || []);
+  if (!list.length) return showToast('Tidak ada produk lokal');
+  showToast('Mengunggah ' + list.length + ' produk ke server…');
+  try {
+    await pushProductsBatch(list);
+    showToast('Selesai unggah ' + list.length + ' produk ☁');
+    logActivity('SYNC', 'Master Produk', 'Force upload ' + list.length + ' produk ke cloud');
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal unggah: ' + (e.message || e));
+  }
+};
 
 /** Listener realtime — semua data dari server */
 function startCloudSync() {
@@ -2256,7 +2360,7 @@ function startCloudSync() {
     fn();
   };
 
-  // Nota Retur — Admin/Induk: semua; DC lain: where dcName == assignedDc
+  // Nota Retur — MERGE cloud + lokal; JANGAN kosongkan riwayat jika snapshot kosong/parsial
   (function subscribeNotaRetur(useScope) {
     const built = useScope
       ? buildDcScopedQuery('notaRetur', 'tanggal', 800)
@@ -2264,14 +2368,18 @@ function startCloudSync() {
     const unsub = built.query.onSnapshot(snap => apply(() => {
       const list = [];
       const pending = state.pendingDeletes || {};
+      const now = Date.now();
+      // Buang pendingDeletes yang sudah > 10 menit (cegah hapus massal tak sengaja)
+      Object.keys(pending).forEach(k => {
+        const t = pending[k];
+        if (typeof t === 'number' && now - t > 10 * 60 * 1000) delete pending[k];
+      });
       snap.forEach(doc => {
         const d = doc.data() || {};
         const key = String(d.nomor || doc.id || '').trim();
         if (!key) return;
-        if (pending[key] || pending[doc.id]) {
-          db.collection('notaRetur').doc(doc.id).delete().catch(() => {});
-          return;
-        }
+        // Hanya sembunyikan di UI — JANGAN auto-delete lagi dari sini (hapus hanya lewat deleteNota)
+        if (pending[key] || pending[doc.id]) return;
         if (!d.nomor) d.nomor = key;
         list.push(d);
       });
@@ -2282,8 +2390,30 @@ function startCloudSync() {
         });
         if (!stillThere) delete pending[k];
       });
-      // Scoped di server → list sudah per-DC; tetap saring client sebagai jaring pengaman
-      state.history = canViewAllDc() ? list : list.filter(h => canAccessDc(h.dcName));
+      try { cacheLocal('pendingDeletes', pending); } catch (_) {}
+
+      // Jika cloud kosong tapi lokal masih ada → PERTAHANKAN lokal (jangan wipe)
+      if (!list.length && (state.history || []).length) {
+        console.warn('[server] nota cloud kosong — pertahankan riwayat lokal:', state.history.length);
+        return;
+      }
+
+      // Merge by nomor: cloud + lokal
+      const map = new Map();
+      (state.history || []).forEach(h => {
+        const k = String(h.nomor || '').trim();
+        if (k && !pending[k]) map.set(k, h);
+      });
+      list.forEach(h => {
+        const k = String(h.nomor || '').trim();
+        if (k) map.set(k, h); // cloud menang
+      });
+      let merged = Array.from(map.values());
+      // Scope DC
+      if (!canViewAllDc()) merged = merged.filter(h => canAccessDc(h.dcName));
+      // Sort terbaru
+      merged.sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')));
+      state.history = merged;
       cacheLocal('history', state.history);
       if (state.page === 'riwayat-retur') renderHistory();
       if (state.page === 'dashboard') renderDashboard();
@@ -2291,7 +2421,6 @@ function startCloudSync() {
       if (state.page === 'laporan-master') renderLaporanMasterData();
     }), err => {
       console.warn('[server] nota', err);
-      // Composite index belum ada → fallback query tanpa where + filter client
       if (useScope && err && (err.code === 'failed-precondition' || /index/i.test(String(err.message || '')))) {
         console.warn('[server] nota: index dcName+tanggal belum ada, fallback client filter');
         showToast('Index Firestore nota belum siap — filter DC sementara di perangkat');
@@ -2301,21 +2430,38 @@ function startCloudSync() {
     syncUnsubs.push(unsub);
   })(true);
 
-  // Products — ambil semua (paginate via multiple listeners jika perlu)
-  // Gunakan query tanpa limit ketat; Firestore onSnapshot default max reasonable
+  // Products — MERGE cloud + lokal; hormati hasil "Bersihkan Duplikat"
   syncUnsubs.push(db.collection('products')
     .onSnapshot(snap => apply(() => {
-      if (snap.empty && state.products.length) return; // jaga seed lokal sampai seed upload selesai
-      const list = [];
+      if (snap.empty && state.products.length) return;
+      const cloudList = [];
+      const removedSet = state._productsRemovedKodes || null;
       snap.forEach(doc => {
         const d = doc.data();
-        if (d && d.kode) list.push(d);
+        if (!d) return;
+        if (!d.kode) d.kode = doc.id;
+        const k = String(d.kode || doc.id || '').toLowerCase();
+        // Skip kode yang baru dihapus saat bersihkan duplikat
+        if (removedSet && removedSet.has(k)) return;
+        if (d.kode) cloudList.push(d);
       });
-      if (list.length) {
-        state.products = list;
-        cacheLocal('products', state.products);
-        if (state.page === 'master-produk') renderProduk();
+      if (!cloudList.length) return;
+      const localBefore = (state.products || []).length;
+      let merged = mergeProductLists(state.products || [], cloudList);
+      // Selalu dedupe nama+kode agar AUTO tidak muncul lagi
+      merged = dedupeProductsList(merged);
+      // Saat lock aktif: jangan biarkan jumlah naik kembali dari cloud dobel
+      if (state._productsLockUntil && Date.now() < state._productsLockUntil) {
+        if (merged.length > (state.products || []).length && (state.products || []).length > 0) {
+          // tetap pakai merge tapi re-dedupe ketat sudah di atas
+        }
       }
+      state.products = merged;
+      cacheLocal('products', state.products);
+      console.log('[server] products snap cloud=', cloudList.length, 'localWas=', localBefore, 'merged=', state.products.length);
+      if (state.page === 'master-produk') renderProduk();
+      if (state.page === 'data-item') renderDataItem();
+      if (state.page === 'dashboard') renderDashboard();
     }), err => console.warn('[server] products', err)));
 
   // Vendor PIC
@@ -7578,89 +7724,179 @@ function handleImportProduk(file) {
   reader.readAsArrayBuffer(file);
 }
 
-/** Rapikan produk: 1 kode = 1 item. Prioritas: punya barcode, kode LB (bukan AUTO-), nama terisi. */
-function dedupeProductsList(list) {
-  const map = new Map();
-  (list || []).forEach(p => {
-    if (!p) return;
-    const key = String(p.kode || p.nama || '').trim().toLowerCase();
-    if (!key) return;
-    const cur = map.get(key);
-    if (!cur) {
-      map.set(key, Object.assign({}, p));
-      return;
-    }
-    // merge: keep best fields
-    const score = (x) => {
-      let s = 0;
-      if (x.barcode) s += 4;
-      if (x.kode && !String(x.kode).startsWith('AUTO-')) s += 3;
-      if (x.vendor) s += 1;
-      if (x.pic) s += 1;
-      if (x.uomDc || x.satuan) s += 1;
-      return s;
-    };
-    const winner = score(p) >= score(cur) ? p : cur;
-    const loser = winner === p ? cur : p;
-    map.set(key, Object.assign({}, loser, winner, {
-      barcode: winner.barcode || loser.barcode || '',
-      vendor: winner.vendor || loser.vendor || '',
-      pic: winner.pic || loser.pic || '',
-      kategori: winner.kategori || loser.kategori || '',
-      satuan: winner.satuan || winner.uom || loser.satuan || loser.uom || 'PCS',
-      uom: winner.uom || winner.satuan || loser.uom || loser.satuan || 'PCS',
-      uomDc: winner.uomDc || loser.uomDc || '',
-      uomStore: winner.uomStore || loser.uomStore || '',
-      konversiStore: winner.konversiStore || loser.konversiStore || '',
-      nama: winner.nama || loser.nama || '',
-      kode: (winner.kode && !String(winner.kode).startsWith('AUTO-')) ? winner.kode
-        : ((loser.kode && !String(loser.kode).startsWith('AUTO-')) ? loser.kode : (winner.kode || loser.kode))
-    }));
-  });
-  return Array.from(map.values());
+function productScore(x) {
+  if (!x) return -1;
+  let s = 0;
+  if (x.barcode) s += 5;
+  if (x.kode && !String(x.kode).toUpperCase().startsWith('AUTO-')) s += 4;
+  if (x.vendor) s += 1;
+  if (x.pic) s += 1;
+  if (x.uomDc || x.satuan || x.uom) s += 1;
+  if (x.nama) s += 1;
+  return s;
 }
 
-window.dedupeMasterProduk = function() {
+function mergeTwoProducts(a, b) {
+  const winner = productScore(a) >= productScore(b) ? a : b;
+  const loser = winner === a ? b : a;
+  const realKode = (k) => k && !String(k).toUpperCase().startsWith('AUTO-');
+  const kode = realKode(winner.kode) ? winner.kode : (realKode(loser.kode) ? loser.kode : (winner.kode || loser.kode));
+  return {
+    kode,
+    nama: winner.nama || loser.nama || '',
+    barcode: winner.barcode || loser.barcode || '',
+    barcodes: winner.barcodes || loser.barcodes || [],
+    vendor: winner.vendor || loser.vendor || '',
+    pic: winner.pic || loser.pic || '',
+    kategori: winner.kategori || loser.kategori || '',
+    satuan: normalizeUom(winner.satuan || winner.uom || loser.satuan || loser.uom || 'PCS'),
+    uom: normalizeUom(winner.uom || winner.satuan || loser.uom || loser.satuan || 'PCS'),
+    uomDc: winner.uomDc || loser.uomDc || '',
+    uomStore: winner.uomStore || loser.uomStore || '',
+    konversiStore: winner.konversiStore || loser.konversiStore || ''
+  };
+}
+
+function normNamaKey(n) {
+  return String(n || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^\w\s]/gi, '');
+}
+
+/**
+ * Rapikan produk agresif:
+ * 1) 1 kode = 1 item
+ * 2) Nama sama (normalisasi) digabung — prioritas kode LB + barcode
+ * Mengembalikan { list, removedKodes }
+ */
+function dedupeProductsListDetailed(list) {
+  const removedKodes = [];
+  // Pass 1: by kode
+  const byKode = new Map();
+  (list || []).forEach(p => {
+    if (!p) return;
+    const key = String(p.kode || '').trim().toLowerCase();
+    if (!key) return;
+    if (!byKode.has(key)) byKode.set(key, Object.assign({}, p));
+    else {
+      const prev = byKode.get(key);
+      byKode.set(key, mergeTwoProducts(prev, p));
+    }
+  });
+  // Pass 2: by nama — gabung AUTO dengan LB yang nama sama
+  const byNama = new Map();
+  byKode.forEach((p, kodeKey) => {
+    const nk = normNamaKey(p.nama);
+    if (!nk) {
+      byNama.set('__kode__' + kodeKey, p);
+      return;
+    }
+    if (!byNama.has(nk)) {
+      byNama.set(nk, p);
+      return;
+    }
+    const cur = byNama.get(nk);
+    const merged = mergeTwoProducts(cur, p);
+    // kode yang kalah dicatat untuk dihapus di cloud
+    const curK = String(cur.kode || '').trim();
+    const pK = String(p.kode || '').trim();
+    const keepK = String(merged.kode || '').trim();
+    if (curK && curK !== keepK) removedKodes.push(curK);
+    if (pK && pK !== keepK) removedKodes.push(pK);
+    byNama.set(nk, merged);
+  });
+  const out = Array.from(byNama.values());
+  // kode yang tidak ada di hasil akhir = removed
+  const keep = new Set(out.map(p => String(p.kode || '').trim().toLowerCase()));
+  byKode.forEach((p, k) => {
+    if (!keep.has(k)) removedKodes.push(p.kode || k);
+  });
+  return {
+    list: out,
+    removedKodes: Array.from(new Set(removedKodes.map(k => String(k).trim()).filter(Boolean)))
+  };
+}
+
+function dedupeProductsList(list) {
+  return dedupeProductsListDetailed(list).list;
+}
+
+/** Hapus dokumen produk di cloud (batch) */
+async function deleteProductsFromCloud(kodes) {
+  if (!firebaseReady || !db || !kodes || !kodes.length) return 0;
+  const CHUNK = 400;
+  let n = 0;
+  for (let i = 0; i < kodes.length; i += CHUNK) {
+    const batch = db.batch();
+    kodes.slice(i, i + CHUNK).forEach(kode => {
+      batch.delete(db.collection('products').doc(String(kode)));
+    });
+    await batch.commit();
+    n += Math.min(CHUNK, kodes.length - i);
+  }
+  return n;
+}
+
+window.dedupeMasterProduk = async function() {
   if (!can('edit') && !isAdmin()) return showToast('Tidak punya akses');
   const before = (state.products || []).length;
-  state.products = dedupeProductsList(state.products);
+  if (!before) return showToast('Tidak ada produk');
+
+  showToast('Membersihkan duplikat…');
+  const { list, removedKodes } = dedupeProductsListDetailed(state.products);
+  state.products = list;
+  // Cegah snapshot cloud mengembalikan item dobel sebentar
+  state._productsLockUntil = Date.now() + 20000;
+  state._productsRemovedKodes = new Set(removedKodes.map(k => String(k).toLowerCase()));
+
   const after = state.products.length;
   const cats = new Set();
   state.products.forEach(p => { if (p.kategori) cats.add(p.kategori); });
   if (cats.size) state.categories = Array.from(cats).sort();
-  try { storage.set('products', state.products); storage.set('categories', state.categories); } catch (_) {}
-  logActivity('CLEAN', 'Master Produk', `Duplikat dibersihkan: ${before} → ${after}`);
-  showToast(`Selesai: ${before} → ${after} produk (hapus ${before - after} dobel)`);
+  try {
+    storage.set('products', state.products);
+    storage.set('categories', state.categories);
+  } catch (_) {}
+
+  const removed = before - after;
+  logActivity('CLEAN', 'Master Produk', `Duplikat: ${before} → ${after} (hapus ${removed})`);
+  showToast(removed > 0
+    ? `Selesai: ${before} → ${after} (hapus ${removed} dobel)`
+    : `Tidak ada duplikat kode/nama. Total tetap ${after}`);
+
   renderProduk();
   if (typeof renderDataItem === 'function') renderDataItem();
   if (typeof renderDashboard === 'function') renderDashboard();
-  // optional cloud: push cleaned set in background
-  if (firebaseReady && db && state.products.length) {
-    pushProductsBatch(state.products).then(() => showToast('Cloud disinkronkan ☁')).catch(() => {});
+
+  // Cloud: hapus kode yang kalah + unggah hasil bersih
+  if (firebaseReady && db) {
+    try {
+      if (removedKodes.length) {
+        showToast('Menghapus ' + removedKodes.length + ' duplikat di server…');
+        await deleteProductsFromCloud(removedKodes);
+      }
+      await pushProductsBatch(state.products);
+      showToast('Server sudah diselaraskan ☁ · ' + after + ' produk');
+    } catch (e) {
+      console.warn('[dedupe cloud]', e);
+      showToast('Lokal bersih, tapi sync cloud gagal: ' + (e.message || e));
+    }
   }
 };
 
 /** Dorong banyak produk ke Firestore sekaligus pakai batch write (maks 450/batch, limit Firestore 500). */
 async function pushProductsBatch(products) {
   if (!firebaseReady || !db || !products || !products.length) return;
-  const CHUNK = 450;
+  const CHUNK = 400;
   for (let i = 0; i < products.length; i += CHUNK) {
     const chunk = products.slice(i, i + CHUNK);
     const batch = db.batch();
     chunk.forEach(p => {
       if (!p || !p.kode) return;
       const ref = db.collection('products').doc(String(p.kode));
-      batch.set(ref, {
-        kode: p.kode,
-        barcode: p.barcode || '',
-        barcodes: p.barcodes || [],
-        nama: p.nama || '',
-        kategori: p.kategori || '',
-        vendor: p.vendor || '',
-        pic: p.pic || '',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedBy: state.user ? (state.user.name || state.user.username) : 'unknown'
-      }, { merge: true });
+      const payload = productCloudPayload(p);
+      try {
+        payload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      } catch (_) {}
+      batch.set(ref, payload, { merge: true });
     });
     await batch.commit();
   }
@@ -7874,12 +8110,81 @@ function loadState() {
   state.dcName = storage.get('dcName', 'DC INDUK');
   state.sysName = storage.get('sysName', 'DC NONBUAH');
   state.pendingDeletes = storage.get('pendingDeletes', {}) || {};
-  // Saring nota yang sudah ditandai hapus
+  // Hapus pendingDeletes kadaluarsa (> 10 menit) agar nota tidak "hilang" permanen di UI
+  {
+    const now = Date.now();
+    let changed = false;
+    Object.keys(state.pendingDeletes || {}).forEach(k => {
+      const t = state.pendingDeletes[k];
+      if (typeof t !== 'number' || now - t > 10 * 60 * 1000) {
+        delete state.pendingDeletes[k];
+        changed = true;
+      }
+    });
+    if (changed) {
+      try { storage.set('pendingDeletes', state.pendingDeletes); } catch (_) {}
+    }
+  }
+  // Saring nota yang masih pending hapus (baru saja)
   if (state.pendingDeletes && Object.keys(state.pendingDeletes).length) {
     state.history = state.history.filter(h => !state.pendingDeletes[String(h.nomor || '').trim()]);
   }
   // Scope DC diterapkan setelah user login (enterApp) — di sini belum ada user
 }
+
+/** Pulihkan riwayat dari cache lokal / hapus flag pendingDeletes yang menyembunyikan nota */
+window.restoreRiwayatRetur = function() {
+  try {
+    // 1) Bersihkan pendingDeletes yang mungkin menyembunyikan semua nota
+    state.pendingDeletes = {};
+    storage.set('pendingDeletes', {});
+
+    // 2) Baca ulang dari localStorage
+    const local = storage.get('history', []);
+    if (Array.isArray(local) && local.length) {
+      const map = new Map();
+      (state.history || []).forEach(h => {
+        const k = String(h.nomor || '').trim();
+        if (k) map.set(k, h);
+      });
+      local.forEach(h => {
+        const k = String(h.nomor || '').trim();
+        if (k && !map.has(k)) map.set(k, h);
+      });
+      state.history = Array.from(map.values());
+      storage.set('history', state.history);
+      showToast('Riwayat dipulihkan dari cache: ' + state.history.length + ' nota');
+    } else if ((state.history || []).length) {
+      showToast('Riwayat lokal masih ada: ' + state.history.length + ' nota');
+    } else {
+      showToast('Cache lokal kosong. Cek Firebase Console → notaRetur, atau import backup.');
+    }
+
+    // 3) Coba push lokal ke cloud jika admin & ada data
+    if (firebaseReady && db && (state.history || []).length && isAdmin()) {
+      showToast('Mengunggah ulang riwayat ke server…');
+      const list = state.history.slice();
+      (async () => {
+        for (const nota of list) {
+          if (!nota || !nota.nomor) continue;
+          try {
+            await cloudSaveNota(nota);
+          } catch (e) {
+            console.warn('[restore] save nota', nota.nomor, e);
+          }
+        }
+        showToast('Selesai unggah ' + list.length + ' nota ke server ☁');
+      })();
+    }
+
+    if (typeof renderHistory === 'function') renderHistory();
+    if (typeof renderDashboard === 'function') renderDashboard();
+    logActivity('RESTORE', 'Riwayat Retur', 'Pulihkan riwayat: ' + (state.history || []).length + ' nota');
+  } catch (e) {
+    console.error(e);
+    showToast('Gagal pulihkan: ' + (e.message || e));
+  }
+};
 
 
 // -------------------- CETAK PLAKAT SERBAGUNA --------------------
@@ -8785,6 +9090,10 @@ function bindEvents() {
     if (el) el.addEventListener('input', renderHistory);
     if (el) el.addEventListener('change', renderHistory);
   });
+  $('#histRestoreBtn')?.addEventListener('click', () => {
+    if (!confirm('Pulihkan riwayat retur dari cache perangkat?\nFlag hapus sementara dibersihkan, lalu data diunggah ulang ke server (admin).')) return;
+    restoreRiwayatRetur();
+  });
 
   // Audit
   attachSearch('#auditSearch', '#auditSuggest', (p) => {
@@ -8941,8 +9250,13 @@ function bindEvents() {
   });
   $('#addProdukBtn').onclick = () => showToast('Gunakan Import Excel untuk menambah banyak produk');
   $('#dedupeProdukBtn')?.addEventListener('click', () => {
-    if (!confirm('Bersihkan produk dobel berdasarkan KODE?\nItem dengan barcode/vendor akan diutamakan.')) return;
+    if (!confirm('Bersihkan produk dobel?\n• Kode sama digabung\n• Nama sama digabung (AUTO digabung ke kode LB)\n• Duplikat dihapus juga di server')) return;
     dedupeMasterProduk();
+  });
+  $('#uploadProdukCloudBtn')?.addEventListener('click', () => {
+    if (!isAdmin()) return showToast('Hanya admin yang bisa unggah massal ke server');
+    if (!confirm('Unggah SEMUA produk di perangkat ini ke server?\nData cloud digabung (merge), tidak dihapus.')) return;
+    forceUploadAllProducts();
   });
 
   // Kategori
