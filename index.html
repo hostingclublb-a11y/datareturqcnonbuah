@@ -5308,7 +5308,7 @@ function paintUsers(list) {
         ? '<span class="badge badge-danger">locked</span>'
         : '<span class="badge badge-success">active</span>');
 
-    const roleSelect = `<select class="user-role-select" data-id="${esc(docId)}" style="padding:6px 8px;font-size:12px;border-radius:8px;border:1.5px solid var(--border);max-width:150px;">
+    const roleSelect = `<select class="user-role-select" data-id="${esc(docId)}" style="padding:6px 8px;font-size:12px;border-radius:8px;border:1.5px solid var(--border);min-width:130px;max-width:180px;background:#fff;color:#0f172a;">
           ${ROLE_LIST.map(r => `<option value="${r}" ${role === r ? 'selected' : ''}>${r}</option>`).join('')}
           <option value="pending" ${role === 'pending' ? 'selected' : ''}>pending</option>
         </select>`;
@@ -5372,6 +5372,15 @@ function paintUsers(list) {
       const sel = row && row.querySelector('.user-dc-select');
       if (sel) return setUserDc(id, sel.value);
     }
+  };
+  // Auto-simpan role/DC saat dropdown diubah (mobile-friendly)
+  tbody.onchange = async (e) => {
+    const sel = e.target.closest('select.user-role-select, select.user-dc-select');
+    if (!sel) return;
+    const id = sel.getAttribute('data-id');
+    if (!id) return;
+    if (sel.classList.contains('user-role-select')) return setUserRole(id, sel.value);
+    if (sel.classList.contains('user-dc-select')) return setUserDc(id, sel.value);
   };
 }
 
@@ -5908,9 +5917,22 @@ function attachSearch(inputId, suggestId, onSelect) {
   if (!input || !suggest) return;
   let debounceTimer = null;
 
+  // Selalu sembunyikan dulu — baru muncul setelah user mengetik
+  suggest.style.display = 'none';
+  suggest.innerHTML = '';
+  if (input.parentElement && getComputedStyle(input.parentElement).position === 'static') {
+    input.parentElement.style.position = 'relative';
+  }
+
+  const hideSuggest = () => {
+    suggest.style.display = 'none';
+    suggest.innerHTML = '';
+  };
+
   const doSearch = () => {
     const term = input.value.trim();
-    if (term.length < 1) { suggest.style.display='none'; return; }
+    // Minimal 1 karakter; kosong = sembunyikan total
+    if (term.length < 1) { hideSuggest(); return; }
     const results = searchProducts(term);
 
     // Auto-select exact barcode / kode (scan mode)
@@ -5923,7 +5945,7 @@ function attachSearch(inputId, suggestId, onSelect) {
       const exactKode = p.kode && String(p.kode).toLowerCase() === t;
       if (exactBc || exactKode) {
         onSelect(p);
-        suggest.style.display = 'none';
+        hideSuggest();
         input.value = '';
         return;
       }
@@ -5944,22 +5966,29 @@ function attachSearch(inputId, suggestId, onSelect) {
 
   input.addEventListener('input', () => {
     clearTimeout(debounceTimer);
+    if (!input.value.trim()) { hideSuggest(); return; }
     debounceTimer = setTimeout(doSearch, 80);
   });
+  input.addEventListener('focus', () => {
+    // Jangan tampilkan daftar saat focus kosong
+    if (!input.value.trim()) hideSuggest();
+  });
   input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { hideSuggest(); return; }
     if (e.key === 'Enter') {
       e.preventDefault();
       clearTimeout(debounceTimer);
       const term = input.value.trim();
-      if (!term) return;
+      if (!term) { hideSuggest(); return; }
       const results = searchProducts(term, 5);
       if (results.length === 1) {
         onSelect(results[0]);
-        suggest.style.display = 'none';
+        hideSuggest();
         input.value = '';
       } else if (results.length > 1) {
         doSearch();
       } else {
+        hideSuggest();
         showToast('Produk tidak ditemukan');
       }
     }
@@ -5969,11 +5998,11 @@ function attachSearch(inputId, suggestId, onSelect) {
     if (!item || !item.dataset.kode) return;
     const p = state.products.find(x => x.kode === item.dataset.kode);
     if (p) onSelect(p);
-    suggest.style.display = 'none';
+    hideSuggest();
     input.value = '';
   });
   document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !suggest.contains(e.target)) suggest.style.display='none';
+    if (!input.contains(e.target) && !suggest.contains(e.target)) hideSuggest();
   });
 }
 
@@ -7373,9 +7402,13 @@ function openNotaEditModal(nota) {
     }, 50);
   }
 
+  if (suggestBox) { suggestBox.style.display = 'none'; suggestBox.innerHTML = ''; }
   searchInput.addEventListener('input', () => {
     const term = searchInput.value.trim();
-    if (term.length < 1) { suggestBox.style.display = 'none'; return; }
+    if (term.length < 1) {
+      if (suggestBox) { suggestBox.style.display = 'none'; suggestBox.innerHTML = ''; }
+      return;
+    }
     const results = searchProducts(term).slice(0, 15);
     suggestBox.innerHTML = results.length
       ? results.map(p => `
@@ -7385,6 +7418,12 @@ function openNotaEditModal(nota) {
           </div>`).join('')
       : '<div class="suggest-item"><div class="meta">Tidak ditemukan</div></div>';
     suggestBox.style.display = 'block';
+  });
+  searchInput.addEventListener('focus', () => {
+    if (!searchInput.value.trim() && suggestBox) {
+      suggestBox.style.display = 'none';
+      suggestBox.innerHTML = '';
+    }
   });
   suggestBox.addEventListener('click', e => {
     const el = e.target.closest('.suggest-item');
@@ -8836,7 +8875,7 @@ function bindEvents() {
     showAuthCard('login');
   });
 
-  // Login — admin Firebase OR Firebase OR local
+  // Login — Auth DULU (tanpa Firestore). Firestore hanya setelah berhasil login.
   $('#loginBtn').onclick = async () => {
     const u = ($('#loginUser').value || '').trim();
     const p = ($('#loginPass').value || '').trim();
@@ -8847,68 +8886,141 @@ function bindEvents() {
       $('#loginError').textContent = 'Isi username dan password';
       return;
     }
-
-    // SECURITY: no client-side admin Firebase and no local-password fallback.
-    // All authentication must be verified by Firebase Authentication.
-
-    // 3) Firebase Auth (email or username lookup)
-    if (firebaseReady && auth && db) {
-      try {
-        let email = u;
-        if (!u.includes('@')) {
-          // lookup username → email di Firestore
-          const qs = await db.collection('users').where('username', '==', u).limit(1).get();
-          if (qs.empty) {
-            // coba case-insensitive via all (kecil)
-            const all = await db.collection('users').limit(200).get();
-            let found = null;
-            all.forEach(doc => {
-              const d = doc.data();
-              if ((d.username || '').toUpperCase() === u.toUpperCase()) found = d;
-            });
-            if (!found || !found.email) throw new Error('NIK tidak ditemukan');
-            email = found.email;
-          } else {
-            email = qs.docs[0].data().email;
-          }
-        }
-        const cred = await auth.signInWithEmailAndPassword(email, p);
-        const uref = await db.collection('users').doc(cred.user.uid).get();
-        const profile = uref.exists ? uref.data() : {};
-        const role = normalizeRole(profile.role || 'pending');
-        if (role === 'pending' || profile.locked) {
-          await auth.signOut();
-          showAuthCard('pending');
-          return;
-        }
-        state.user = {
-          uid: cred.user.uid,
-          name: profile.name || cred.user.email,
-          username: profile.username || u,
-          email: cred.user.email,
-          role: role,
-          assignedDc: profile.assignedDc || 'DC INDUK'
-          };
-        storage.set('session', null);
-        if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
-          state.dcName = state.user.assignedDc;
-          cacheLocal('dcName', state.dcName);
-        }
-        enterApp();
-        logActivity('LOGIN', 'Sistem', state.user.name + ' masuk (Firebase) · ' + role);
-        return;
-      } catch (err) {
-        console.error(err);
-        $('#loginError').style.display = 'block';
-        $('#loginError').textContent = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password'
-          ? 'NIK atau password salah'
-          : (err.message || 'Gagal login');
-        return;
-      }
+    if (!firebaseReady || !auth) {
+      $('#loginError').style.display = 'block';
+      $('#loginError').textContent = 'Firebase belum siap — cek koneksi & refresh';
+      return;
     }
 
-    $('#loginError').style.display = 'block';
-    $('#loginError').textContent = 'NIK atau password salah';
+    const showLoginErr = (msg) => {
+      $('#loginError').style.display = 'block';
+      // Jangan tampilkan teks mentah Firestore ke user
+      if (/permission|insufficient|Missing or insufficient/i.test(String(msg || ''))) {
+        $('#loginError').textContent = 'Login ditolak server. Coba pakai EMAIL lengkap (contoh: nama@gmail.com), bukan NIK/username saja.';
+        return;
+      }
+      $('#loginError').textContent = msg || 'Gagal login';
+    };
+
+    try {
+      // 1) Kandidat email murni — TANPA query Firestore (ini penyebab permission-denied)
+      const candidates = [];
+      if (u.includes('@')) {
+        candidates.push(u.trim());
+      } else {
+        const raw = u.trim();
+        candidates.push(raw + '@nik.retur.local');
+        candidates.push(raw.toLowerCase() + '@nik.retur.local');
+        candidates.push(raw.toUpperCase() + '@nik.retur.local');
+        // pola lain yang kadang dipakai
+        candidates.push(raw + '@retur.local');
+        candidates.push(raw.toLowerCase() + '@gmail.com');
+      }
+
+      let cred = null;
+      let lastAuthErr = null;
+      const tried = new Set();
+      for (const email of candidates) {
+        const key = String(email || '').toLowerCase();
+        if (!key || tried.has(key)) continue;
+        tried.add(key);
+        try {
+          cred = await auth.signInWithEmailAndPassword(email, p);
+          break;
+        } catch (ae) {
+          lastAuthErr = ae;
+          if (ae.code === 'auth/user-not-found' || ae.code === 'auth/invalid-email') continue;
+          if (ae.code === 'auth/wrong-password' || ae.code === 'auth/invalid-credential') {
+            // Password salah untuk email ini — kalau input sudah email, stop
+            if (u.includes('@')) break;
+            continue;
+          }
+          // error lain (network dll) — stop
+          break;
+        }
+      }
+
+      if (!cred) {
+        const code = lastAuthErr && lastAuthErr.code;
+        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          showLoginErr('Password salah. Atau login pakai EMAIL lengkap yang terdaftar (bukan NIK).');
+        } else {
+          showLoginErr('Akun tidak ditemukan dengan NIK/username itu. Login pakai EMAIL (lihat Master User), atau hubungi admin.');
+        }
+        return;
+      }
+
+      // 2) Baca profil — gagal pun tetap boleh masuk
+      let profile = {};
+      if (db) {
+        try {
+          const uref = await db.collection('users').doc(cred.user.uid).get();
+          if (uref.exists) profile = uref.data() || {};
+        } catch (pe) {
+          console.warn('[login] profil tidak terbaca (lanjut):', pe.code || pe.message);
+          profile = {};
+        }
+      }
+
+      const rawRole = profile.role;
+      let role;
+      if (String(rawRole || '').toLowerCase() === 'pending') {
+        await auth.signOut();
+        showAuthCard('pending');
+        return;
+      }
+      if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '') {
+        role = 'Anggota Tim';
+      } else {
+        role = normalizeRole(rawRole);
+      }
+      if (role === 'pending') {
+        await auth.signOut();
+        showAuthCard('pending');
+        return;
+      }
+      if (profile.locked) {
+        await auth.signOut();
+        showLoginErr('Akun dikunci admin. Hubungi Administrator.');
+        return;
+      }
+
+      // Tulis role default jika kosong (abaikan error rules)
+      if (db && (rawRole === undefined || rawRole === null || String(rawRole).trim() === '')) {
+        try {
+          await db.collection('users').doc(cred.user.uid).set({
+            role: toFirestoreRole('Anggota Tim'),
+            email: cred.user.email || '',
+            username: profile.username || u,
+            name: profile.name || '',
+            assignedDc: profile.assignedDc || 'DC INDUK',
+            updatedAt: tsNow()
+          }, { merge: true });
+        } catch (_) {}
+      }
+
+      state.user = {
+        uid: cred.user.uid,
+        name: profile.name || cred.user.email || u,
+        username: profile.username || u,
+        email: cred.user.email,
+        role: role,
+        assignedDc: profile.assignedDc || 'DC INDUK',
+        locked: false
+      };
+      storage.set('session', null);
+      if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
+        state.dcName = state.user.assignedDc;
+        cacheLocal('dcName', state.dcName);
+      }
+      enterApp();
+      try {
+        logActivity('LOGIN', 'Sistem', state.user.name + ' masuk (Firebase) · ' + role);
+      } catch (_) {}
+    } catch (err) {
+      console.error('[login]', err);
+      showLoginErr(err.message || 'Gagal login');
+    }
   };
 
   // Register
