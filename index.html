@@ -2176,28 +2176,66 @@ function cloudSaveActivity(entry) {
 }
 
 // -------------------- DRAFT REALTIME (cart + auditList) --------------------
-// Draft dibagikan per DC agar browser/HP berbeda melihat daftar yang sama.
+// Draft & keranjang TERPISAH per DC — DC SNACK tidak berbagi dengan DC FROZEN/dll.
 let draftApplying = false;
+/** DC efektif untuk data operasional (retur/audit/draft) */
+function effectiveDcName() {
+  if (state.user && !isAdmin() && !isIndukDc(state.user.assignedDc)) {
+    return String(state.user.assignedDc || state.dcName || 'DC INDUK').trim();
+  }
+  return String(state.dcName || 'DC INDUK').trim();
+}
 function draftDocId(kind) {
-  const dc = String(state.dcName || 'DC').replace(/[^\w.-]+/g, '_').slice(0, 48) || 'DC';
+  const dc = String(effectiveDcName() || 'DC').replace(/[^\w.-]+/g, '_').slice(0, 48) || 'DC';
   return kind + '_' + dc;
+}
+function cartLocalKey() {
+  return 'cart__' + String(effectiveDcName() || 'DC').replace(/[^\w.-]+/g, '_');
+}
+function auditListLocalKey() {
+  return 'auditList__' + String(effectiveDcName() || 'DC').replace(/[^\w.-]+/g, '_');
+}
+/** Muat keranjang/audit lokal khusus DC aktif (isolasi antar DC di 1 perangkat) */
+function loadLocalDraftsForDc() {
+  try {
+    state.cart = storage.get(cartLocalKey(), []) || [];
+  } catch (_) { state.cart = []; }
+  try {
+    state.auditList = storage.get(auditListLocalKey(), []) || [];
+  } catch (_) { state.auditList = []; }
+  // jaga kompatibilitas key lama
+  try { storage.set('cart', state.cart); storage.set('auditList', state.auditList); } catch (_) {}
+}
+function saveLocalCart() {
+  try {
+    storage.set(cartLocalKey(), state.cart || []);
+    storage.set('cart', state.cart || []);
+  } catch (_) {}
+}
+function saveLocalAuditList() {
+  try {
+    storage.set(auditListLocalKey(), state.auditList || []);
+    storage.set('auditList', state.auditList || []);
+  } catch (_) {}
 }
 function cloudSaveCart() {
   if (!requireServer(true) || draftApplying) return Promise.resolve();
+  const dc = effectiveDcName();
   const clean = JSON.parse(JSON.stringify(state.cart || []));
   return db.collection('drafts').doc(draftDocId('cart')).set({
     items: clean,
-    dcName: state.dcName || '',
+    dcName: dc,
     updatedAt: tsNow(),
     updatedBy: actorName()
   }, { merge: true }).catch(err => console.warn('[server] cart draft', err));
 }
 function cloudSaveAuditList() {
   if (!requireServer(true) || draftApplying) return Promise.resolve();
+  const dc = effectiveDcName();
   const clean = JSON.parse(JSON.stringify(state.auditList || []));
   return db.collection('drafts').doc(draftDocId('audit')).set({
     items: clean,
-    dcName: state.dcName || '',
+    dcName: dc,
     updatedAt: tsNow(),
     updatedBy: actorName()
   }, { merge: true }).catch(err => console.warn('[server] audit draft', err));
@@ -2398,21 +2436,32 @@ function startCloudSync() {
         return;
       }
 
-      // Merge by nomor: cloud + lokal
+      // Merge by nomor: cloud + lokal — JANGAN kurangi item nota yang sudah ada
       const map = new Map();
+      const preferNota = (a, b) => {
+        // pilih yang lebih lengkap / lebih baru agar data tersimpan tidak hilang
+        const aN = Array.isArray(a.items) ? a.items.length : 0;
+        const bN = Array.isArray(b.items) ? b.items.length : 0;
+        if (bN !== aN) return bN > aN ? b : a;
+        const aT = String(a.updatedAt || a.createdAt || a.tanggalLabel || a.tanggal || '');
+        const bT = String(b.updatedAt || b.createdAt || b.tanggalLabel || b.tanggal || '');
+        return bT >= aT ? b : a;
+      };
       (state.history || []).forEach(h => {
         const k = String(h.nomor || '').trim();
         if (k && !pending[k]) map.set(k, h);
       });
       list.forEach(h => {
         const k = String(h.nomor || '').trim();
-        if (k) map.set(k, h); // cloud menang
+        if (!k) return;
+        const prev = map.get(k);
+        map.set(k, prev ? preferNota(prev, h) : h);
       });
       let merged = Array.from(map.values());
-      // Scope DC
+      // Scope DC ketat: anggota hanya DC penempatannya
       if (!canViewAllDc()) merged = merged.filter(h => canAccessDc(h.dcName));
       // Sort terbaru
-      merged.sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')));
+      merged.sort((a, b) => String(b.tanggalLabel || b.tanggal || '').localeCompare(String(a.tanggalLabel || a.tanggal || '')));
       state.history = merged;
       cacheLocal('history', state.history);
       if (state.page === 'riwayat-retur') renderHistory();
@@ -2634,34 +2683,46 @@ function startCloudSync() {
     }));
 
 
-  // Draft keranjang retur (per DC) — realtime antar browser/HP
-  syncUnsubs.push(db.collection('drafts').doc(draftDocId('cart'))
+  // Draft keranjang retur (per DC) — realtime hanya dalam DC yang sama
+  const cartDraftId = draftDocId('cart');
+  const auditDraftId = draftDocId('audit');
+  console.log('[server] subscribe drafts', cartDraftId, auditDraftId);
+  syncUnsubs.push(db.collection('drafts').doc(cartDraftId)
     .onSnapshot(doc => apply(() => {
-      if (!doc.exists) return;
+      // Abaikan jika user sudah pindah DC (doc id tidak match)
+      if (draftDocId('cart') !== cartDraftId) return;
+      if (!doc.exists) {
+        // Cloud kosong untuk DC ini — jangan timpa jika lokal sudah di-load per-DC
+        return;
+      }
       const d = doc.data() || {};
+      // Tolak data cloud yang dcName-nya beda
+      if (d.dcName && normDc(d.dcName) !== normDc(effectiveDcName()) && !canViewAllDc()) return;
       const items = Array.isArray(d.items) ? d.items : [];
       try {
         if (JSON.stringify(items) === JSON.stringify(state.cart || [])) return;
       } catch (e) {}
       draftApplying = true;
       state.cart = items;
-      cacheLocal('cart', state.cart);
+      saveLocalCart();
       try { if (typeof renderCart === 'function') renderCart(); } catch (e) {}
       draftApplying = false;
     }), err => console.warn('[server] cart draft', err)));
 
-  // Draft list audit aktif (per DC) — realtime antar browser/HP
-  syncUnsubs.push(db.collection('drafts').doc(draftDocId('audit'))
+  // Draft list audit aktif (per DC)
+  syncUnsubs.push(db.collection('drafts').doc(auditDraftId)
     .onSnapshot(doc => apply(() => {
+      if (draftDocId('audit') !== auditDraftId) return;
       if (!doc.exists) return;
       const d = doc.data() || {};
+      if (d.dcName && normDc(d.dcName) !== normDc(effectiveDcName()) && !canViewAllDc()) return;
       const items = Array.isArray(d.items) ? d.items : [];
       try {
         if (JSON.stringify(items) === JSON.stringify(state.auditList || [])) return;
       } catch (e) {}
       draftApplying = true;
       state.auditList = items;
-      cacheLocal('auditList', state.auditList);
+      saveLocalAuditList();
       try { if (typeof renderAuditList === 'function') renderAuditList(); } catch (e) {}
       draftApplying = false;
     }), err => console.warn('[server] audit draft', err)));
@@ -2701,8 +2762,9 @@ async function bootstrapServer() {
     } else {
       for (const w of state.warehouses) await cloudSaveWarehouse(w);
     }
-    // Seed draft lokal ke cloud jika dokumen draft belum ada
+    // Seed draft lokal ke cloud HANYA untuk DC aktif, jika dokumen belum ada
     try {
+      loadLocalDraftsForDc();
       const cartDoc = await db.collection('drafts').doc(draftDocId('cart')).get();
       if (!cartDoc.exists && (state.cart || []).length) await cloudSaveCart();
       const auditDoc = await db.collection('drafts').doc(draftDocId('audit')).get();
@@ -2902,7 +2964,13 @@ function canViewAllDc() {
 /** Apakah user boleh mengakses data DC tertentu */
 function canAccessDc(dcName) {
   if (canViewAllDc()) return true;
-  return normDc(dcName) === normDc(userAssignedDc());
+  const a = normDc(userAssignedDc());
+  const b = normDc(dcName);
+  if (!b) return false; // data tanpa DC: hanya Admin/Induk
+  if (a === b) return true;
+  // toleransi penulisan: "DC SNACK" vs "SNACK" / "DC-SNACK"
+  const strip = (s) => s.replace(/^DC\s+/, '').replace(/[-\s]+/g, '');
+  return strip(a) === strip(b);
 }
 
 /**
@@ -2960,7 +3028,7 @@ function logActivity(action, module, detail, extra={}) {
     tanggal: todayStr(),
     user: state.user ? state.user.name : 'Lokal',
     role: state.user ? state.user.role : 'Guest',
-    dcName: state.dcName || '',
+    dcName: effectiveDcName(),
     action, module, detail,
     ...extra
   };
@@ -4041,7 +4109,7 @@ window.editCartItem = function(id) {
     if (k === 'bagus' || k === 'good' || k === 'g' || k === 'b') it.kondisi = 'Good';
     else if (k === 'jelek' || k === 'bad' || k === 'j' || k === 'rusak') it.kondisi = 'Bad';
   }
-  storage.set('cart', state.cart);
+  saveLocalCart();
   cloudSaveCart();
   renderCart();
   showToast('Item diperbarui');
@@ -4049,7 +4117,7 @@ window.editCartItem = function(id) {
 
 function removeCartItem(id) {
   state.cart = state.cart.filter(c => c.id !== id);
-  storage.set('cart', state.cart);
+  saveLocalCart();
   cloudSaveCart();
   renderCart();
   showToast('Item dihapus');
@@ -4227,12 +4295,12 @@ function saveAuditSession() {
     tanggalLabel: nowLabel(),
     items: state.auditList.slice(),
     user: state.user ? state.user.name : 'Lokal',
-    dcName: state.dcName || ''
+    dcName: effectiveDcName()
   };
   state.auditHistory.unshift(session);
   cacheLocal('auditHistory', state.auditHistory);
   state.auditList = [];
-  cacheLocal('auditList', []);
+  saveLocalAuditList();
   cloudSaveAuditList();
   renderAuditList();
   cloudSaveAuditSession(session);
@@ -4441,23 +4509,31 @@ function openAuditModal(session) {
           </div>
           <div class="nota-item-picker no-print" id="auditItemPicker">
             <div class="picker-head" style="border-bottom:none;padding-bottom:4px;margin-bottom:0;">
-              <div class="picker-head-top">
+              <div class="picker-head-top" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
                 <div>
-                  <strong style="font-size:13px;">Pilih item ditampilkan / dicetak</strong>
+                  <strong style="font-size:13px;">Item audit</strong>
                   <div class="sel-count" id="auditSelCountModal">${selectedIds.size} / ${allItems.length} dipilih</div>
+                </div>
+                <div class="picker-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button type="button" class="btn btn-sm btn-outline" id="auditSelAllM">✓ Semua</button>
+                  <button type="button" class="btn btn-sm btn-outline" id="auditSelNoneM">✕ Kosong</button>
                 </div>
               </div>
             </div>
-            <div class="picker-list" id="auditPickerList" style="max-height:220px;">${buildPickerRowsHtml()}</div>
-            <div class="picker-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px;">
-              <div class="picker-search" style="margin-bottom:8px;">
-                <input type="text" id="auditItemSearch" placeholder="Cari nama, kode, exp, rak…" autocomplete="off">
+            <button type="button" id="auditSearchOpenBtn" class="btn btn-outline"
+              style="width:100%;margin-top:8px;justify-content:flex-start;gap:8px;padding:10px 14px;border-radius:12px;background:#f8fafc;color:var(--text-muted);font-weight:500;">
+              <span style="font-size:15px;">🔍</span> Cari item…
+            </button>
+            <div id="auditSearchPanel" style="display:none;margin-top:8px;">
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="text" id="auditItemSearch" placeholder="Ketik nama, kode, exp…" autocomplete="off"
+                  style="flex:1;padding:10px 12px;border:1.5px solid var(--primary);border-radius:12px;font-size:14px;background:#fff;outline:none;">
+                <button type="button" class="btn btn-sm btn-outline" id="auditSearchCloseBtn" title="Tutup">✕</button>
               </div>
-              <div class="picker-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button type="button" class="btn btn-sm btn-outline" id="auditSelAllM">✓ Semua</button>
-                <button type="button" class="btn btn-sm btn-outline" id="auditSelNoneM">✕ Kosong</button>
-                <button type="button" class="btn btn-sm btn-outline" id="auditSelVisM">✓ Hasil cari</button>
+              <div id="auditSearchExtra" style="display:none;margin:8px 0 4px;">
+                <button type="button" class="btn btn-sm btn-outline" id="auditSelVisM">✓ Pilih hasil cari</button>
               </div>
+              <div class="picker-list" id="auditPickerList" style="max-height:220px;margin-top:8px;border:1px solid var(--border);border-radius:12px;overflow-y:auto;background:#fff;">${buildPickerRowsHtml()}</div>
             </div>
           </div>
           <div class="receipt ${densityClass(initItems.length)} audit-view-only" id="printArea">
@@ -4529,9 +4605,33 @@ function openAuditModal(session) {
     refreshPicker(); refresh();
   });
   let st = null;
+  const openAuditSearch = () => {
+    const panel = $('#auditSearchPanel');
+    const openBtn = $('#auditSearchOpenBtn');
+    if (panel) panel.style.display = 'block';
+    if (openBtn) openBtn.style.display = 'none';
+    refreshPicker();
+    setTimeout(() => { try { $('#auditItemSearch')?.focus(); } catch (_) {} }, 50);
+  };
+  const closeAuditSearch = () => {
+    const panel = $('#auditSearchPanel');
+    const openBtn = $('#auditSearchOpenBtn');
+    const input = $('#auditItemSearch');
+    if (panel) panel.style.display = 'none';
+    if (openBtn) openBtn.style.display = 'flex';
+    if (input) input.value = '';
+    pickerQuery = '';
+    if ($('#auditSearchExtra')) $('#auditSearchExtra').style.display = 'none';
+    refreshPicker();
+  };
+  $('#auditSearchOpenBtn')?.addEventListener('click', openAuditSearch);
+  $('#auditSearchCloseBtn')?.addEventListener('click', closeAuditSearch);
   $('#auditItemSearch')?.addEventListener('input', e => {
     pickerQuery = e.target.value || '';
-    clearTimeout(st); st = setTimeout(refreshPicker, 120);
+    const extra = $('#auditSearchExtra');
+    if (extra) extra.style.display = pickerQuery.trim() ? 'block' : 'none';
+    clearTimeout(st);
+    st = setTimeout(refreshPicker, 120);
   });
   $('#auditJudul')?.addEventListener('input', refresh);
 
@@ -5196,20 +5296,41 @@ function renderGudang() {
 }
 
 function setActiveGudang(name) {
-  if (!canAccessDc(name)) {
+  const target = String(name || '').trim();
+  if (!target) return;
+  // Anggota non-Induk: terkunci ke penempatan, tidak boleh pindah DC
+  if (!canViewAllDc()) {
+    const assigned = userAssignedDc();
+    if (normDc(target) !== normDc(assigned)) {
+      return showToast('Penempatan Anda: ' + assigned + '. Tidak bisa pindah ke DC lain.');
+    }
+  }
+  if (!canAccessDc(target)) {
     return showToast('Anda hanya boleh mengakses DC: ' + userAssignedDc());
   }
-  state.dcName = name;
-  storage.set('dcName', name);
-  $('#dcBadge').textContent = name;
-  // Draft cart/audit terpisah per DC — sinkron ulang
+  const prev = state.dcName;
+  // Simpan draft DC lama dulu (lokal saja), JANGAN tulis ke draft DC baru
+  try { saveLocalCart(); saveLocalAuditList(); } catch (_) {}
+  state.dcName = target;
+  storage.set('dcName', target);
+  if ($('#dcBadge')) $('#dcBadge').textContent = target;
+  // Muat keranjang/audit KHUSUS DC baru (kosong jika belum ada) — cegah bocor antar DC
+  loadLocalDraftsForDc();
+  try { if (typeof renderCart === 'function') renderCart(); } catch (_) {}
+  try { if (typeof renderAuditList === 'function') renderAuditList(); } catch (_) {}
+  // Restart listener agar subscribe draft_DOC DC baru (bukan yang lama)
   if (typeof startCloudSync === 'function') {
     try { startCloudSync(); } catch (e) {}
   }
-  if (typeof cloudSaveCart === 'function') cloudSaveCart();
-  if (typeof cloudSaveAuditList === 'function') cloudSaveAuditList();
+  // JANGAN cloudSaveCart() di sini — biarkan snapshot DC baru yang mengisi,
+  // atau user menambah item baru di DC ini.
+  applyDcScopeToState();
+  if (typeof renderHistory === 'function' && state.page === 'riwayat-retur') renderHistory();
+  if (typeof renderDashboard === 'function' && state.page === 'dashboard') renderDashboard();
   renderGudang();
-  showToast('DC aktif: '+name);
+  showToast(prev && normDc(prev) !== normDc(target)
+    ? ('Pindah ke ' + target + ' — data retur/riwayat terpisah')
+    : ('DC aktif: ' + target));
 }
 
 /** Ambil daftar user dari state (sudah diisi listener server) + admin Firebase */
@@ -6016,12 +6137,14 @@ function genNomorNota() {
 }
 
 function buildNota() {
+  // Selalu tag nota dengan DC efektif (penempatan anggota)
+  const dc = effectiveDcName();
   return {
     nomor: genNomorNota(),
     judul: '',
     tanggal: todayStr(),
     tanggalLabel: nowLabel(),
-    dcName: state.dcName,
+    dcName: dc,
     items: state.cart.slice().map(it => Object.assign({}, it, { pic: resolveItemPic(it) || it.pic || '' })),
     createdByName: state.user ? state.user.name : 'Lokal',
     createdByUid: state.user ? (state.user.uid || state.user.username || '') : '',
@@ -6433,23 +6556,32 @@ function openNotaModal(nota, isHistory) {
     return `
       <div class="nota-item-picker no-print" id="notaItemPicker">
         <div class="picker-head" style="border-bottom:none;padding-bottom:4px;margin-bottom:0;">
-          <div class="picker-head-top">
+          <div class="picker-head-top" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
             <div>
-              <strong style="font-size:13px;">Pilih item ditampilkan / dicetak</strong>
+              <strong style="font-size:13px;">Item nota</strong>
               <div class="sel-count" id="notaSelCount">${selectedIds.size} / ${allItems.length} dipilih</div>
+            </div>
+            <div class="picker-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-outline" id="notaSelAll">✓ Semua</button>
+              <button type="button" class="btn btn-sm btn-outline" id="notaSelNone">✕ Kosong</button>
             </div>
           </div>
         </div>
-        <div class="picker-list" id="notaPickerList" style="max-height:220px;">${buildPickerRowsHtml()}</div>
-        <div class="picker-foot" style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px;">
-          <div class="picker-search" style="margin-bottom:8px;">
-            <input type="text" id="notaItemSearch" placeholder="Cari nama, kode, barcode, vendor, PIC…" autocomplete="off">
+        <!-- Mode sosmed: search tertutup; tekan → panel cari + daftar muncul -->
+        <button type="button" id="notaSearchOpenBtn" class="btn btn-outline"
+          style="width:100%;margin-top:8px;justify-content:flex-start;gap:8px;padding:10px 14px;border-radius:12px;background:#f8fafc;color:var(--text-muted);font-weight:500;">
+          <span style="font-size:15px;">🔍</span> Cari item…
+        </button>
+        <div id="notaSearchPanel" style="display:none;margin-top:8px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="notaItemSearch" placeholder="Ketik nama, kode, barcode…" autocomplete="off"
+              style="flex:1;padding:10px 12px;border:1.5px solid var(--primary);border-radius:12px;font-size:14px;background:#fff;outline:none;">
+            <button type="button" class="btn btn-sm btn-outline" id="notaSearchCloseBtn" title="Tutup">✕</button>
           </div>
-          <div class="picker-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button type="button" class="btn btn-sm btn-outline" id="notaSelAll">✓ Semua</button>
-            <button type="button" class="btn btn-sm btn-outline" id="notaSelNone">✕ Kosong</button>
-            <button type="button" class="btn btn-sm btn-outline" id="notaSelVisible">✓ Hasil cari</button>
+          <div id="notaSearchExtra" style="display:none;margin:8px 0 4px;">
+            <button type="button" class="btn btn-sm btn-outline" id="notaSelVisible">✓ Pilih hasil cari</button>
           </div>
+          <div class="picker-list" id="notaPickerList" style="max-height:220px;margin-top:8px;border:1px solid var(--border);border-radius:12px;overflow-y:auto;background:#fff;">${buildPickerRowsHtml()}</div>
         </div>
       </div>`;
   }
@@ -6791,8 +6923,31 @@ function openNotaModal(nota, isHistory) {
   });
 
   let searchTimer = null;
+  const openNotaSearch = () => {
+    const panel = $('#notaSearchPanel');
+    const openBtn = $('#notaSearchOpenBtn');
+    if (panel) panel.style.display = 'block';
+    if (openBtn) openBtn.style.display = 'none';
+    refreshPickerList();
+    setTimeout(() => { try { $('#notaItemSearch')?.focus(); } catch (_) {} }, 50);
+  };
+  const closeNotaSearch = () => {
+    const panel = $('#notaSearchPanel');
+    const openBtn = $('#notaSearchOpenBtn');
+    const input = $('#notaItemSearch');
+    if (panel) panel.style.display = 'none';
+    if (openBtn) openBtn.style.display = 'flex';
+    if (input) input.value = '';
+    pickerQuery = '';
+    if ($('#notaSearchExtra')) $('#notaSearchExtra').style.display = 'none';
+    refreshPickerList();
+  };
+  $('#notaSearchOpenBtn')?.addEventListener('click', openNotaSearch);
+  $('#notaSearchCloseBtn')?.addEventListener('click', closeNotaSearch);
   $('#notaItemSearch')?.addEventListener('input', (e) => {
     pickerQuery = e.target.value || '';
+    const extra = $('#notaSearchExtra');
+    if (extra) extra.style.display = pickerQuery.trim() ? 'block' : 'none';
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => refreshPickerList(), 120);
   });
@@ -7041,10 +7196,12 @@ function openNotaModal(nota, isHistory) {
       if (!requireServer()) return;
       nota.judul = $('#notaJudul').value.trim();
       nota.items = allItems.map(it => Object.assign({}, it, { pic: resolveItemPic(it) || it.pic || '' }));
+      // Pastikan nota bertanda DC efektif
+      nota.dcName = nota.dcName || effectiveDcName();
       state.history.unshift(nota);
       cacheLocal('history', state.history);
       state.cart = [];
-      cacheLocal('cart', []);
+      saveLocalCart();
       if (typeof cloudSaveCart === 'function') cloudSaveCart();
       renderCart();
       try {
@@ -9172,7 +9329,7 @@ function bindEvents() {
       pic: resolveItemPic(p) || p.pic || '',
       qty, satuan, alasan, kondisi, catatan: $('#returCatatan').value.trim()
     });
-    storage.set('cart', state.cart);
+    saveLocalCart();
     cloudSaveCart();
     state.selectedProduct = null;
     $('#returSelected').innerHTML = '';
@@ -9187,12 +9344,12 @@ function bindEvents() {
   $('#clearCartBtn').onclick = () => {
     if (!state.cart.length) return;
     if (confirm('Kosongkan daftar retur?')) {
-      state.cart = []; storage.set('cart',[]); cloudSaveCart(); renderCart();
+      state.cart = []; saveLocalCart(); cloudSaveCart(); renderCart();
     }
   };
   $('#buatNotaBtn').onclick = () => {
     if (!state.cart.length) return;
-    if (!state.dcName) return showToast('Atur nama DC di Pengaturan');
+    if (!effectiveDcName()) return showToast('Atur nama DC di Pengaturan / penempatan user');
     openNotaModal(buildNota(), false);
   };
 
@@ -9262,12 +9419,12 @@ function bindEvents() {
       tanggalLabel: nowLabel(),
       items: state.auditList.slice(),
       user: state.user ? state.user.name : 'Lokal',
-      dcName: state.dcName || 'DC'
+      dcName: effectiveDcName()
     });
   });
   $('#clearAuditBtn').onclick = () => {
     if (confirm('Kosongkan list audit?')) {
-      state.auditList=[]; storage.set('auditList',[]); cloudSaveAuditList(); renderAuditList();
+      state.auditList=[]; saveLocalAuditList(); cloudSaveAuditList(); renderAuditList();
     }
   };
 
@@ -9580,16 +9737,18 @@ function enterApp() {
   $('#authScreen').classList.add('hidden');
   $('#appShell').style.display = 'flex';
   if (state.user) state.user.role = normalizeRole(state.user.role);
-  // Pastikan DC aktif sesuai penempatan (kecuali Induk/Admin)
+  // Kunci DC aktif ke penempatan (kecuali Admin / DC Induk)
   if (state.user && !isAdmin() && !isIndukDc(state.user.assignedDc)) {
     state.dcName = state.user.assignedDc || state.dcName;
     cacheLocal('dcName', state.dcName);
   }
+  // Keranjang & audit list: muat khusus DC aktif (pisah dari DC lain di perangkat sama)
+  loadLocalDraftsForDc();
   $('#userName').textContent = state.user.name;
   const roleLabel = currentRole() + (state.user.assignedDc ? ' · ' + state.user.assignedDc : '');
   $('#userRole').textContent = roleLabel;
   $('#userAvatar').textContent = (state.user.name||'U')[0].toUpperCase();
-  $('#dcBadge').textContent = state.dcName;
+  $('#dcBadge').textContent = effectiveDcName();
   applyDcScopeToState();
   applyMenuVisibility();
   if (window.lucide) lucide.createIcons();
