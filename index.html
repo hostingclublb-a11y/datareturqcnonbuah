@@ -5217,21 +5217,56 @@ function handleImportPicVendorOverlay(file) {
     try {
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      if (!json.length) return showToast('File kosong');
 
-      const keys = Object.keys(json[0]);
-      const findCol = (...cands) => keys.find(k => cands.some(c => k.toLowerCase().includes(c)));
+      // Pilih sheet terbaik: yang punya kolom Vendor / PIC / Penanggung Jawab
+      // (file user sering sheet1 = daftar nama saja, data PIC di sheet2)
+      const scoreSheet = (name) => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '' });
+        if (!rows.length) return { score: -1, rows, keys: [] };
+        const keys = Object.keys(rows[0]).map(k => String(k));
+        const lk = keys.map(k => k.toLowerCase());
+        let score = rows.length;
+        if (lk.some(k => k.includes('vendor') || k.includes('supplier'))) score += 5000;
+        if (lk.some(k => k.includes('pic') || k.includes('purchasing') || k.includes('penanggung') || k.includes('pj'))) score += 5000;
+        if (lk.some(k => k.includes('kode'))) score += 1000;
+        if (lk.some(k => k.includes('nama'))) score += 500;
+        return { score, rows, keys };
+      };
+      let best = null;
+      (wb.SheetNames || []).forEach(name => {
+        const s = scoreSheet(name);
+        if (!best || s.score > best.score) best = Object.assign({ name }, s);
+      });
+      if (!best || best.score < 0 || !best.rows.length) {
+        return showToast('File kosong / tidak ada sheet data');
+      }
+      const json = best.rows;
+      const keys = best.keys;
+      console.log('[tumpuk PIC] sheet:', best.name, 'rows:', json.length, 'cols:', keys);
+
+      const findCol = (...cands) => keys.find(k => {
+        const lk = String(k).toLowerCase();
+        return cands.some(c => lk === c || lk.includes(c));
+      });
       // Barcode TIDAK wajib
       const colBarcode = findCol('barcode', 'bar code');
-      const colKode = findCol('kode produk', 'kode', 'code', 'sku');
-      const colNama = findCol('nama produk', 'nama barang', 'nama item', 'nama', 'name', 'produk');
-      const colVendor = findCol('vendor', 'supplier', 'nama vendor');
-      const colPic = findCol('pic purchasing', 'pic', 'purchasing');
+      const colKode = keys.find(k => {
+        const lk = String(k).toLowerCase();
+        return (lk.includes('kode') || lk === 'code' || lk === 'sku') && !lk.includes('barcode') && !lk.includes('nama');
+      });
+      const colNama = keys.find(k => {
+        const lk = String(k).toLowerCase();
+        return (lk.includes('nama') || lk === 'name') && !lk.includes('vendor') && !lk.includes('kode');
+      });
+      const colVendor = findCol('nama vendor', 'vendor', 'supplier');
+      // PIC = PIC Purchasing / Penanggung Jawab / PJ
+      const colPic = keys.find(k => {
+        const lk = String(k).toLowerCase();
+        return lk.includes('pic') || lk.includes('purchasing') || lk.includes('penanggung') || lk === 'pj' || lk.includes('pj ');
+      });
 
       if (!colVendor && !colPic) {
-        return showToast('File harus punya kolom Vendor dan/atau PIC Purchasing');
+        return showToast('Tidak ketemu kolom Vendor / PIC / Penanggung Jawab di sheet: ' + best.name);
       }
 
       const hasRowKey = !!(colBarcode || colKode || colNama);
@@ -8129,30 +8164,69 @@ function handleImportProduk(file) {
     try {
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, { type:'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      // Pilih sheet dengan kolom nama+barcode/kode terbanyak (hindari sheet kosong / ringkas)
+      let bestName = wb.SheetNames[0], bestScore = -1, json = [];
+      (wb.SheetNames || []).forEach(name => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '' });
+        if (!rows.length) return;
+        const keys = Object.keys(rows[0]).map(k => String(k).toLowerCase());
+        let sc = rows.length;
+        if (keys.some(k => k.includes('nama'))) sc += 2000;
+        if (keys.some(k => k.includes('barcode'))) sc += 1500;
+        if (keys.some(k => k.includes('kode'))) sc += 1000;
+        if (keys.some(k => k.includes('kategori') || k.includes('kategory'))) sc += 500;
+        if (sc > bestScore) { bestScore = sc; bestName = name; json = rows; }
+      });
       if (!json.length) return showToast('File kosong');
+      console.log('[import produk] sheet:', bestName, 'rows:', json.length);
 
-      // Detect columns
+      // Detect columns — scoring agar "KODE PRODUK" tidak tertukar jadi Nama
       const keys = Object.keys(json[0]);
-      const findCol = (...cands) => keys.find(k => cands.some(c => k.toLowerCase().includes(c)));
-      const colBarcode = findCol('barcode','bar code');
-      // kolom list multi-barcode (barcodes / barcode2 / alt)
+      const findColSmart = (cands, opts) => {
+        opts = opts || {};
+        let best = null, bestScore = -1;
+        keys.forEach(key => {
+          const lk = String(key).toLowerCase().trim();
+          if (opts.exclude && opts.exclude(lk)) return;
+          cands.forEach((c, i) => {
+            const cc = c.toLowerCase();
+            let score = -1;
+            if (lk === cc) score = 1000 - i;
+            else if (lk.startsWith(cc) || cc.startsWith(lk)) score = 600 - i;
+            else if (lk.includes(cc)) score = 100 - i + cc.length;
+            if (score > bestScore) { bestScore = score; best = key; }
+          });
+        });
+        return best;
+      };
+      const colBarcode = findColSmart(['barcode', 'bar code'], {
+        exclude: (lk) => lk === 'barcodes' || lk.includes('barcode2')
+      });
       const colBarcodes = keys.find(k => {
         const lk = k.toLowerCase();
         return lk === 'barcodes' || lk.includes('multi') || lk.includes('barcode2') || lk.includes('alt barcode');
       });
-      const colNama = findCol('nama produk','nama','name','produk');
-      const colKode = findCol('kode produk','kode','code','sku');
-      const colKat = findCol('kategori','kategory','category');
-      const colPic = findCol('pic');
-      const colVendor = findCol('vendor','supplier');
-      const colSatuan = findCol('satuan','uom');
-      const colUomDc = findCol('uom dc');
-      const colUomStore = findCol('uom store');
-      const colKonv = findCol('konversi');
+      // JANGAN pakai kandidat generik "produk" — bentrok dengan "KODE PRODUK"
+      const colNama = findColSmart(['nama produk', 'nama barang', 'nama item', 'nama', 'name', 'product name'], {
+        exclude: (lk) => lk.includes('kode') || lk.includes('code') || lk.includes('barcode') || lk.includes('vendor') || lk.includes('kategori')
+      });
+      const colKode = findColSmart(['kode produk', 'kode barang', 'kode', 'code', 'sku'], {
+        exclude: (lk) => lk.includes('barcode') || lk.includes('nama')
+      });
+      const colKat = findColSmart(['kategori', 'kategory', 'category']);
+      const colPic = findColSmart(['pic purchasing', 'pic', 'purchasing'], {
+        exclude: (lk) => lk.includes('vendor')
+      });
+      const colVendor = findColSmart(['vendor', 'supplier', 'nama vendor']);
+      const colSatuan = findColSmart(['satuan', 'uom'], {
+        exclude: (lk) => lk.includes('uom dc') || lk.includes('uom store')
+      });
+      const colUomDc = findColSmart(['uom dc']);
+      const colUomStore = findColSmart(['uom store']);
+      const colKonv = findColSmart(['konversi store', 'konversi']);
 
-      if (!colNama) return showToast('Kolom Nama Produk tidak ditemukan');
+      if (!colNama) return showToast('Kolom Nama Produk tidak ditemukan. Pastikan ada kolom "NAMA PRODUK".');
+      console.log('[import] cols', { colKode, colBarcode, colNama, colKat, colVendor, colPic });
 
       const parseBcList = (val) => {
         if (val == null || val === '') return [];
