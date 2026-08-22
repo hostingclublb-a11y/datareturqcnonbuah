@@ -1570,9 +1570,12 @@ table.data-table .actions { display: flex; gap: 4px; }
           <div class="search-box"><input type="text" id="produkSearch" placeholder="Cari nama / kode / barcode..."></div>
           <button class="btn btn-outline btn-sm" id="importProdukBtn"><i data-lucide="file-up"></i> Import Excel</button>
           <input type="file" id="importProdukFile" accept=".xlsx,.xls,.csv" style="display:none;">
+          <button class="btn btn-outline btn-sm" id="importPicVendorBtn" title="Tumpuk PIC Purchasing + Vendor ke produk yang sudah ada (match barcode/kode/nama)"><i data-lucide="layers"></i> Tumpuk PIC/Vendor</button>
+          <input type="file" id="importPicVendorFile" accept=".xlsx,.xls,.csv" style="display:none;">
           <button class="btn btn-outline btn-sm" id="replaceSeedProdukBtn" title="Ganti master produk dari database seed terbaru (riwayat nota TIDAK diubah)"><i data-lucide="database"></i> Ganti DB Seed</button>
           <button class="btn btn-outline btn-sm" id="dedupeProdukBtn" title="Hapus produk dobel berdasarkan kode"><i data-lucide="filter"></i> Bersihkan Duplikat</button>
           <button class="btn btn-outline btn-sm" id="uploadProdukCloudBtn" title="Unggah semua produk lokal ke server"><i data-lucide="cloud-upload"></i> Unggah ke Server</button>
+          <button class="btn btn-outline btn-sm" id="resetProdukBtn" title="Kosongkan master produk ke 0 (riwayat nota TIDAK dihapus)" style="color:#b91c1c;border-color:#fecaca;"><i data-lucide="trash-2"></i> Reset ke 0</button>
           <button class="btn btn-primary btn-sm" id="addProdukBtn"><i data-lucide="plus"></i> Tambah Produk</button>
         </div>
         <div class="card">
@@ -3731,17 +3734,21 @@ function exportProduk(fmt) {
   if (!list.length) return showToast('Master produk kosong');
   const meta = ExportEngine.getMeta('Master Produk', list.length);
   // Kategori ikut diekspor (kolom filter Excel)
-  const headers = ['No', 'Kode', 'Barcode', 'Nama Produk', 'Kategori', 'Satuan', 'Vendor', 'PIC'];
-  const rows = list.map((p, i) => [
-    i + 1,
-    p.kode || '',
-    p.barcode || '',
-    p.nama || '',
-    p.kategori || '',
-    p.satuan || p.uom || 'PCS',
-    p.vendor || '',
-    p.pic || ''
-  ]);
+  const headers = ['No', 'Kode', 'Barcode', 'Barcodes (semua)', 'Nama Produk', 'Kategori', 'Satuan', 'Vendor', 'PIC'];
+  const rows = list.map((p, i) => {
+    const allBc = productAllBarcodes(p);
+    return [
+      i + 1,
+      p.kode || '',
+      p.barcode || allBc[0] || '',
+      allBc.join('; '),
+      p.nama || '',
+      p.kategori || '',
+      p.satuan || p.uom || 'PCS',
+      p.vendor || '',
+      p.pic || ''
+    ];
+  });
   if (fmt === 'xlsx') ExportEngine.toExcel(headers, rows, 'Produk', meta);
   else if (fmt === 'csv') ExportEngine.toCSV(headers, rows, meta);
   else if (fmt === 'pdf') ExportEngine.toPDF('Master Produk', headers, rows, meta);
@@ -4810,14 +4817,16 @@ function renderBanding() {
 
 function renderProduk() {
   let list = state.products;
-  const term = ($('#produkSearch')?.value||'').toLowerCase();
+  const term = ($('#produkSearch')?.value||'').toLowerCase().trim();
   if (term) {
-    list = list.filter(p =>
-      (p.nama||'').toLowerCase().includes(term) ||
-      (p.kode||'').toLowerCase().includes(term) ||
-      (p.barcode||'').toLowerCase().includes(term) ||
-      (p.vendor||'').toLowerCase().includes(term)
-    );
+    list = list.filter(p => {
+      if ((p.nama||'').toLowerCase().includes(term)) return true;
+      if ((p.kode||'').toLowerCase().includes(term)) return true;
+      if ((p.vendor||'').toLowerCase().includes(term)) return true;
+      if ((p.kategori||'').toLowerCase().includes(term)) return true;
+      // cari di semua barcode
+      return productAllBarcodes(p).some(b => b.toLowerCase().includes(term));
+    });
   }
   $('#produkCount').textContent = list.length + ' produk';
   const tbody = $('#produkTbody');
@@ -4836,11 +4845,16 @@ function renderProduk() {
   if (state.produkPage < 0) state.produkPage = 0;
   const start = state.produkPage * perPage;
   const show = list.slice(start, start + perPage);
-  tbody.innerHTML = show.map((p,i) => `
+  tbody.innerHTML = show.map((p,i) => {
+    const allBc = productAllBarcodes(p);
+    const bcLabel = allBc.length
+      ? (allBc[0] + (allBc.length > 1 ? ' <span class="badge badge-info" title="'+esc(allBc.join(', '))+'">+'+ (allBc.length-1) +'</span>' : ''))
+      : '-';
+    return `
     <tr>
       <td>${start+i+1}</td>
       <td class="mono">${esc(p.kode)}</td>
-      <td class="mono">${esc(p.barcode||'-')}</td>
+      <td class="mono" style="max-width:160px;">${bcLabel}</td>
       <td>${esc(p.nama)}</td>
       <td>${esc(p.kategori||'-')}</td>
       <td>${esc(p.vendor||'-')}</td>
@@ -4848,8 +4862,8 @@ function renderProduk() {
       <td class="actions">
         ${can('edit')?`<button class="btn btn-icon btn-outline btn-sm" onclick="editProduk('${esc(p.kode)}')">✏️</button>`:''}
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
   $('#produkPageInfo').textContent = `Halaman ${state.produkPage+1} dari ${totalPages} (${list.length} produk)`;
   $('#prevProdukPage').disabled = state.produkPage === 0;
   $('#nextProdukPage').disabled = state.produkPage >= totalPages - 1;
@@ -4863,9 +4877,9 @@ function renderDataItem() {
     list = list.filter(p =>
       (p.nama || '').toLowerCase().includes(term) ||
       (p.kode || '').toLowerCase().includes(term) ||
-      (p.barcode || '').toLowerCase().includes(term) ||
       (p.vendor || '').toLowerCase().includes(term) ||
-      String(p.satuan || p.uom || '').toLowerCase().includes(term)
+      String(p.satuan || p.uom || '').toLowerCase().includes(term) ||
+      productAllBarcodes(p).some(b => b.toLowerCase().includes(term))
     );
   }
   const cnt = $('#dataItemCount');
@@ -4889,10 +4903,14 @@ function renderDataItem() {
   tbody.innerHTML = show.map((p, i) => {
     const uom = normalizeUom(p.satuan || p.uom || 'PCS');
     const kodeSafe = String(p.kode || '').replace(/'/g, "\\'");
+    const allBc = productAllBarcodes(p);
+    const bcCell = allBc.length
+      ? (esc(allBc[0]) + (allBc.length > 1 ? ' <span class="badge badge-info" title="'+esc(allBc.join(', '))+'">+'+ (allBc.length-1) +'</span>' : ''))
+      : '-';
     return `<tr>
       <td>${start + i + 1}</td>
       <td class="mono">${esc(p.kode)}</td>
-      <td class="mono">${esc(p.barcode || '-')}</td>
+      <td class="mono" style="max-width:160px;">${bcCell}</td>
       <td>${esc(p.nama)}</td>
       <td><span class="badge badge-muted">${esc(uom)}</span></td>
       <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;" title="${esc(p.uomDc||'')}">${esc(p.uomDc || '-')}</td>
@@ -5110,13 +5128,179 @@ function handleImportVendorPic(file) {
       });
       state.vendorPic = newMap;
       storage.set('vendorPic', state.vendorPic);
+      // Terapkan juga ke produk yang vendor-nya cocok (isi PIC kosong / update)
+      let applied = 0;
+      (state.products || []).forEach(p => {
+        const vk = vendorKeyOf(p.vendor || '');
+        if (vk && newMap[vk]) {
+          if (!p.pic || p.pic !== newMap[vk]) {
+            p.pic = newMap[vk];
+            applied++;
+          }
+        }
+      });
+      if (applied) {
+        storage.set('products', state.products);
+        try { if (typeof renderProduk === 'function') renderProduk(); } catch (_) {}
+      }
       toSync.forEach(([key, vendor, pic]) => cloudSaveVendorPic(key, vendor, pic));
-      logActivity('IMPORT', 'PIC Vendor', `${count} vendor diupdate`);
-      showToast(`Import selesai: ${count} PIC vendor tersimpan${firebaseReady?' & tersinkron ☁':''}`);
+      logActivity('IMPORT', 'PIC Vendor', `${count} vendor · ${applied} produk terisi PIC`);
+      showToast(`Import PIC vendor: ${count} mapping · ${applied} produk terisi${firebaseReady?' ☁':''}`);
       renderVendor();
     } catch(err) {
       console.error(err);
       showToast('Gagal membaca file: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Reset master produk ke 0 — riwayat nota/audit/activity TIDAK disentuh.
+ */
+async function resetMasterProduk() {
+  if (!isAdmin()) return showToast('Hanya admin yang bisa reset master produk');
+  const n = (state.products || []).length;
+  if (!confirm(
+    'KOSONGKAN master produk ke 0?\n\n' +
+    '• ' + n + ' item akan dihapus dari perangkat ini\n' +
+    '• Riwayat nota retur / audit / activity TETAP AMAN\n' +
+    '• Setelah reset, import database baru → lalu Tumpuk PIC/Vendor\n\n' +
+    'Lanjutkan?'
+  )) return;
+  if (n > 0 && !confirm('Yakin sekali lagi? Data produk lokal akan hilang.')) return;
+
+  try { storage.set('products_backup_before_reset', state.products || []); } catch (_) {}
+  state.products = [];
+  storage.set('products', []);
+  storage.set('productsSeedVersion', '');
+  state._productsLockUntil = Date.now() + 30000;
+  try { if (typeof renderProduk === 'function') renderProduk(); } catch (_) {}
+  try { if (typeof renderDataItem === 'function') renderDataItem(); } catch (_) {}
+  showToast('Master produk dikosongkan (0 item). Riwayat nota aman.');
+
+  if (firebaseReady && db && confirm('Hapus juga produk di SERVER Firebase?\n(Nota retur tidak terhapus)')) {
+    try {
+      showToast('Menghapus produk di server…');
+      let deleted = 0;
+      while (true) {
+        const snap = await db.collection('products').limit(400).get();
+        if (snap.empty) break;
+        const batch = db.batch();
+        snap.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        deleted += snap.size;
+        if (snap.size < 400) break;
+      }
+      showToast('Server produk dikosongkan (' + deleted + ' dokumen). Siap import baru.');
+      logActivity('RESET', 'Master Produk', 'Reset produk ke 0 · cloud ' + deleted);
+    } catch (e) {
+      console.error(e);
+      showToast('Lokal sudah 0. Hapus cloud gagal: ' + (e.message || e));
+    }
+  } else {
+    logActivity('RESET', 'Master Produk', 'Reset produk lokal ke 0');
+  }
+}
+
+/**
+ * Tumpuk PIC Purchasing + Vendor ke produk yang sudah ada.
+ * Match: barcode → kode → nama. Tidak menambah produk baru.
+ */
+function handleImportPicVendorOverlay(file) {
+  if (!file) return;
+  if (!(state.products || []).length) {
+    return showToast('Master produk masih kosong. Import database item dulu, baru tumpuk PIC/Vendor.');
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!json.length) return showToast('File kosong');
+
+      const keys = Object.keys(json[0]);
+      const findCol = (...cands) => keys.find(k => cands.some(c => k.toLowerCase().includes(c)));
+      const colBarcode = findCol('barcode', 'bar code');
+      const colKode = findCol('kode produk', 'kode', 'code', 'sku');
+      const colNama = findCol('nama produk', 'nama', 'name', 'produk');
+      const colVendor = findCol('vendor', 'supplier', 'nama vendor');
+      const colPic = findCol('pic purchasing', 'pic', 'purchasing');
+
+      if (!colVendor && !colPic) {
+        return showToast('File harus punya kolom Vendor dan/atau PIC Purchasing');
+      }
+      if (!colBarcode && !colKode && !colNama) {
+        return showToast('File harus punya kolom Barcode / Kode / Nama untuk dicocokkan');
+      }
+
+      // Index produk untuk match cepat
+      const byBc = new Map();
+      const byKode = new Map();
+      const byNama = new Map();
+      (state.products || []).forEach(p => {
+        productAllBarcodes(p).forEach(b => {
+          const k = String(b).toLowerCase();
+          if (k && !byBc.has(k)) byBc.set(k, p);
+        });
+        const kd = String(p.kode || '').toLowerCase();
+        if (kd) byKode.set(kd, p);
+        const nk = String(p.nama || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        if (nk && !byNama.has(nk)) byNama.set(nk, p);
+      });
+
+      let matched = 0, skipped = 0, vendorFilled = 0, picFilled = 0;
+      const vendorPicUpdates = {};
+
+      json.forEach(row => {
+        const bc = colBarcode ? String(row[colBarcode] || '').trim() : '';
+        const kode = colKode ? String(row[colKode] || '').trim() : '';
+        const nama = colNama ? String(row[colNama] || '').trim() : '';
+        const vendor = colVendor ? String(row[colVendor] || '').trim() : '';
+        const pic = colPic ? String(row[colPic] || '').trim() : '';
+        if (!vendor && !pic) return;
+
+        let p = null;
+        if (bc) p = byBc.get(bc.toLowerCase());
+        if (!p && kode) p = byKode.get(kode.toLowerCase());
+        if (!p && nama) p = byNama.get(nama.toLowerCase().replace(/\s+/g, ' '));
+
+        if (!p) { skipped++; return; }
+
+        matched++;
+        if (vendor && vendor !== '-' && !vendor.includes('Tidak ditemukan')) {
+          if (p.vendor !== vendor) { p.vendor = vendor; vendorFilled++; }
+          if (pic && pic !== '-') {
+            vendorPicUpdates[vendorKeyOf(vendor)] = { vendor, pic };
+          }
+        }
+        if (pic && pic !== '-' && !pic.includes('Tidak ditemukan')) {
+          if (p.pic !== pic) { p.pic = pic; picFilled++; }
+        }
+      });
+
+      // Update map vendor→PIC
+      Object.keys(vendorPicUpdates).forEach(key => {
+        const { vendor, pic } = vendorPicUpdates[key];
+        state.vendorPic[key] = pic;
+        cloudSaveVendorPic(key, vendor, pic);
+      });
+      storage.set('vendorPic', state.vendorPic);
+      storage.set('products', state.products);
+
+      // Dorong produk yang berubah ke cloud (opsional ringan — full upload terpisah)
+      try { if (typeof renderProduk === 'function') renderProduk(); } catch (_) {}
+      try { if (typeof renderVendor === 'function') renderVendor(); } catch (_) {}
+      logActivity('IMPORT', 'PIC/Vendor overlay', `match ${matched} · skip ${skipped} · vendor ${vendorFilled} · pic ${picFilled}`);
+      showToast(
+        `Tumpuk selesai: ${matched} cocok · Vendor diisi ${vendorFilled} · PIC diisi ${picFilled}` +
+        (skipped ? ` · ${skipped} baris tidak ketemu` : '')
+      );
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal baca file: ' + (err.message || err));
     }
   };
   reader.readAsArrayBuffer(file);
@@ -5975,6 +6159,27 @@ function renderSettings() {
 }
 
 // -------------------- SEARCH / PRODUCT SELECT --------------------
+/** Kumpulkan semua barcode produk (primary + list) untuk scan */
+function productAllBarcodes(p) {
+  const out = [];
+  const seen = new Set();
+  const add = (b) => {
+    const s = String(b || '').trim();
+    if (!s) return;
+    const k = s.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push(s);
+  };
+  add(p && p.barcode);
+  if (p && Array.isArray(p.barcodes)) p.barcodes.forEach(add);
+  // kadang barcodes string "a;b;c" dari import
+  if (p && typeof p.barcodes === 'string') {
+    String(p.barcodes).split(/[;|,]+/).forEach(add);
+  }
+  return out;
+}
+
 function searchProducts(term, limit=20) {
   if (!term || term.length < 1) return [];
   const t = term.trim().toLowerCase();
@@ -5986,22 +6191,22 @@ function searchProducts(term, limit=20) {
     const bReal = b.kode && !String(b.kode).startsWith('AUTO-');
     if (aReal && !bReal) return a;
     if (!aReal && bReal) return b;
-    // prefer one that has barcode filled
+    // prefer one that has more barcodes
+    const aN = productAllBarcodes(a).length;
+    const bN = productAllBarcodes(b).length;
+    if (aN !== bN) return aN > bN ? a : b;
     if ((a.barcode||'') && !(b.barcode||'')) return a;
     if (!(a.barcode||'') && (b.barcode||'')) return b;
     return a;
   };
 
-  // 1) Exact barcode match → return EXACTLY 1 product
+  // 1) Exact barcode match (primary ATAU salah satu dari barcodes[]) → 1 produk
+  //    Memudahkan scan: barcode ke-2/ke-3 tetap ketemu item yang sama
   for (let i = 0; i < state.products.length; i++) {
     const p = state.products[i];
-    if (p.barcode && String(p.barcode).trim() === tRaw) return [p];
-    if (p.barcode && String(p.barcode).toLowerCase() === t) return [p];
-    // multi-barcode support
-    if (Array.isArray(p.barcodes)) {
-      for (const b of p.barcodes) {
-        if (String(b).trim() === tRaw || String(b).toLowerCase() === t) return [p];
-      }
+    const allBc = productAllBarcodes(p);
+    for (const b of allBc) {
+      if (b === tRaw || b.toLowerCase() === t) return [p];
     }
   }
 
@@ -6021,8 +6226,7 @@ function searchProducts(term, limit=20) {
     const kodeKey = (p.kode || '').toLowerCase();
     const namaKey = (p.nama || '').trim().toLowerCase().replace(/\s+/g, ' ');
     if (kodeKey && seenKode.has(kodeKey)) continue;
-    const hay = ((p.nama||'') + ' ' + (p.kode||'') + ' ' + (p.barcode||'') +
-      (Array.isArray(p.barcodes) ? ' ' + p.barcodes.join(' ') : '') + ' ' + (p.vendor||'')).toLowerCase();
+    const hay = ((p.nama||'') + ' ' + (p.kode||'') + ' ' + productAllBarcodes(p).join(' ') + ' ' + (p.vendor||'')).toLowerCase();
     if (!hay.includes(t)) continue;
 
     if (kodeKey) seenKode.add(kodeKey);
@@ -7842,15 +8046,20 @@ async function replaceProductsFromSeed() {
     storage.set('products_backup_before_seed', state.products || []);
   } catch (_) {}
 
-  const list = seed.products.map(p => Object.assign({}, p, {
-    kode: p.kode || p.barcode || ('ITM' + uid().slice(-6)),
-    barcode: p.barcode || '',
-    nama: p.nama || '',
-    kategori: p.kategori || '',
-    satuan: normalizeUom(p.satuan || p.uom || 'PCS'),
-    vendor: p.vendor || '',
-    pic: p.pic || ''
-  }));
+  const list = seed.products.map(p => {
+    const allBc = productAllBarcodes(p);
+    const primary = p.barcode || allBc[0] || '';
+    return Object.assign({}, p, {
+      kode: p.kode || primary || ('ITM' + uid().slice(-6)),
+      barcode: primary,
+      barcodes: allBc.length ? allBc : (primary ? [primary] : []),
+      nama: p.nama || '',
+      kategori: p.kategori || '',
+      satuan: normalizeUom(p.satuan || p.uom || 'PCS'),
+      vendor: p.vendor || '',
+      pic: p.pic || ''
+    });
+  });
   list.sort((a, b) => String(a.nama || '').localeCompare(String(b.nama || ''), 'id', { sensitivity: 'base' }));
 
   state.products = list;
@@ -7896,6 +8105,11 @@ function handleImportProduk(file) {
       const keys = Object.keys(json[0]);
       const findCol = (...cands) => keys.find(k => cands.some(c => k.toLowerCase().includes(c)));
       const colBarcode = findCol('barcode','bar code');
+      // kolom list multi-barcode (barcodes / barcode2 / alt)
+      const colBarcodes = keys.find(k => {
+        const lk = k.toLowerCase();
+        return lk === 'barcodes' || lk.includes('multi') || lk.includes('barcode2') || lk.includes('alt barcode');
+      });
       const colNama = findCol('nama produk','nama','name','produk');
       const colKode = findCol('kode produk','kode','code','sku');
       const colKat = findCol('kategori','kategory','category');
@@ -7908,9 +8122,35 @@ function handleImportProduk(file) {
 
       if (!colNama) return showToast('Kolom Nama Produk tidak ditemukan');
 
+      const parseBcList = (val) => {
+        if (val == null || val === '') return [];
+        if (Array.isArray(val)) return val.map(x => String(x).trim()).filter(Boolean);
+        return String(val).split(/[;|,/\s]+/).map(s => s.trim()).filter(s => s && s !== '-');
+      };
+      const mergeBcInto = (p, extras) => {
+        const set = new Set(productAllBarcodes(p));
+        (extras || []).forEach(b => { if (b) set.add(String(b).trim()); });
+        const all = Array.from(set).filter(Boolean);
+        p.barcodes = all;
+        if (!p.barcode && all.length) p.barcode = all[0];
+        else if (p.barcode && !all.includes(p.barcode)) {
+          all.unshift(p.barcode);
+          p.barcodes = Array.from(new Set(all));
+        }
+      };
+
       const map = {};
       // Keep existing (barcode/vendor/pic tetap jika file baru tidak punya)
-      state.products.forEach(p => { map[(p.kode||p.nama).toLowerCase()] = p; });
+      state.products.forEach(p => {
+        const copy = Object.assign({}, p, { barcodes: productAllBarcodes(p) });
+        map[(p.kode || p.nama).toLowerCase()] = copy;
+      });
+      // index by nama untuk gabung barcode ganda baris berbeda
+      const byNama = {};
+      Object.values(map).forEach(p => {
+        const nk = (p.nama || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        if (nk) byNama[nk] = p;
+      });
 
       let added = 0, updated = 0;
       const touchedKeys = []; // kode yang perlu didorong ke cloud
@@ -7920,6 +8160,8 @@ function handleImportProduk(file) {
         let kode = colKode ? String(row[colKode]||'').trim() : '';
         if (!kode || kode==='-') kode = 'AUTO-'+uid().slice(-6);
         const barcode = colBarcode ? String(row[colBarcode]||'').trim() : '';
+        const extraBc = colBarcodes ? parseBcList(row[colBarcodes]) : [];
+        if (barcode && barcode !== '-') extraBc.unshift(barcode);
         const kategori = colKat ? String(row[colKat]||'').trim() : '';
         const pic = colPic ? String(row[colPic]||'').trim() : '';
         const vendor = colVendor ? String(row[colVendor]||'').trim() : '';
@@ -7930,9 +8172,23 @@ function handleImportProduk(file) {
         if (!satuan && uomDc) satuan = parseUomFromDcText(uomDc);
         satuan = normalizeUom(satuan || 'PCS');
         const key = kode.toLowerCase();
+        const namaKey = nama.trim().toLowerCase().replace(/\s+/g, ' ');
+
+        // Jika nama sama sudah ada → gabung barcode ke produk itu (bukan buat baris baru)
+        if (namaKey && byNama[namaKey] && !map[key]) {
+          const existing = byNama[namaKey];
+          mergeBcInto(existing, extraBc);
+          if (kategori && kategori !== '-') existing.kategori = kategori;
+          if (pic && !pic.includes('Tidak ditemukan')) existing.pic = pic;
+          if (vendor && !vendor.includes('Tidak ditemukan')) existing.vendor = vendor;
+          updated++;
+          touchedKeys.push((existing.kode || '').toLowerCase());
+          return;
+        }
+
         if (map[key]) {
-          // merge — jangan hapus barcode lama jika file baru kosong
-          if (barcode && barcode!=='-') map[key].barcode = barcode;
+          // merge — kumpulkan semua barcode
+          mergeBcInto(map[key], extraBc);
           if (kategori && kategori!=='-') map[key].kategori = kategori;
           if (pic && !pic.includes('Tidak ditemukan')) map[key].pic = pic;
           if (vendor && !vendor.includes('Tidak ditemukan')) map[key].vendor = vendor;
@@ -7942,11 +8198,14 @@ function handleImportProduk(file) {
           if (uomDc) map[key].uomDc = uomDc;
           if (uomStore) map[key].uomStore = uomStore;
           if (konversiStore) map[key].konversiStore = konversiStore;
+          byNama[namaKey] = map[key];
           updated++;
         } else {
+          const allBc = Array.from(new Set(extraBc.filter(b => b && b !== '-')));
           map[key] = {
             kode,
-            barcode: barcode==='-'?'':barcode,
+            barcode: allBc[0] || '',
+            barcodes: allBc,
             nama,
             kategori: kategori==='-'?'':kategori,
             vendor: vendor.includes('Tidak ditemukan')?'':vendor,
@@ -7954,12 +8213,13 @@ function handleImportProduk(file) {
             satuan, uom: satuan,
             uomDc, uomStore, konversiStore
           };
+          byNama[namaKey] = map[key];
           added++;
         }
         touchedKeys.push(key);
       });
       state.products = Object.values(map);
-      // Selalu rapikan duplikat kode setelah import
+      // Rapikan duplikat + gabung barcode nama sama
       const before = state.products.length;
       state.products = dedupeProductsList(state.products);
       const dropped = before - state.products.length;
@@ -8012,11 +8272,18 @@ function mergeTwoProducts(a, b) {
   const loser = winner === a ? b : a;
   const realKode = (k) => k && !String(k).toUpperCase().startsWith('AUTO-');
   const kode = realKode(winner.kode) ? winner.kode : (realKode(loser.kode) ? loser.kode : (winner.kode || loser.kode));
+  // Gabungkan SEMUA barcode dari kedua produk (scan barcode mana pun → item sama)
+  const bcSet = new Set();
+  productAllBarcodes(winner).forEach(x => bcSet.add(x));
+  productAllBarcodes(loser).forEach(x => bcSet.add(x));
+  const allBc = Array.from(bcSet).filter(Boolean);
+  const primary = winner.barcode || loser.barcode || allBc[0] || '';
+  if (primary && !allBc.includes(primary)) allBc.unshift(primary);
   return {
     kode,
     nama: winner.nama || loser.nama || '',
-    barcode: winner.barcode || loser.barcode || '',
-    barcodes: winner.barcodes || loser.barcodes || [],
+    barcode: primary,
+    barcodes: allBc,
     vendor: winner.vendor || loser.vendor || '',
     pic: winner.pic || loser.pic || '',
     kategori: winner.kategori || loser.kategori || '',
@@ -9613,6 +9880,12 @@ function bindEvents() {
     handleImportProduk(this.files[0]);
     this.value = '';
   });
+  $('#importPicVendorBtn')?.addEventListener('click', () => $('#importPicVendorFile')?.click());
+  $('#importPicVendorFile')?.addEventListener('change', function() {
+    handleImportPicVendorOverlay(this.files[0]);
+    this.value = '';
+  });
+  $('#resetProdukBtn')?.addEventListener('click', () => resetMasterProduk());
   $('#replaceSeedProdukBtn')?.addEventListener('click', () => {
     if (!isAdmin()) return showToast('Hanya admin yang bisa ganti database produk');
     replaceProductsFromSeed();
