@@ -889,7 +889,7 @@ table.data-table .actions { display: flex; gap: 4px; }
       Belum punya akun? <a href="#" id="showRegister" style="color:var(--primary);font-weight:700;">Daftar</a>
     </div>
     <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--text-muted);">
-      Data gudang tersimpan di server Firebase. Login agar sinkron antar perangkat.
+      Login pakai <b>email</b> yang terdaftar di Firebase Authentication (bukan hanya NIK). Lupa password → reset di Firebase Console.
     </div>
   </div>
   <!-- REGISTER -->
@@ -1570,6 +1570,7 @@ table.data-table .actions { display: flex; gap: 4px; }
           <div class="search-box"><input type="text" id="produkSearch" placeholder="Cari nama / kode / barcode..."></div>
           <button class="btn btn-outline btn-sm" id="importProdukBtn"><i data-lucide="file-up"></i> Import Excel</button>
           <input type="file" id="importProdukFile" accept=".xlsx,.xls,.csv" style="display:none;">
+          <button class="btn btn-outline btn-sm" id="replaceSeedProdukBtn" title="Ganti master produk dari database seed terbaru (riwayat nota TIDAK diubah)"><i data-lucide="database"></i> Ganti DB Seed</button>
           <button class="btn btn-outline btn-sm" id="dedupeProdukBtn" title="Hapus produk dobel berdasarkan kode"><i data-lucide="filter"></i> Bersihkan Duplikat</button>
           <button class="btn btn-outline btn-sm" id="uploadProdukCloudBtn" title="Unggah semua produk lokal ke server"><i data-lucide="cloud-upload"></i> Unggah ke Server</button>
           <button class="btn btn-primary btn-sm" id="addProdukBtn"><i data-lucide="plus"></i> Tambah Produk</button>
@@ -3723,18 +3724,31 @@ function exportBanding(fmt) {
 }
 
 function exportProduk(fmt) {
-  const list = state.products;
+  // Sort A-Z by nama agar mudah filter di Excel
+  const list = (state.products || []).slice().sort((a, b) =>
+    String(a.nama || '').localeCompare(String(b.nama || ''), 'id', { sensitivity: 'base' })
+  );
   if (!list.length) return showToast('Master produk kosong');
   const meta = ExportEngine.getMeta('Master Produk', list.length);
-  const headers = ['No','Kode','Barcode','Nama Produk','Kategori','Vendor','PIC'];
-  const rows = list.map((p,i) => [i+1, p.kode, p.barcode||'', p.nama, p.kategori||'', p.vendor||'', p.pic||'']);
-  if (fmt==='xlsx') ExportEngine.toExcel(headers, rows, 'Produk', meta);
-  else if (fmt==='csv') ExportEngine.toCSV(headers, rows, meta);
-  else if (fmt==='pdf') ExportEngine.toPDF('Master Produk', headers, rows, meta);
-  else if (fmt==='ringkas') {
-    const lines = [`*MASTER PRODUK — ${list.length} item*`, ''];
-    list.slice(0,50).forEach((p,i) => lines.push(`${i+1}. ${p.nama} (${p.kode})`));
-    if (list.length>50) lines.push(`... dan ${list.length-50} lainnya`);
+  // Kategori ikut diekspor (kolom filter Excel)
+  const headers = ['No', 'Kode', 'Barcode', 'Nama Produk', 'Kategori', 'Satuan', 'Vendor', 'PIC'];
+  const rows = list.map((p, i) => [
+    i + 1,
+    p.kode || '',
+    p.barcode || '',
+    p.nama || '',
+    p.kategori || '',
+    p.satuan || p.uom || 'PCS',
+    p.vendor || '',
+    p.pic || ''
+  ]);
+  if (fmt === 'xlsx') ExportEngine.toExcel(headers, rows, 'Produk', meta);
+  else if (fmt === 'csv') ExportEngine.toCSV(headers, rows, meta);
+  else if (fmt === 'pdf') ExportEngine.toPDF('Master Produk', headers, rows, meta);
+  else if (fmt === 'ringkas') {
+    const lines = [`*MASTER PRODUK — ${list.length} item (A-Z)*`, ''];
+    list.slice(0, 50).forEach((p, i) => lines.push(`${i + 1}. ${p.nama} · ${p.kategori || '-'} (${p.kode})`));
+    if (list.length > 50) lines.push(`... dan ${list.length - 50} lainnya`);
     ExportEngine.toRingkas(lines, meta);
   }
 }
@@ -7806,6 +7820,67 @@ window.deleteKategori = function(c){
 };
 
 // -------------------- IMPORT PRODUK FROM EXCEL --------------------
+/**
+ * Ganti master produk dari seed (Database web new 22 Agu 2026).
+ * HANYA products + categories — riwayat nota/audit/activity TIDAK disentuh.
+ */
+async function replaceProductsFromSeed() {
+  const seed = (typeof window.GUDANGPRO_SEED !== 'undefined') ? window.GUDANGPRO_SEED : null;
+  if (!seed || !Array.isArray(seed.products) || !seed.products.length) {
+    return showToast('Seed produk tidak ditemukan. Pastikan products-seed.js ikut di-upload.');
+  }
+  if (!confirm(
+    'Ganti MASTER PRODUK dengan database seed terbaru?\n\n' +
+    '• ' + seed.products.length + ' item (urut A-Z)\n' +
+    '• Kategori ikut diganti\n' +
+    '• Riwayat nota retur / audit / activity TIDAK diubah\n\n' +
+    'Lanjutkan?'
+  )) return;
+
+  // Backup lokal hanya produk (bukan history)
+  try {
+    storage.set('products_backup_before_seed', state.products || []);
+  } catch (_) {}
+
+  const list = seed.products.map(p => Object.assign({}, p, {
+    kode: p.kode || p.barcode || ('ITM' + uid().slice(-6)),
+    barcode: p.barcode || '',
+    nama: p.nama || '',
+    kategori: p.kategori || '',
+    satuan: normalizeUom(p.satuan || p.uom || 'PCS'),
+    vendor: p.vendor || '',
+    pic: p.pic || ''
+  }));
+  list.sort((a, b) => String(a.nama || '').localeCompare(String(b.nama || ''), 'id', { sensitivity: 'base' }));
+
+  state.products = list;
+  storage.set('products', state.products);
+  storage.set('productsSeedVersion', seed.version || '2026-08-22');
+
+  if (Array.isArray(seed.categories) && seed.categories.length) {
+    state.categories = seed.categories.slice().sort((a, b) => a.localeCompare(b, 'id'));
+    storage.set('categories', state.categories);
+    try { if (firebaseReady && db) await cloudSaveCategories(state.categories); } catch (_) {}
+  }
+
+  // JANGAN sentuh: state.history, auditHistory, activityLog, cart
+  try { if (typeof renderProduk === 'function') renderProduk(); } catch (_) {}
+  try { if (typeof renderDataItem === 'function') renderDataItem(); } catch (_) {}
+  try { if (typeof renderKategori === 'function') renderKategori(); } catch (_) {}
+  showToast('Master produk diganti: ' + list.length + ' item (riwayat nota aman)');
+
+  if (isAdmin() && firebaseReady && db) {
+    if (confirm('Unggah juga ke server Firebase?\n(merge by kode — riwayat nota tetap aman)')) {
+      try {
+        await forceUploadAllProducts();
+      } catch (e) {
+        console.warn('[seed replace] upload', e);
+        showToast('Lokal sudah diganti. Upload server gagal — coba tombol Unggah ke Server.');
+      }
+    }
+  }
+}
+
 function handleImportProduk(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -8271,12 +8346,23 @@ function loadState() {
   // Prefer data already saved in localStorage (user may have imported/edited)
   const savedProducts = storage.get('products', null);
   const seed = (typeof window.GUDANGPRO_SEED !== 'undefined') ? window.GUDANGPRO_SEED : null;
+  const seedVer = seed && seed.version ? String(seed.version) : '';
+  const localSeedVer = storage.get('productsSeedVersion', '');
 
+  // Seed baru (version beda) + seed lebih lengkap → tawarkan lewat tombol;
+  // auto-load seed hanya jika lokal masih sedikit
   if (savedProducts && savedProducts.length > 50) {
     state.products = savedProducts;
+    // jika seed lebih baru & jauh lebih besar, log saja (admin pakai tombol Ganti DB Seed)
+    if (seed && seed.products && seed.products.length > savedProducts.length * 1.2 && seedVer && seedVer !== localSeedVer) {
+      console.log('[DC NONBUAH] Seed baru tersedia:', seed.products.length, 'vs lokal', savedProducts.length, '— gunakan tombol Ganti DB Seed');
+    }
   } else if (seed && seed.products && seed.products.length) {
-    state.products = seed.products;
+    state.products = seed.products.slice().sort((a, b) =>
+      String(a.nama || '').localeCompare(String(b.nama || ''), 'id', { sensitivity: 'base' })
+    );
     storage.set('products', state.products);
+    if (seedVer) storage.set('productsSeedVersion', seedVer);
     console.log('[DC NONBUAH] Loaded', state.products.length, 'products from seed database');
   } else {
     state.products = SAMPLE_PRODUCTS;
@@ -9099,10 +9185,20 @@ function bindEvents() {
 
       if (!cred) {
         const code = lastAuthErr && lastAuthErr.code;
-        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-          showLoginErr('Password salah. Atau login pakai EMAIL lengkap yang terdaftar (bukan NIK).');
+        console.warn('[login] gagal auth', code, lastAuthErr && lastAuthErr.message, 'tried:', Array.from(tried));
+        if (code === 'auth/too-many-requests') {
+          showLoginErr('Terlalu banyak percobaan. Tunggu beberapa menit, lalu coba lagi.');
+        } else if (code === 'auth/network-request-failed') {
+          showLoginErr('Jaringan gagal. Cek internet lalu coba lagi.');
+        } else if (code === 'auth/operation-not-allowed') {
+          showLoginErr('Login Email/Password belum diaktifkan di Firebase Console → Authentication → Sign-in method.');
+        } else if (u.includes('@')) {
+          // Input sudah email: user-not-found ATAU password salah (Firebase sering pakai invalid-credential)
+          showLoginErr('Email/password tidak cocok, atau akun belum ada di Firebase Authentication. Reset password / tambah user di Firebase Console (project hostinglb-6428b).');
+        } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          showLoginErr('Password salah, atau NIK belum terhubung ke email Auth. Coba login dengan EMAIL lengkap dari Master User.');
         } else {
-          showLoginErr('Akun tidak ditemukan dengan NIK/username itu. Login pakai EMAIL (lihat Master User), atau hubungi admin.');
+          showLoginErr('Akun tidak ditemukan untuk NIK/username itu. Login pakai EMAIL lengkap (contoh di Master User), bukan NIK saja.');
         }
         return;
       }
@@ -9516,6 +9612,10 @@ function bindEvents() {
   $('#importProdukFile').addEventListener('change', function() {
     handleImportProduk(this.files[0]);
     this.value = '';
+  });
+  $('#replaceSeedProdukBtn')?.addEventListener('click', () => {
+    if (!isAdmin()) return showToast('Hanya admin yang bisa ganti database produk');
+    replaceProductsFromSeed();
   });
   $('#addProdukBtn').onclick = () => showToast('Gunakan Import Excel untuk menambah banyak produk');
   $('#dedupeProdukBtn')?.addEventListener('click', () => {
