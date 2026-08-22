@@ -1570,7 +1570,7 @@ table.data-table .actions { display: flex; gap: 4px; }
           <div class="search-box"><input type="text" id="produkSearch" placeholder="Cari nama / kode / barcode..."></div>
           <button class="btn btn-outline btn-sm" id="importProdukBtn"><i data-lucide="file-up"></i> Import Excel</button>
           <input type="file" id="importProdukFile" accept=".xlsx,.xls,.csv" style="display:none;">
-          <button class="btn btn-outline btn-sm" id="importPicVendorBtn" title="Tumpuk PIC Purchasing + Vendor ke produk yang sudah ada (match barcode/kode/nama)"><i data-lucide="layers"></i> Tumpuk PIC/Vendor</button>
+          <button class="btn btn-outline btn-sm" id="importPicVendorBtn" title="Tumpuk PIC + Vendor. Barcode tidak wajib — cocok via nama/kode, atau mapping Vendor→PIC saja"><i data-lucide="layers"></i> Tumpuk PIC/Vendor</button>
           <input type="file" id="importPicVendorFile" accept=".xlsx,.xls,.csv" style="display:none;">
           <button class="btn btn-outline btn-sm" id="replaceSeedProdukBtn" title="Ganti master produk dari database seed terbaru (riwayat nota TIDAK diubah)"><i data-lucide="database"></i> Ganti DB Seed</button>
           <button class="btn btn-outline btn-sm" id="dedupeProdukBtn" title="Hapus produk dobel berdasarkan kode"><i data-lucide="filter"></i> Bersihkan Duplikat</button>
@@ -5223,18 +5223,18 @@ function handleImportPicVendorOverlay(file) {
 
       const keys = Object.keys(json[0]);
       const findCol = (...cands) => keys.find(k => cands.some(c => k.toLowerCase().includes(c)));
+      // Barcode TIDAK wajib
       const colBarcode = findCol('barcode', 'bar code');
       const colKode = findCol('kode produk', 'kode', 'code', 'sku');
-      const colNama = findCol('nama produk', 'nama', 'name', 'produk');
+      const colNama = findCol('nama produk', 'nama barang', 'nama item', 'nama', 'name', 'produk');
       const colVendor = findCol('vendor', 'supplier', 'nama vendor');
       const colPic = findCol('pic purchasing', 'pic', 'purchasing');
 
       if (!colVendor && !colPic) {
         return showToast('File harus punya kolom Vendor dan/atau PIC Purchasing');
       }
-      if (!colBarcode && !colKode && !colNama) {
-        return showToast('File harus punya kolom Barcode / Kode / Nama untuk dicocokkan');
-      }
+
+      const hasRowKey = !!(colBarcode || colKode || colNama);
 
       // Index produk untuk match cepat
       const byBc = new Map();
@@ -5254,6 +5254,40 @@ function handleImportPicVendorOverlay(file) {
       let matched = 0, skipped = 0, vendorFilled = 0, picFilled = 0;
       const vendorPicUpdates = {};
 
+      // Mode A: hanya Vendor + PIC (tanpa barcode/kode/nama) → mapping vendor
+      if (!hasRowKey) {
+        json.forEach(row => {
+          const vendor = colVendor ? String(row[colVendor] || '').trim() : '';
+          const pic = colPic ? String(row[colPic] || '').trim() : '';
+          if (!vendor) return;
+          const key = vendorKeyOf(vendor);
+          vendorPicUpdates[key] = { vendor, pic: (pic && pic !== '-') ? pic : (state.vendorPic[key] || '') };
+        });
+        Object.keys(vendorPicUpdates).forEach(key => {
+          const { vendor, pic } = vendorPicUpdates[key];
+          if (pic) {
+            state.vendorPic[key] = pic;
+            cloudSaveVendorPic(key, vendor, pic);
+          }
+        });
+        (state.products || []).forEach(p => {
+          const vk = vendorKeyOf(p.vendor || '');
+          if (!vk || !vendorPicUpdates[vk]) return;
+          const { vendor, pic } = vendorPicUpdates[vk];
+          matched++;
+          if (vendor && p.vendor !== vendor) { p.vendor = vendor; vendorFilled++; }
+          if (pic && p.pic !== pic) { p.pic = pic; picFilled++; }
+        });
+        storage.set('vendorPic', state.vendorPic);
+        storage.set('products', state.products);
+        try { if (typeof renderProduk === 'function') renderProduk(); } catch (_) {}
+        try { if (typeof renderVendor === 'function') renderVendor(); } catch (_) {}
+        logActivity('IMPORT', 'PIC/Vendor overlay', `vendor-map · ${matched} produk · pic ${picFilled}`);
+        showToast(`Mapping Vendor→PIC: ${Object.keys(vendorPicUpdates).length} vendor · ${picFilled} produk terisi PIC`);
+        return;
+      }
+
+      // Mode B: match per baris — barcode opsional, boleh nama/kode saja
       json.forEach(row => {
         const bc = colBarcode ? String(row[colBarcode] || '').trim() : '';
         const kode = colKode ? String(row[colKode] || '').trim() : '';
@@ -5281,7 +5315,6 @@ function handleImportPicVendorOverlay(file) {
         }
       });
 
-      // Update map vendor→PIC
       Object.keys(vendorPicUpdates).forEach(key => {
         const { vendor, pic } = vendorPicUpdates[key];
         state.vendorPic[key] = pic;
@@ -5290,12 +5323,11 @@ function handleImportPicVendorOverlay(file) {
       storage.set('vendorPic', state.vendorPic);
       storage.set('products', state.products);
 
-      // Dorong produk yang berubah ke cloud (opsional ringan — full upload terpisah)
       try { if (typeof renderProduk === 'function') renderProduk(); } catch (_) {}
       try { if (typeof renderVendor === 'function') renderVendor(); } catch (_) {}
       logActivity('IMPORT', 'PIC/Vendor overlay', `match ${matched} · skip ${skipped} · vendor ${vendorFilled} · pic ${picFilled}`);
       showToast(
-        `Tumpuk selesai: ${matched} cocok · Vendor diisi ${vendorFilled} · PIC diisi ${picFilled}` +
+        `Tumpuk selesai: ${matched} cocok · Vendor ${vendorFilled} · PIC ${picFilled}` +
         (skipped ? ` · ${skipped} baris tidak ketemu` : '')
       );
     } catch (err) {
