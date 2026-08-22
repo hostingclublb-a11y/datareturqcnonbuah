@@ -573,22 +573,24 @@ table.data-table .actions { display: flex; gap: 4px; }
   font-family: var(--plk-font);
 }
 .plakat-head{
-  background:#ffbd00;border-bottom:1.25pt solid #111;padding:12px 12px;
-  flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative;
-  min-height:52px;border-radius:7px 7px 0 0;
+  background:#ffbd00;border-bottom:1.25pt solid #111;padding:14px 12px;
+  flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;gap:8px;
+  min-height:56px;border-radius:7px 7px 0 0;position:relative;
   text-align: var(--plk-head-align);
 }
+/* DC di kiri — JANGAN absolute agar tidak menabrak judul */
 .plakat-head .pt{
-  position:absolute;left:10px;top:50%;transform:translateY(-50%);
-  font-size: var(--plk-sub-size);font-weight:800;text-transform:uppercase;max-width:28%;
+  position:static;transform:none;flex:0 0 auto;max-width:32%;
+  font-size: var(--plk-sub-size);font-weight:800;text-transform:uppercase;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-family: var(--plk-font);
+  font-family: var(--plk-font);line-height:1.15;
 }
 .plakat-head .title{
-  font-weight:950;letter-spacing:1px;line-height:1.1;text-transform:uppercase;
-  font-size: var(--plk-title-size);padding:0 8px;
-  font-family: var(--plk-font);width:100%;
+  flex:1 1 auto;font-weight:950;letter-spacing:1px;line-height:1.1;text-transform:uppercase;
+  font-size: var(--plk-title-size);padding:0 4px;margin:0;
+  font-family: var(--plk-font);
   text-align: var(--plk-head-align);
+  overflow:hidden;text-overflow:ellipsis;
 }
 .plakat-body{
   padding: var(--plk-body-pad) 11px;flex:1 1 auto;display:flex;flex-direction:column;
@@ -627,6 +629,8 @@ table.data-table .actions { display: flex; gap: 4px; }
 .plakat-preview-frame{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:12px;overflow-x:auto;overflow-y:visible;max-height:none;}
 .plakat-preview-frame .plakat-sheet{display:block!important;width:100%!important;max-width:100%!important;margin:0 auto;transform:none!important;}
 .plakat-preview-frame .plakat-page{box-shadow:none;margin-bottom:12px;height:auto!important;min-height:0!important;overflow:visible!important;padding:8px 0;}
+.plakat-preview-frame .plakat-head{min-height:52px;padding:12px 10px;}
+.plakat-preview-frame .plakat-head .pt{position:static;transform:none;max-width:30%;}
 .plakat-preview-frame .plakat-card{
   width:min(100%,280px);height:auto;min-height:360px;max-width:280px;max-height:none;
   box-shadow:0 2px 12px rgba(15,23,42,.12);
@@ -660,8 +664,15 @@ table.data-table .actions { display: flex; gap: 4px; }
   }
   body.print-plakat .plakat-head{
     background:#ffbd00!important;border-radius:7px 7px 0 0!important;
-    min-height:52px!important;padding:12px 12px!important;
+    min-height:56px!important;padding:14px 12px!important;
+    display:flex!important;align-items:center!important;gap:8px!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  body.print-plakat .plakat-head .pt{
+    position:static!important;transform:none!important;max-width:32%!important;flex:0 0 auto!important;
+  }
+  body.print-plakat .plakat-head .title{
+    flex:1 1 auto!important;text-align:center!important;
   }
   body.print-plakat .plakat-cut::after{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body.print-plakat .plakat-qty{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -6603,12 +6614,14 @@ function plakatCardToWordTable(card, style) {
   const headAlign = s.headAlign || 'center';
 
   let rows = '';
-  // Header kuning
-  rows += '<tr><td colspan="2" style="background:#ffbd00;border-bottom:1.25pt solid #111;padding:10pt 8pt;text-align:'
-    + headAlign + ';">'
-    + (pt ? '<span style="font-size:' + labelSize + ';font-weight:bold;float:left;">' + esc(pt) + '</span>' : '')
-    + '<span style="font-size:' + titleSize + ';font-weight:bold;text-transform:uppercase;letter-spacing:1px;">'
-    + esc(title || ' ') + '</span></td></tr>';
+  // Header kuning — DC kiri + judul tengah (tanpa float biar tidak tumpang tindih)
+  rows += '<tr><td colspan="2" style="background:#ffbd00;border-bottom:1.25pt solid #111;padding:12pt 8pt;">'
+    + '<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tr>'
+    + '<td style="width:28%;font-size:' + labelSize + ';font-weight:bold;text-transform:uppercase;vertical-align:middle;white-space:nowrap;">'
+    + esc(pt || '') + '</td>'
+    + '<td style="font-size:' + titleSize + ';font-weight:bold;text-transform:uppercase;letter-spacing:1px;text-align:'
+    + headAlign + ';vertical-align:middle;">' + esc(title || ' ') + '</td>'
+    + '</tr></table></td></tr>';
 
   if (!isEmpty) {
     // Baris field
@@ -9024,55 +9037,62 @@ function buildUniversalPlakatHtml(items, mode) {
     return `<div class="plakat-head">${dc ? `<div class="pt">${esc(dc)}</div>` : ''}<div class="title">${esc(title || ' ')}</div></div>`;
   }
 
+  function itemBlockHtml(it, num) {
+    if (!it || it._blank) return '';
+    const showNama = !fieldKeys || fieldKeys.length === 0 || fieldKeys.includes('nama');
+    const parts = [];
+    if (!fieldKeys || fieldKeys.length === 0 || fieldKeys.includes('kode')) {
+      parts.push('Kode Barang: <b>' + esc(it.kode || '-') + '</b>');
+    }
+    if (fieldKeys && fieldKeys.includes('barcode') && it.barcode) {
+      parts.push('BC: <b>' + esc(it.barcode) + '</b>');
+    }
+    if (!fieldKeys || fieldKeys.length === 0 || fieldKeys.includes('qty')) {
+      parts.push('<span class="plakat-qty">Qty: ' + esc(it.qty || 0) + ' ' + esc(it.satuan || 'PCS') + '</span>');
+    }
+    if ((!fieldKeys || fieldKeys.includes('catatan')) && it.note) {
+      parts.push('Catatan: ' + esc(it.note));
+    }
+    const nameLine = showNama
+      ? `<div class="iname">${num}. ${esc(it.nama || '-')}</div>`
+      : `<div class="iname">${num}.</div>`;
+    return `<div class="plakat-item-block">${nameLine}<div class="imeta">${parts.join(' · ')}</div></div>`;
+  }
+
   function oneCard(it, i) {
     const isBlank = !!(it && it._blank);
-    const allRows = [];
+    let bodyInner = '';
     if (!isBlank) {
-      allRows.push(
-        { key:'nama', lbl:'Nama Barang', val: it.nama || '-' },
-        { key:'kode', lbl:'Kode Barang', val: it.kode || '-' },
-        { key:'barcode', lbl:'Barcode', val: it.barcode || '-' },
-        { key:'qty', lbl:'Qty / Satuan', val: (it.qty || 0) + ' ' + (it.satuan || 'PCS'), isQty:true }
-      );
-      if (it.note) allRows.push({ key:'catatan', lbl:'Catatan', val: it.note });
+      // Format seperti PDF: blok item (nama + kode + qty badge)
+      bodyInner = `<div class="plakat-items">${itemBlockHtml(it, i + 1)}</div>`;
+      if (!fieldKeys || fieldKeys.includes('extra')) {
+        bodyInner += extras.map(ex => plakatRowHtml(ex.lbl, ex.val, false)).join('');
+      }
+    } else if (fieldKeys && fieldKeys.includes('extra')) {
+      bodyInner = extras.map(ex => plakatRowHtml(ex.lbl, ex.val, false)).join('');
     }
-    if (!fieldKeys || fieldKeys.includes('extra')) {
-      extras.forEach(ex => allRows.push({ key:'extra', lbl: ex.lbl, val: ex.val }));
-    }
-    const rows = isBlank && (!fieldKeys || !fieldKeys.length)
-      ? []
-      : filterPlakatRows(allRows, fieldKeys);
-    const rowsHtml = rows.map(r => plakatRowHtml(r.lbl, r.val, r.isQty)).join('');
     const foot = isBlank
       ? `${esc(dc || '')} · Template 10×13,5 cm`
-      : `${i+1}/${total} · ${esc(dc)} · 10×13,5 cm`;
-    return `<div class="plakat-card${isBlank ? ' plakat-blank' : ''}">
+      : `${i + 1} item · ${esc(dc)} · 10×13,5 cm`;
+    return `<div class="plakat-card combo${isBlank ? ' plakat-blank' : ''}">
       ${headHtml()}
-      <div class="plakat-body">${rowsHtml}
+      <div class="plakat-body">${bodyInner}
         <div class="plakat-foot">${foot}</div>
       </div>
     </div>`;
   }
 
   function groupCard(group, startIndex) {
-    const blocks = group.map((it, j) => {
-      if (it._blank) return '';
-      const parts = [];
-      if (!fieldKeys || fieldKeys.includes('kode')) parts.push('Kode: <b>'+esc(it.kode||'-')+'</b>');
-      if (!fieldKeys || fieldKeys.includes('barcode')) parts.push('BC: <b>'+esc(it.barcode||'-')+'</b>');
-      if (!fieldKeys || fieldKeys.includes('qty')) parts.push('Qty: <span class="plakat-qty">'+esc(it.qty||0)+' '+esc(it.satuan||'PCS')+'</span>');
-      if ((!fieldKeys || fieldKeys.includes('catatan')) && it.note) parts.push('Catatan: '+esc(it.note));
-      const showNama = !fieldKeys || fieldKeys.includes('nama');
-      return `<div class="plakat-item-block">${showNama?`<div class="iname">${startIndex+j+1}. ${esc(it.nama||'-')}</div>`:`<div class="iname">${startIndex+j+1}.</div>`}<div class="imeta">${parts.join(' · ')}</div></div>`;
-    }).join('');
+    const blocks = group.map((it, j) => itemBlockHtml(it, startIndex + j + 1)).join('');
     let extraHtml = '';
     if (!fieldKeys || fieldKeys.includes('extra')) {
       extraHtml = extras.map(ex => plakatRowHtml(ex.lbl, ex.val, false)).join('');
     }
-    return `<div class="plakat-card combo ${group.length === total ? 'all-items' : ''}">
+    const n = group.filter(x => x && !x._blank).length;
+    return `<div class="plakat-card combo ${n === total ? 'all-items' : ''}">
       ${headHtml()}
       <div class="plakat-body">${extraHtml}<div class="plakat-items">${blocks}</div>
-        <div class="plakat-foot">${group.length} item · ${esc(dc)} · 10×13,5 cm</div>
+        <div class="plakat-foot">${n} item · ${esc(dc)} · 10×13,5 cm</div>
       </div>
     </div>`;
   }
