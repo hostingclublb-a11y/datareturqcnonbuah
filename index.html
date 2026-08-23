@@ -524,24 +524,26 @@ table.data-table .actions { display: flex; gap: 4px; }
 /* ==================== PLAKAT A4 — STABLE PRINT ENGINE ==================== */
 
 
-/* ===== TEMPLATE LABEL 10 × 13,5 cm (portrait, rounded) ===== */
+/* ===== TEMPLATE LABEL print-safe A4 (Margin = None)
+   2×124mm + 8mm potong + 14+14mm pad = 284mm (<297) buffer ~13mm anti-overflow ===== */
 .plakat-sheet{display:none;background:#fff;color:#111;box-sizing:border-box;width:100%;}
 .plakat-page{
-  box-sizing:border-box;width:100%;min-height:277mm;height:auto;
+  box-sizing:border-box;width:100%;min-height:297mm;height:297mm;max-height:297mm;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-  gap:8mm;padding:8mm 0;page-break-after:always;break-after:page;background:#fff;overflow:visible;
+  gap:0;padding:14mm 0;page-break-after:always;break-after:page;background:#fff;overflow:hidden;
+  page-break-inside:avoid;break-inside:avoid;
 }
 .plakat-page:last-child{page-break-after:auto;break-after:auto;}
-.plakat-page.full-page{min-height:277mm;}
-/* Kartu label fisik: 10cm × 13,5cm */
+.plakat-page.full-page{min-height:297mm;height:297mm;padding:14mm 0;justify-content:flex-start;}
 .plakat-card{
-  width:100mm;height:135mm;max-width:100mm;max-height:135mm;
+  width:100mm;height:124mm;max-width:100mm;max-height:124mm;
   border:1.25pt solid #111;background:#fff;overflow:hidden;box-sizing:border-box;
   display:flex;flex-direction:column;border-radius:8px;
-  flex:0 0 auto;margin:0 auto;
+  flex:0 0 124mm;margin:0 auto;
+  page-break-inside:avoid;break-inside:avoid;
   -webkit-print-color-adjust:exact;print-color-adjust:exact;
 }
-.plakat-page.full-page .plakat-card{width:100mm;height:135mm;}
+.plakat-page.full-page .plakat-card{width:100mm;height:124mm;max-height:124mm;flex:0 0 124mm;}
 .plakat-card.plakat-empty{
   border:1.25pt dashed #94a3b8;background:#fafafa;visibility:visible;
 }
@@ -550,10 +552,14 @@ table.data-table .actions { display: flex; gap: 4px; }
   height:100%;color:#94a3b8;font-size:11px;font-weight:600;
 }
 .plakat-card.plakat-blank .plakat-body{min-height:0;}
-.plakat-cut{width:100mm;height:0;flex:0 0 0;border-top:1.5px dashed #777;position:relative;margin:2mm 0;}
+.plakat-cut{
+  width:100mm;height:8mm;flex:0 0 8mm;box-sizing:border-box;
+  border:none;border-top:1.5px dashed #777;position:relative;margin:0;padding:0;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
 .plakat-cut::after{
-  content:'✂  POTONG DI SINI';position:absolute;left:50%;top:-8px;transform:translateX(-50%);
-  background:#fff;color:#555;font-size:9px;padding:0 8px;font-weight:700;letter-spacing:.4px;white-space:nowrap;
+  content:'✂  POTONG DI SINI';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:#fff;color:#555;font-size:8px;padding:0 6px;font-weight:700;letter-spacing:.3px;white-space:nowrap;
 }
 .plakat-sheet{
   --plk-font: Arial, Helvetica, sans-serif;
@@ -573,24 +579,27 @@ table.data-table .actions { display: flex; gap: 4px; }
   font-family: var(--plk-font);
 }
 .plakat-head{
-  background:#ffbd00;border-bottom:1.25pt solid #111;padding:14px 12px;
-  flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;gap:8px;
-  min-height:56px;border-radius:7px 7px 0 0;position:relative;
-  text-align: var(--plk-head-align);
+  background:#ffbd00;border-bottom:1.25pt solid #111;padding:10px 10px;
+  flex:0 0 auto;display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);
+  align-items:center;column-gap:6px;
+  min-height:52px;border-radius:7px 7px 0 0;position:relative;
+  box-sizing:border-box;
 }
-/* DC di kiri — JANGAN absolute agar tidak menabrak judul */
+/* DC kiri — teks penuh, tidak ellipsis */
 .plakat-head .pt{
-  position:static;transform:none;flex:0 0 auto;max-width:32%;
+  position:static!important;transform:none!important;
   font-size: var(--plk-sub-size);font-weight:800;text-transform:uppercase;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-family: var(--plk-font);line-height:1.15;
+  white-space:nowrap;overflow:visible;text-overflow:clip;
+  font-family: var(--plk-font);line-height:1.15;max-width:none;
 }
+/* Judul — boleh mengecil, tidak potong dengan ... */
 .plakat-head .title{
-  flex:1 1 auto;font-weight:950;letter-spacing:1px;line-height:1.1;text-transform:uppercase;
-  font-size: var(--plk-title-size);padding:0 4px;margin:0;
+  font-weight:950;letter-spacing:.5px;line-height:1.05;text-transform:uppercase;
+  font-size: var(--plk-title-size);padding:0;margin:0;
   font-family: var(--plk-font);
-  text-align: var(--plk-head-align);
-  overflow:hidden;text-overflow:ellipsis;
+  text-align: var(--plk-head-align, center);
+  white-space:nowrap;overflow:visible;text-overflow:clip;
+  min-width:0;
 }
 .plakat-body{
   padding: var(--plk-body-pad) 11px;flex:1 1 auto;display:flex;flex-direction:column;
@@ -629,12 +638,15 @@ table.data-table .actions { display: flex; gap: 4px; }
 .plakat-preview-frame{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:12px;overflow-x:auto;overflow-y:visible;max-height:none;}
 .plakat-preview-frame .plakat-sheet{display:block!important;width:100%!important;max-width:100%!important;margin:0 auto;transform:none!important;}
 .plakat-preview-frame .plakat-page{box-shadow:none;margin-bottom:12px;height:auto!important;min-height:0!important;overflow:visible!important;padding:8px 0;}
-.plakat-preview-frame .plakat-head{min-height:52px;padding:12px 10px;}
-.plakat-preview-frame .plakat-head .pt{position:static;transform:none;max-width:30%;}
+.plakat-preview-frame .plakat-head{min-height:48px;padding:10px 8px;}
+.plakat-preview-frame .plakat-head .pt,
+.plakat-preview-frame .plakat-head .title{overflow:visible;text-overflow:clip;white-space:nowrap;}
+/* Preview ≈ proporsi label 10×12,8 cm (lebar lebih lega agar font tidak terpotong) */
 .plakat-preview-frame .plakat-card{
-  width:min(100%,280px);height:auto;min-height:360px;max-width:280px;max-height:none;
+  width:min(100%,340px);height:auto;min-height:420px;max-width:340px;max-height:none;
   box-shadow:0 2px 12px rgba(15,23,42,.12);
 }
+.plakat-preview-frame .plakat-cut{width:min(100%,340px);}
 .plakat-control-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;}
 .plakat-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .plakat-toggle button{min-height:42px;border:1px solid #d1d5db;background:#fff;border-radius:10px;font-weight:800;color:#475569;cursor:pointer;font-size:12.5px;padding:8px 6px;}
@@ -655,27 +667,49 @@ table.data-table .actions { display: flex; gap: 4px; }
   height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
 }
 @media print{
-  body.print-plakat .plakat-sheet{display:block!important;width:100%;}
-  body.print-plakat .plakat-page{min-height:277mm;height:auto;padding:8mm 0;}
+  /* Margin 0 → pilih "None / Tanpa Margin" di dialog browser */
+  @page { size: A4 portrait; margin: 0 !important; }
+  body.print-plakat { margin: 0 !important; padding: 0 !important; }
+  body.print-plakat .plakat-sheet,
+  body.print-plakat #plakatPrintAreaLive{
+    display:block!important;width:100%!important;margin:0!important;padding:0!important;
+  }
+  /* 14 + 124 + 8 + 124 + 14 = 284mm (buffer ~13mm, anti-overflow Samsung/Chrome) */
+  body.print-plakat .plakat-page{
+    min-height:297mm!important;height:297mm!important;max-height:297mm!important;
+    padding:14mm 0!important;gap:0!important;overflow:hidden!important;
+    page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;
+    box-sizing:border-box!important;margin:0!important;
+  }
+  body.print-plakat .plakat-page:last-child{page-break-after:auto!important;break-after:auto!important;}
   body.print-plakat .plakat-card{
-    width:100mm!important;height:135mm!important;max-width:100mm!important;max-height:135mm!important;
+    width:100mm!important;height:124mm!important;max-width:100mm!important;max-height:124mm!important;
+    flex:0 0 124mm!important;margin:0 auto!important;
     border:1.25pt solid #000!important;border-radius:8px!important;
+    page-break-inside:avoid!important;break-inside:avoid!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  body.print-plakat .plakat-cut{
+    width:100mm!important;height:8mm!important;flex:0 0 8mm!important;margin:0!important;padding:0!important;
+    overflow:hidden!important;
   }
   body.print-plakat .plakat-head{
     background:#ffbd00!important;border-radius:7px 7px 0 0!important;
-    min-height:56px!important;padding:14px 12px!important;
-    display:flex!important;align-items:center!important;gap:8px!important;
+    min-height:44px!important;padding:6px 8px!important;
+    display:grid!important;grid-template-columns:minmax(0,auto) minmax(0,1fr)!important;
+    align-items:center!important;column-gap:6px!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
   }
-  body.print-plakat .plakat-head .pt{
-    position:static!important;transform:none!important;max-width:32%!important;flex:0 0 auto!important;
-  }
+  body.print-plakat .plakat-head .pt,
   body.print-plakat .plakat-head .title{
-    flex:1 1 auto!important;text-align:center!important;
+    position:static!important;transform:none!important;overflow:visible!important;
+    text-overflow:clip!important;white-space:nowrap!important;max-width:none!important;
   }
   body.print-plakat .plakat-cut::after{background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body.print-plakat .plakat-qty{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  /* Sembunyikan toast/UI agar tidak ikut ke PDF */
+  body.print-plakat .toast, body.print-plakat #toastHost, body.print-plakat .toast-wrap,
+  body.print-plakat [class*="toast"]{display:none!important;visibility:hidden!important;}
 }
 
 /* Checkbox pilih export */
@@ -792,21 +826,42 @@ table.data-table .actions { display: flex; gap: 4px; }
     position: static !important;
   }
   body.print-plakat .plakat-page {
-    min-height: 277mm;
+    min-height: 297mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    padding: 14mm 0 !important;
+    gap: 0 !important;
+    overflow: hidden !important;
     page-break-after: always;
     break-after: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    box-sizing: border-box !important;
   }
   body.print-plakat .plakat-page:last-child {
-    page-break-after: auto;
-    break-after: auto;
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
   body.print-plakat .plakat-card {
-    border: 3px solid #000 !important;
+    width: 100mm !important;
+    height: 124mm !important;
+    max-height: 124mm !important;
+    flex: 0 0 124mm !important;
+    border: 1.25pt solid #000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  body.print-plakat .plakat-cut {
+    height: 8mm !important;
+    flex: 0 0 8mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
   body.print-plakat .plakat-head {
-    background: #ffe600 !important;
+    background: #ffbd00 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -1312,10 +1367,11 @@ table.data-table .actions { display: flex; gap: 4px; }
             <div>
               <h2>Cetak Plakat / Label Template</h2>
               <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
-                Template label <b>10 × 13,5 cm</b> (portrait, sudut membulat, border hitam tipis). Bisa polosan atau isi bebas — cetak di kertas A4.
+                Template label <b>10 × 12,8 cm</b> (print-safe A4). 2 label + garis potong 10 mm = 1 halaman, tidak melimpah.
+                Saat <b>Cetak A4 / Simpan PDF</b>: set Margin browser ke <b>None / Tanpa Margin</b>.
               </div>
             </div>
-            <span class="badge badge-success">10×13,5 cm</span>
+            <span class="badge badge-success">10×12,8 cm</span>
           </div>
           <div class="card-body">
             <div class="plakat-tabs" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
@@ -1347,10 +1403,10 @@ table.data-table .actions { display: flex; gap: 4px; }
             <div class="plakat-control-card">
               <label style="font-weight:800;display:block;margin-bottom:7px;">Layout Kertas A4</label>
               <div class="plakat-toggle teal" id="plkPaperToggle">
-                <button type="button" data-paper="half" class="active">📄 2 Label / A4 (10×13,5 cm)</button>
+                <button type="button" data-paper="half" class="active">📄 2 Label / A4 (10×12,8 cm)</button>
                 <button type="button" data-paper="full">📄 1 Label / A4</button>
               </div>
-              <div class="plakat-helper">Setiap label dikunci <b>10 × 13,5 cm</b>, border ±1,25 pt, sudut membulat.</div>
+              <div class="plakat-helper">Label <b>100×124 mm</b> + garis potong <b>8 mm</b> + buffer internal ~13 mm = pas 1 halaman A4. Cetak: Margin = <b>None</b>.</div>
             </div>
             <div class="plakat-control-card" id="plkFieldsCard">
               <label style="font-weight:800;display:block;margin-bottom:7px;">Field isi (centang yang mau tampil — boleh kosong semua = polosan)</label>
@@ -1451,7 +1507,7 @@ table.data-table .actions { display: flex; gap: 4px; }
               </div>
               <div class="plakat-helper">
                 Tips isi kekosongan: naikkan <b>Ukuran Isi</b> + <b>Spasi antar baris</b>, lalu pilih sebaran
-                <b>Renggang (isi penuh)</b> agar baris menyebar memenuhi label 10×13,5 cm.
+                <b>Renggang (isi penuh)</b> agar baris menyebar memenuhi label 10×12,8 cm.
               </div>
             </div>
             <input type="hidden" id="plkLayout" value="single">
@@ -1477,7 +1533,7 @@ table.data-table .actions { display: flex; gap: 4px; }
               <button class="btn btn-outline" id="plkExcelBtn">📊 Excel</button>
             </div>
             <div class="plakat-preview-frame" id="plkLivePreviewWrap">
-              <div style="font-weight:800;font-size:13px;margin-bottom:8px;">👁 Live Pratinjau Label 10×13,5 cm <span style="font-weight:400;color:var(--text-muted);">— sama dengan hasil cetak</span></div>
+              <div style="font-weight:800;font-size:13px;margin-bottom:8px;">👁 Live Pratinjau Label 10×12,8 cm <span style="font-weight:400;color:var(--text-muted);">— sama dengan hasil cetak</span></div>
               <div id="plkLivePreview"><div class="empty-state" style="padding:30px;"><div class="ico">🏷️</div><h3>Template siap</h3><p>Kosongkan field untuk polosan, atau pilih barang / isi catatan tambahan.</p></div></div>
             </div>
           </div>
@@ -1587,6 +1643,7 @@ table.data-table .actions { display: flex; gap: 4px; }
           <button class="btn btn-outline btn-sm" id="dedupeProdukBtn" title="Hapus produk dobel berdasarkan kode"><i data-lucide="filter"></i> Bersihkan Duplikat</button>
           <button class="btn btn-outline btn-sm" id="uploadProdukCloudBtn" title="Unggah semua produk lokal ke server"><i data-lucide="cloud-upload"></i> Unggah ke Server</button>
           <button class="btn btn-outline btn-sm" id="resetProdukBtn" title="Kosongkan master produk ke 0 (riwayat nota TIDAK dihapus)" style="color:#b91c1c;border-color:#fecaca;"><i data-lucide="trash-2"></i> Reset ke 0</button>
+          <button class="btn btn-outline btn-sm" id="deleteSelectedProdukBtn" title="Hapus item yang dicentang" style="color:#b91c1c;border-color:#fecaca;display:none;"><i data-lucide="trash"></i> Hapus Terpilih</button>
           <button class="btn btn-primary btn-sm" id="addProdukBtn"><i data-lucide="plus"></i> Tambah Produk</button>
         </div>
         <div class="card">
@@ -1598,6 +1655,7 @@ table.data-table .actions { display: flex; gap: 4px; }
             <table class="data-table" id="produkTable">
               <thead>
                 <tr>
+                  <th style="width:36px;"><input type="checkbox" id="produkSelectAll" title="Pilih semua di halaman ini"></th>
                   <th>No</th><th>Kode</th><th>Barcode</th><th>Nama Produk</th>
                   <th>Kategori</th><th>Vendor</th><th>PIC</th><th>Aksi</th>
                 </tr>
@@ -2283,39 +2341,73 @@ function productCloudPayload(p, extra) {
  */
 function mergeProductLists(localList, cloudList) {
   const map = new Map();
-  const put = (p, preferCloud) => {
+  // Nama "jelek" = sama dengan kode / pola LB#### / kosong
+  const badNama = (nama, kode) => {
+    const n = String(nama || '').trim();
+    const k = String(kode || '').trim();
+    if (!n) return true;
+    if (k && n.toLowerCase() === k.toLowerCase()) return true;
+    if (/^LB\d+$/i.test(n)) return true;
+    return false;
+  };
+  const pickNonEmpty = (a, b) => {
+    const av = a != null && String(a).trim() !== '' ? String(a).trim() : '';
+    const bv = b != null && String(b).trim() !== '' ? String(b).trim() : '';
+    return av || bv;
+  };
+  const pickNama = (a, b, kode) => {
+    const av = a != null ? String(a).trim() : '';
+    const bv = b != null ? String(b).trim() : '';
+    const aBad = badNama(av, kode);
+    const bBad = badNama(bv, kode);
+    if (!aBad && bBad) return av;
+    if (aBad && !bBad) return bv;
+    // keduanya bagus → pilih yang lebih panjang (biasanya nama lengkap)
+    if (!aBad && !bBad) return (av.length >= bv.length ? av : bv) || av || bv;
+    return av || bv;
+  };
+  const unionBc = (a, b) => {
+    const set = new Set();
+    const add = (x) => {
+      if (Array.isArray(x)) x.forEach(v => { if (v) set.add(String(v).trim()); });
+      else if (x) set.add(String(x).trim());
+    };
+    add(a); add(b);
+    return Array.from(set).filter(Boolean);
+  };
+  const put = (p) => {
     if (!p) return;
     const key = String(p.kode || '').trim().toLowerCase();
     if (!key) return;
     const cur = map.get(key);
     if (!cur) {
-      map.set(key, Object.assign({}, p));
+      map.set(key, Object.assign({}, p, {
+        barcodes: productAllBarcodes(p)
+      }));
       return;
     }
-    // merge field-by-field: keep non-empty, preferCloud for conflicts when both filled
-    const pick = (a, b) => {
-      const av = a != null && String(a).trim() !== '' ? a : '';
-      const bv = b != null && String(b).trim() !== '' ? b : '';
-      if (preferCloud) return bv || av;
-      return av || bv;
-    };
+    const kode = cur.kode || p.kode;
+    const allBc = unionBc(productAllBarcodes(cur), productAllBarcodes(p));
+    const primary = cur.barcode || p.barcode || allBc[0] || '';
     map.set(key, {
-      kode: cur.kode || p.kode,
-      nama: pick(cur.nama, p.nama) || pick(p.nama, cur.nama),
-      barcode: preferCloud ? (p.barcode || cur.barcode || '') : (cur.barcode || p.barcode || ''),
-      barcodes: (preferCloud ? (p.barcodes || cur.barcodes) : (cur.barcodes || p.barcodes)) || [],
-      kategori: preferCloud ? (p.kategori || cur.kategori || '') : (cur.kategori || p.kategori || ''),
-      vendor: preferCloud ? (p.vendor || cur.vendor || '') : (cur.vendor || p.vendor || ''),
-      pic: preferCloud ? (p.pic || cur.pic || '') : (cur.pic || p.pic || ''),
-      satuan: normalizeUom(preferCloud ? (p.satuan || p.uom || cur.satuan || cur.uom) : (cur.satuan || cur.uom || p.satuan || p.uom)),
-      uom: normalizeUom(preferCloud ? (p.uom || p.satuan || cur.uom || cur.satuan) : (cur.uom || cur.satuan || p.uom || p.satuan)),
-      uomDc: preferCloud ? (p.uomDc || cur.uomDc || '') : (cur.uomDc || p.uomDc || ''),
-      uomStore: preferCloud ? (p.uomStore || cur.uomStore || '') : (cur.uomStore || p.uomStore || ''),
-      konversiStore: preferCloud ? (p.konversiStore || cur.konversiStore || '') : (cur.konversiStore || p.konversiStore || '')
+      kode,
+      nama: pickNama(cur.nama, p.nama, kode),
+      barcode: primary,
+      barcodes: allBc,
+      kategori: pickNonEmpty(cur.kategori, p.kategori),
+      // PIC & Vendor: JANGAN ditimpa kosong dari cloud — lokal yang sudah diisi tetap
+      vendor: pickNonEmpty(cur.vendor, p.vendor),
+      pic: pickNonEmpty(cur.pic, p.pic),
+      satuan: normalizeUom(cur.satuan || cur.uom || p.satuan || p.uom || 'PCS'),
+      uom: normalizeUom(cur.uom || cur.satuan || p.uom || p.satuan || 'PCS'),
+      uomDc: pickNonEmpty(cur.uomDc, p.uomDc),
+      uomStore: pickNonEmpty(cur.uomStore, p.uomStore),
+      konversiStore: pickNonEmpty(cur.konversiStore, p.konversiStore)
     });
   };
-  (localList || []).forEach(p => put(p, false));
-  (cloudList || []).forEach(p => put(p, true));
+  // Lokal dulu (hasil Ganti DB Seed / Tumpuk PIC), cloud mengisi yang kosong saja
+  (localList || []).forEach(put);
+  (cloudList || []).forEach(put);
   return Array.from(map.values());
 }
 
@@ -2511,13 +2603,15 @@ function startCloudSync() {
       });
       if (!cloudList.length) return;
       const localBefore = (state.products || []).length;
+      // Setelah seed/tumpuk PIC: merge tetap jalan tapi field lokal (nama bagus, PIC, vendor) dilindungi
       let merged = mergeProductLists(state.products || [], cloudList);
-      // Selalu dedupe nama+kode agar AUTO tidak muncul lagi
       merged = dedupeProductsList(merged);
-      // Saat lock aktif: jangan biarkan jumlah naik kembali dari cloud dobel
+      // Lock: jika lokal sudah rapi & cloud lebih "kotor", jangan biarkan jumlah meledak
       if (state._productsLockUntil && Date.now() < state._productsLockUntil) {
-        if (merged.length > (state.products || []).length && (state.products || []).length > 0) {
-          // tetap pakai merge tapi re-dedupe ketat sudah di atas
+        const localN = (state.products || []).length;
+        if (localN > 100 && merged.length > localN * 1.5) {
+          console.warn('[server] products: skip inflate during lock', localN, '→', merged.length);
+          merged = state.products;
         }
       }
       state.products = merged;
@@ -4835,20 +4929,19 @@ function renderProduk() {
       if ((p.kode||'').toLowerCase().includes(term)) return true;
       if ((p.vendor||'').toLowerCase().includes(term)) return true;
       if ((p.kategori||'').toLowerCase().includes(term)) return true;
-      // cari di semua barcode
       return productAllBarcodes(p).some(b => b.toLowerCase().includes(term));
     });
   }
   $('#produkCount').textContent = list.length + ' produk';
   const tbody = $('#produkTbody');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">Tidak ada produk</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted);">Tidak ada produk</td></tr>';
     $('#produkPageInfo').textContent = '';
     $('#prevProdukPage').disabled = true;
     $('#nextProdukPage').disabled = true;
+    updateProdukDeleteBar();
     return;
   }
-  // Real pagination - 100 per page
   const perPage = 100;
   const totalPages = Math.max(1, Math.ceil(list.length / perPage));
   if (!state.produkPage) state.produkPage = 0;
@@ -4856,13 +4949,16 @@ function renderProduk() {
   if (state.produkPage < 0) state.produkPage = 0;
   const start = state.produkPage * perPage;
   const show = list.slice(start, start + perPage);
+  const canDel = can('edit') || isAdmin();
   tbody.innerHTML = show.map((p,i) => {
     const allBc = productAllBarcodes(p);
     const bcLabel = allBc.length
-      ? (allBc[0] + (allBc.length > 1 ? ' <span class="badge badge-info" title="'+esc(allBc.join(', '))+'">+'+ (allBc.length-1) +'</span>' : ''))
+      ? (esc(allBc[0]) + (allBc.length > 1 ? ' <span class="badge badge-info" title="'+esc(allBc.join(', '))+'">+'+ (allBc.length-1) +'</span>' : ''))
       : '-';
+    const kodeAttr = esc(String(p.kode || '').replace(/'/g, "\\'"));
     return `
-    <tr>
+    <tr data-kode="${esc(p.kode)}">
+      <td>${canDel ? `<input type="checkbox" class="produk-row-cb" data-kode="${esc(p.kode)}" onchange="updateProdukDeleteBar()">` : ''}</td>
       <td>${start+i+1}</td>
       <td class="mono">${esc(p.kode)}</td>
       <td class="mono" style="max-width:160px;">${bcLabel}</td>
@@ -4870,15 +4966,102 @@ function renderProduk() {
       <td>${esc(p.kategori||'-')}</td>
       <td>${esc(p.vendor||'-')}</td>
       <td>${esc(p.pic||'-')}</td>
-      <td class="actions">
-        ${can('edit')?`<button class="btn btn-icon btn-outline btn-sm" onclick="editProduk('${esc(p.kode)}')">✏️</button>`:''}
+      <td class="actions" style="white-space:nowrap;">
+        ${can('edit')?`<button class="btn btn-icon btn-outline btn-sm" onclick="editProduk('${kodeAttr}')" title="Edit">✏️</button>`:''}
+        ${canDel?`<button class="btn btn-icon btn-outline btn-sm" onclick="deleteProduk('${kodeAttr}')" title="Hapus item" style="color:#b91c1c;">🗑</button>`:''}
       </td>
     </tr>`;
   }).join('');
   $('#produkPageInfo').textContent = `Halaman ${state.produkPage+1} dari ${totalPages} (${list.length} produk)`;
   $('#prevProdukPage').disabled = state.produkPage === 0;
   $('#nextProdukPage').disabled = state.produkPage >= totalPages - 1;
+  const selAll = $('#produkSelectAll');
+  if (selAll) {
+    selAll.checked = false;
+    selAll.onchange = () => {
+      $$('.produk-row-cb').forEach(cb => { cb.checked = selAll.checked; });
+      updateProdukDeleteBar();
+    };
+  }
+  updateProdukDeleteBar();
 }
+
+function updateProdukDeleteBar() {
+  const n = $$('.produk-row-cb:checked').length;
+  const btn = $('#deleteSelectedProdukBtn');
+  if (btn) {
+    btn.style.display = n > 0 ? '' : 'none';
+    btn.innerHTML = n > 0
+      ? `<i data-lucide="trash"></i> Hapus Terpilih (${n})`
+      : `<i data-lucide="trash"></i> Hapus Terpilih`;
+    try { if (window.lucide) lucide.createIcons(); } catch (_) {}
+  }
+}
+
+/** Hapus 1 produk dari master (lokal + server). Riwayat nota TIDAK dihapus. */
+async function deleteProduk(kode) {
+  if (!can('edit') && !isAdmin()) return showToast('Tidak punya akses hapus');
+  kode = String(kode || '').trim();
+  if (!kode) return;
+  const p = (state.products || []).find(x => String(x.kode) === kode);
+  const label = p ? `${p.nama || kode} (${kode})` : kode;
+  if (!confirm('Hapus item ini dari Master Produk?\n\n' + label + '\n\nRiwayat nota retur TIDAK terhapus.')) return;
+
+  state.products = (state.products || []).filter(x => String(x.kode) !== kode);
+  try { storage.set('products', state.products); } catch (_) {}
+  state._productsLockUntil = Date.now() + 60000;
+  if (!state._productsRemovedKodes) state._productsRemovedKodes = new Set();
+  state._productsRemovedKodes.add(kode.toLowerCase());
+
+  logActivity('DELETE', 'Master Produk', 'Hapus ' + label);
+  renderProduk();
+  try { if (typeof renderDataItem === 'function') renderDataItem(); } catch (_) {}
+  showToast('Item dihapus: ' + (p?.nama || kode));
+
+  if (firebaseReady && db) {
+    try {
+      await deleteProductsFromCloud([kode]);
+      showToast('Terhapus juga di server ☁');
+    } catch (e) {
+      console.warn('[deleteProduk cloud]', e);
+      showToast('Lokal terhapus, server gagal: ' + (e.message || e));
+    }
+  }
+}
+window.deleteProduk = deleteProduk;
+
+/** Hapus semua item yang dicentang */
+async function deleteSelectedProduk() {
+  if (!can('edit') && !isAdmin()) return showToast('Tidak punya akses hapus');
+  const cbs = $$('.produk-row-cb:checked');
+  const kodes = cbs.map(cb => String(cb.dataset.kode || '').trim()).filter(Boolean);
+  if (!kodes.length) return showToast('Centang item yang mau dihapus dulu');
+  if (!confirm('Hapus ' + kodes.length + ' item terpilih dari Master Produk?\n\nRiwayat nota retur TIDAK terhapus.')) return;
+
+  const set = new Set(kodes.map(k => k.toLowerCase()));
+  state.products = (state.products || []).filter(x => !set.has(String(x.kode || '').toLowerCase()));
+  try { storage.set('products', state.products); } catch (_) {}
+  state._productsLockUntil = Date.now() + 60000;
+  if (!state._productsRemovedKodes) state._productsRemovedKodes = new Set();
+  kodes.forEach(k => state._productsRemovedKodes.add(k.toLowerCase()));
+
+  logActivity('DELETE', 'Master Produk', 'Hapus terpilih ' + kodes.length + ' item');
+  renderProduk();
+  try { if (typeof renderDataItem === 'function') renderDataItem(); } catch (_) {}
+  showToast(kodes.length + ' item dihapus');
+
+  if (firebaseReady && db) {
+    try {
+      await deleteProductsFromCloud(kodes);
+      showToast('Terhapus juga di server ☁ · ' + kodes.length);
+    } catch (e) {
+      console.warn('[deleteSelected cloud]', e);
+      showToast('Lokal terhapus, server gagal: ' + (e.message || e));
+    }
+  }
+}
+window.deleteSelectedProduk = deleteSelectedProduk;
+window.updateProdukDeleteBar = updateProdukDeleteBar;
 
 /** Modul Data Item — fokus data item + UOM */
 function renderDataItem() {
@@ -5368,13 +5551,16 @@ function handleImportPicVendorOverlay(file) {
       });
       storage.set('vendorPic', state.vendorPic);
       storage.set('products', state.products);
+      state._productsLockUntil = Date.now() + 120000;
+      state._preferLocalProducts = true;
 
       try { if (typeof renderProduk === 'function') renderProduk(); } catch (_) {}
       try { if (typeof renderVendor === 'function') renderVendor(); } catch (_) {}
       logActivity('IMPORT', 'PIC/Vendor overlay', `match ${matched} · skip ${skipped} · vendor ${vendorFilled} · pic ${picFilled}`);
       showToast(
         `Tumpuk selesai: ${matched} cocok · Vendor ${vendorFilled} · PIC ${picFilled}` +
-        (skipped ? ` · ${skipped} baris tidak ketemu` : '')
+        (skipped ? ` · ${skipped} baris tidak ketemu` : '') +
+        ' · Unggah ke Server agar tidak hilang'
       );
     } catch (err) {
       console.error(err);
@@ -6597,7 +6783,7 @@ async function exportAnyPlakatPNG(html, filenamePrefix) {
 /** Export plakat → Word: render tiap kartu jadi gambar, 2 kartu / halaman A4 */
 /**
  * Word export — tabel HTML (bisa dibuka & diedit di Word/WPS Android).
- * Ukuran label ≈ 10 × 13,5 cm, mengikuti pratinjau web.
+ * Ukuran label ≈ 10 × 12,8 cm, mengikuti pratinjau web.
  */
 function plakatCardToWordTable(card, style) {
   const s = style || getPlakatFontStyle();
@@ -6650,7 +6836,7 @@ function plakatCardToWordTable(card, style) {
     rows += '<tr><td colspan="2" style="border-top:1px dashed #777;padding:4pt 6pt;text-align:center;font-size:8pt;color:#444;">' + esc(foot) + '</td></tr>';
   }
 
-  return '<table cellspacing="0" cellpadding="0" style="width:10cm;height:13.5cm;border:' + border
+  return '<table cellspacing="0" cellpadding="0" style="width:10cm;height:12.4cm;border:' + border
     + ';border-collapse:collapse;border-radius:8px;font-family:' + font
     + ';margin:0 auto 8pt auto;table-layout:fixed;">'
     + rows + '</table>';
@@ -8126,6 +8312,10 @@ async function replaceProductsFromSeed() {
     storage.set('products_backup_before_seed', state.products || []);
   } catch (_) {}
 
+  // Tandai SEMUA kode lama agar snapshot cloud tidak mengembalikan data lama
+  const oldKodes = (state.products || []).map(p => String(p.kode || '').toLowerCase()).filter(Boolean);
+  state._productsRemovedKodes = new Set(oldKodes);
+
   const list = seed.products.map(p => {
     const allBc = productAllBarcodes(p);
     const primary = p.barcode || allBc[0] || '';
@@ -8142,9 +8332,18 @@ async function replaceProductsFromSeed() {
   });
   list.sort((a, b) => String(a.nama || '').localeCompare(String(b.nama || ''), 'id', { sensitivity: 'base' }));
 
+  // Kode baru boleh kembali dari seed (hapus dari removed set)
+  list.forEach(p => {
+    const k = String(p.kode || '').toLowerCase();
+    if (k && state._productsRemovedKodes) state._productsRemovedKodes.delete(k);
+  });
+
   state.products = list;
   storage.set('products', state.products);
-  storage.set('productsSeedVersion', seed.version || '2026-08-22');
+  storage.set('productsSeedVersion', seed.version || '2026-08-23-database-new');
+  // Kunci lama agar cloud lama tidak menimpa
+  state._productsLockUntil = Date.now() + 180000;
+  state._preferLocalProducts = true;
 
   if (Array.isArray(seed.categories) && seed.categories.length) {
     state.categories = seed.categories.slice().sort((a, b) => a.localeCompare(b, 'id'));
@@ -8156,12 +8355,17 @@ async function replaceProductsFromSeed() {
   try { if (typeof renderProduk === 'function') renderProduk(); } catch (_) {}
   try { if (typeof renderDataItem === 'function') renderDataItem(); } catch (_) {}
   try { if (typeof renderKategori === 'function') renderKategori(); } catch (_) {}
-  showToast('Master produk diganti: ' + list.length + ' item (riwayat nota aman)');
+  showToast('Master produk diganti: ' + list.length + ' item (riwayat nota aman). Jangan lupa Unggah ke Server!');
 
   if (isAdmin() && firebaseReady && db) {
-    if (confirm('Unggah juga ke server Firebase?\n(merge by kode — riwayat nota tetap aman)')) {
+    if (confirm('Ganti juga di SERVER Firebase?\n• Hapus produk lama di cloud\n• Unggah ' + list.length + ' item baru\n• Riwayat nota TIDAK dihapus')) {
       try {
+        showToast('Menghapus produk lama di server…');
+        const toDelete = oldKodes.filter(k => !list.some(p => String(p.kode || '').toLowerCase() === k));
+        if (toDelete.length) await deleteProductsFromCloud(toDelete);
+        showToast('Mengunggah database baru…');
         await forceUploadAllProducts();
+        showToast('Server sudah diganti ☁ · ' + list.length + ' item');
       } catch (e) {
         console.warn('[seed replace] upload', e);
         showToast('Lokal sudah diganti. Upload server gagal — coba tombol Unggah ke Server.');
@@ -9072,8 +9276,8 @@ function buildUniversalPlakatHtml(items, mode) {
       bodyInner = extras.map(ex => plakatRowHtml(ex.lbl, ex.val, false)).join('');
     }
     const foot = isBlank
-      ? `${esc(dc || '')} · Template 10×13,5 cm`
-      : `${i + 1} item · ${esc(dc)} · 10×13,5 cm`;
+      ? `${esc(dc || '')} · Template 10×12,8 cm`
+      : `${i + 1} item · ${esc(dc)} · 10×12,8 cm`;
     return `<div class="plakat-card combo${isBlank ? ' plakat-blank' : ''}">
       ${headHtml()}
       <div class="plakat-body">${bodyInner}
@@ -9092,7 +9296,7 @@ function buildUniversalPlakatHtml(items, mode) {
     return `<div class="plakat-card combo ${n === total ? 'all-items' : ''}">
       ${headHtml()}
       <div class="plakat-body">${extraHtml}<div class="plakat-items">${blocks}</div>
-        <div class="plakat-foot">${n} item · ${esc(dc)} · 10×13,5 cm</div>
+        <div class="plakat-foot">${n} item · ${esc(dc)} · 10×12,8 cm</div>
       </div>
     </div>`;
   }
@@ -9148,7 +9352,7 @@ function printUniversalPlakat(previewOnly) {
     root.innerHTML = `<div class="modal-backdrop" id="plkPrevBackdrop">
       <div class="modal-sheet" style="max-width:720px;">
         <div class="handle"></div>
-        <div class="modal-header"><h3>Pratinjau Label 10×13,5 cm</h3>
+        <div class="modal-header"><h3>Pratinjau Label 10×12,8 cm</h3>
           <button class="btn btn-icon btn-outline" id="plkPrevClose">✕</button></div>
         <div class="modal-body">${html.replace('class="plakat-sheet"', 'class="plakat-sheet" style="display:block"')}</div>
         <div class="modal-footer">
@@ -9185,7 +9389,7 @@ function printUniversalPlakat(previewOnly) {
   setTimeout(() => { window.print(); setTimeout(cleanup, 1500); }, 80);
   const n = plakatState.items.length || 1;
   logPrint('Cetak Plakat', (plakatState.items.length ? plakatModeLabel(mode, n) : 'Polosan') + ' · ' + ($('#plkTitle')?.value || 'TEMPLATE'), { format: 'print-plakat', count: n, title: ($('#plkTitle')?.value || ''), mode });
-  showToast(plakatState.items.length ? ('Mencetak: ' + plakatModeLabel(mode, n)) : 'Mencetak template polosan 10×13,5 cm');
+  showToast(plakatState.items.length ? ('Mencetak: ' + plakatModeLabel(mode, n)) : 'Mencetak template polosan 10×12,8 cm');
 }
 
 function openPlakatMasterPicker() {
@@ -9261,7 +9465,7 @@ function exportPlakatExcel() {
       it._blank ? '' : (it.qty || ''),
       it._blank ? '' : (it.satuan || ''),
       it._blank ? '' : (it.note || ''),
-      '10 x 13.5 cm'
+      '10 x 12.8 cm'
     ];
     extras.forEach(ex => row.push(ex.val || ''));
     return row;
@@ -9269,7 +9473,7 @@ function exportPlakatExcel() {
   try {
     const wb = XLSX.utils.book_new();
     const aoa = [
-      ['DC NONBUAH — Label Template 10×13,5 cm'],
+      ['DC NONBUAH — Label Template 10×12,8 cm'],
       ['Judul', title],
       ['DC', dc],
       ['Tanggal', todayStr()],
@@ -9455,7 +9659,7 @@ function bindCetakPlakatEvents() {
     const tab = document.querySelector('.plk-template-tab[data-template="polosan"]');
     if (tab) tab.click();
     updatePlakatLivePreview();
-    showToast('Template polosan 10×13,5 cm siap — Cetak / PNG / Word');
+    showToast('Template polosan 10×12,8 cm siap — Cetak / PNG / Word');
   });
   // PNG → Word converter
   $('#png2wordPickBtn')?.addEventListener('click', () => $('#png2wordFiles')?.click());
@@ -10012,6 +10216,7 @@ function bindEvents() {
     this.value = '';
   });
   $('#resetProdukBtn')?.addEventListener('click', () => resetMasterProduk());
+  $('#deleteSelectedProdukBtn')?.addEventListener('click', () => deleteSelectedProduk());
   $('#replaceSeedProdukBtn')?.addEventListener('click', () => {
     if (!isAdmin()) return showToast('Hanya admin yang bisa ganti database produk');
     replaceProductsFromSeed();
