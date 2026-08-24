@@ -1354,10 +1354,12 @@ table.data-table .actions { display: flex; gap: 4px; }
             <option value="Good">🟢 Bagus (Good)</option>
             <option value="Bad">🔴 Jelek (Bad)</option>
           </select>
+          <button class="btn btn-outline btn-sm" id="auditHistDeleteSelBtn" title="Hapus sesi yang dicentang" style="color:#b91c1c;border-color:#fecaca;display:none;">🗑 Hapus Terpilih</button>
           <div class="export-menu">
             <button class="btn btn-outline btn-sm" id="auditHistExportBtn">📤 Export ▾</button>
             <div class="export-dropdown" id="auditHistExportDropdown">
-              <button data-fmt="xlsx">📊 Excel (.xlsx)</button>
+              <button data-fmt="xlsx">📊 Excel Gabungan (.xlsx)</button>
+              <button data-fmt="xlsx-rekap">📊 Excel + Rekap Sum</button>
               <button data-fmt="pdf">📑 PDF Nota A4</button>
               <button data-fmt="png">🖼 PNG Nota A4</button>
               <button data-fmt="ringkas">📋 Ringkas (WA)</button>
@@ -2673,7 +2675,9 @@ function startCloudSync() {
         const d = doc.data();
         if (d && d.id) list.push(d);
       });
-      state.auditHistory = canViewAllDc() ? list : list.filter(h => canAccessDc(h.dcName));
+      const pendingA = state.pendingAuditDeletes || {};
+      let filtered = list.filter(h => !pendingA[String(h.id || h.nomor || '')]);
+      state.auditHistory = canViewAllDc() ? filtered : filtered.filter(h => canAccessDc(h.dcName));
       cacheLocal('auditHistory', state.auditHistory);
       if (state.page === 'riwayat-audit') renderAuditHistory();
     }), err => {
@@ -3788,48 +3792,181 @@ function exportAuditList(fmt) {
   }
 }
 
-function exportAuditHistory(fmt) {
+function getFilteredAuditHistoryList() {
   let list = filterByUserDc(state.auditHistory || []);
-  if (!list.length) return showToast('Riwayat audit kosong');
+  const pending = state.pendingAuditDeletes || {};
+  list = list.filter(h => !pending[String(h.id || h.nomor || '')]);
   const term = ($('#auditHistSearch')?.value || '').toLowerCase();
   const from = $('#auditHistFrom')?.value;
   const to = $('#auditHistTo')?.value;
-  if (term) list = list.filter(h =>
-    (h.tanggalLabel||'').toLowerCase().includes(term) ||
-    (h.user||'').toLowerCase().includes(term) ||
-    (h.items||[]).some(it => (it.nama||'').toLowerCase().includes(term))
-  );
-  if (from) list = list.filter(h => (h.tanggal||'') >= from);
-  if (to) list = list.filter(h => (h.tanggal||'') <= to);
+  const kondFilter = $('#auditHistKondisi')?.value || '';
+  if (term) {
+    list = list.filter(h =>
+      (h.nomor || h.id || '').toLowerCase().includes(term) ||
+      (h.tanggalLabel || '').toLowerCase().includes(term) ||
+      (h.user || '').toLowerCase().includes(term) ||
+      (h.dcName || '').toLowerCase().includes(term) ||
+      (h.items || []).some(it => (it.nama || '').toLowerCase().includes(term) || (it.kode || '').toLowerCase().includes(term))
+    );
+  }
+  if (from) list = list.filter(h => (h.tanggal || '') >= from);
+  if (to) list = list.filter(h => (h.tanggal || '') <= to);
+  if (kondFilter) {
+    list = list.filter(h => (h.items || []).some(it => (it.kondisi || 'Bad') === kondFilter));
+  }
   const selected = getSelectedAuditIds();
   if (selected.length) list = list.filter(h => selected.includes(String(h.id)));
-  if (!list.length) return showToast(selected.length ? 'Tidak ada sesi yang dipilih' : 'Riwayat audit kosong');
+  return list;
+}
+
+function buildAuditExportRows(list) {
+  const headers = [
+    'No', 'Nomor Sesi', 'Tanggal', 'DC', 'Kode', 'Nama', 'Barcode',
+    'Qty', 'Satuan', 'Kondisi', 'Alasan', 'Exp Date', 'Rak', 'Vendor', 'PIC', 'Catatan', 'User'
+  ];
+  const rows = [];
+  let no = 0;
+  list.forEach(h => {
+    const nomor = h.nomor || h.id || '-';
+    const tgl = h.tanggalLabel || h.tanggal || '';
+    const dc = h.dcName || '';
+    const user = h.user || '';
+    (h.items || []).forEach(it => {
+      no++;
+      const pic = (typeof resolveItemPic === 'function' ? resolveItemPic(it) : null) || it.pic || '';
+      rows.push([
+        no,
+        nomor,
+        tgl,
+        dc,
+        it.kode || '',
+        it.nama || '',
+        it.barcode || '',
+        parseFloat(it.qty) || 0,
+        it.satuan || 'PCS',
+        (it.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek',
+        it.alasan || '',
+        it.expDate || '',
+        it.rak || '',
+        it.vendor || '',
+        pic,
+        it.catatan || '',
+        user
+      ]);
+    });
+  });
+  return { headers, rows };
+}
+
+/** Rekap digabung: sum qty per kode+satuan+kondisi antar sesi */
+function buildAuditRekapRows(list) {
+  const map = new Map();
+  list.forEach(h => {
+    (h.items || []).forEach(it => {
+      const kode = String(it.kode || '').trim();
+      const satuan = normalizeUom(it.satuan || 'PCS');
+      const kond = (it.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek';
+      const key = [kode, satuan, kond].join('||');
+      if (!map.has(key)) {
+        map.set(key, {
+          kode,
+          nama: it.nama || '',
+          barcode: it.barcode || '',
+          satuan,
+          kondisi: kond,
+          qty: 0,
+          vendor: it.vendor || '',
+          pic: (typeof resolveItemPic === 'function' ? resolveItemPic(it) : null) || it.pic || '',
+          alasan: it.alasan || '',
+          sesi: new Set()
+        });
+      }
+      const row = map.get(key);
+      row.qty += parseFloat(it.qty) || 0;
+      row.sesi.add(h.nomor || h.id || '');
+      if (!row.nama && it.nama) row.nama = it.nama;
+      if (!row.barcode && it.barcode) row.barcode = it.barcode;
+      if (!row.vendor && it.vendor) row.vendor = it.vendor;
+    });
+  });
+  const headers = ['No', 'Kode', 'Nama', 'Barcode', 'Qty Total', 'Satuan', 'Kondisi', 'Vendor', 'PIC', 'Alasan (contoh)', 'Jumlah Sesi', 'Nomor Sesi'];
+  const rows = Array.from(map.values())
+    .sort((a, b) => String(a.nama).localeCompare(String(b.nama), 'id'))
+    .map((r, i) => [
+      i + 1, r.kode, r.nama, r.barcode, r.qty, r.satuan, r.kondisi,
+      r.vendor, r.pic, r.alasan, r.sesi.size, Array.from(r.sesi).join(', ')
+    ]);
+  return { headers, rows };
+}
+
+function exportAuditHistory(fmt) {
+  const list = getFilteredAuditHistoryList();
+  if (!list.length) {
+    const selected = getSelectedAuditIds();
+    return showToast(selected.length ? 'Tidak ada sesi yang dipilih' : 'Riwayat audit kosong');
+  }
   const meta = ExportEngine.getMeta('Nota Audit Retur', list.length);
-  if (fmt==='ringkas') {
-    const lines = [`*RIWAYAT AUDIT RETUR — ${meta.dc}*`, ''];
-    list.slice(0,30).forEach((h,i) => {
-      lines.push(`${i+1}. ${h.tanggalLabel} · ${h.items.length} item · ${h.user||''}`);
+  meta.count = list.reduce((s, h) => s + ((h.items || []).length), 0);
+
+  if (fmt === 'ringkas') {
+    const lines = [`*RIWAYAT AUDIT RETUR — ${meta.dc}*`, `Sesi: ${list.length}`, ''];
+    list.slice(0, 40).forEach((h, i) => {
+      const qty = (h.items || []).reduce((s, c) => s + (parseFloat(c.qty) || 0), 0);
+      lines.push(`${i + 1}. ${h.nomor || h.id} · ${h.tanggalLabel || h.tanggal} · ${(h.items || []).length} item · qty ${qty} · ${h.user || ''}`);
     });
     ExportEngine.toRingkas(lines, meta);
     return;
   }
-  const headers = ['Sesi','Tanggal','Kode','Nama','Exp Date','Qty','Satuan','Kondisi','Rak','Status','User'];
-  const rows = [];
-  list.forEach(h => {
-    (h.items||[]).forEach(it => {
-      const s = getExpStatus(it.expDate);
-      rows.push([h.id, h.tanggalLabel, it.kode, it.nama, it.expDate, it.qty, it.satuan||'PCS', it.kondisi||'Good', it.rak||'', s.label, h.user||'']);
-    });
-  });
-  meta.count = rows.length;
-  if (fmt==='xlsx') ExportEngine.toExcel(headers, rows, 'Nota_Audit', meta);
-  else if (fmt==='csv') ExportEngine.toCSV(headers, rows, meta);
-  else if (fmt==='pdf') ExportEngine.toPDF('Nota Audit Retur (A4)', headers, rows, meta);
-  else if (fmt==='png') {
+
+  if (fmt === 'xlsx' || fmt === 'xlsx-rekap' || fmt === 'csv') {
+    const detail = buildAuditExportRows(list);
+    meta.count = detail.rows.length;
+    if (fmt === 'csv') {
+      ExportEngine.toCSV(detail.headers, detail.rows, meta);
+      return;
+    }
+    if (fmt === 'xlsx-rekap' && typeof XLSX !== 'undefined') {
+      try {
+        const wb = XLSX.utils.book_new();
+        const ws1 = XLSX.utils.aoa_to_sheet([
+          ['DC NONBUAH — Audit Retur Gabungan'],
+          ['DC', meta.dc || ''],
+          ['Sesi', list.length],
+          ['Baris detail', detail.rows.length],
+          ['Tanggal export', meta.tanggal || todayStr()],
+          [],
+          detail.headers,
+          ...detail.rows
+        ]);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Detail Gabungan');
+        const rekap = buildAuditRekapRows(list);
+        const ws2 = XLSX.utils.aoa_to_sheet([
+          ['Rekap digabung (qty dijumlah per kode + satuan + kondisi)'],
+          [],
+          rekap.headers,
+          ...rekap.rows
+        ]);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Rekap Sum');
+        const safe = 'Audit_Gabungan_' + todayStr().replace(/[^\w.-]+/g, '_');
+        XLSX.writeFile(wb, safe + '.xlsx');
+        showToast('Excel gabungan + rekap: ' + list.length + ' sesi · ' + detail.rows.length + ' baris');
+        logActivity('EXPORT', 'Audit Retur', 'Excel gabungan+rekap · ' + list.length + ' sesi');
+        return;
+      } catch (e) {
+        console.warn(e);
+        showToast('Gagal Excel multi-sheet, coba Excel biasa');
+      }
+    }
+    ExportEngine.toExcel(detail.headers, detail.rows, 'Audit_Gabungan', meta);
+    showToast('Excel gabungan: ' + list.length + ' sesi · ' + detail.rows.length + ' baris');
+    return;
+  }
+
+  if (fmt === 'pdf') ExportEngine.toPDF('Nota Audit Retur (A4)', buildAuditExportRows(list).headers, buildAuditExportRows(list).rows, meta);
+  else if (fmt === 'png') {
     if (list.length === 1) ExportEngine.toAuditPNG(list[0]);
     else ExportEngine.toAuditListPNG(list);
-  }
-  else showToast('Gunakan Excel/CSV/PDF/PNG');
+  } else showToast('Gunakan Excel/PDF/PNG');
 }
 
 function exportBanding(fmt) {
@@ -4291,6 +4428,11 @@ function updateAuditSelCount() {
     all.checked = boxes.length > 0 && n === boxes.length;
     all.indeterminate = n > 0 && n < boxes.length;
   }
+  const delBtn = $('#auditHistDeleteSelBtn');
+  if (delBtn) {
+    delBtn.style.display = n > 0 ? '' : 'none';
+    delBtn.textContent = n > 0 ? ('🗑 Hapus Terpilih (' + n + ')') : '🗑 Hapus Terpilih';
+  }
 }
 window.updateHistSelCount = updateHistSelCount;
 window.updateAuditSelCount = updateAuditSelCount;
@@ -4461,6 +4603,8 @@ function saveAuditSession() {
 
 function renderAuditHistory() {
   let list = filterByUserDc(state.auditHistory || []);
+  const pending = state.pendingAuditDeletes || {};
+  list = list.filter(h => !pending[String(h.id || h.nomor || '')]);
   const term = ($('#auditHistSearch')?.value || '').toLowerCase();
   const from = $('#auditHistFrom')?.value;
   const to = $('#auditHistTo')?.value;
@@ -4483,6 +4627,7 @@ function renderAuditHistory() {
   $('#auditHistCount').textContent = list.length + ' sesi';
   if (!list.length) {
     $('#auditHistList').innerHTML = '<div class="empty-state"><div class="ico">📋</div><h3>Belum ada riwayat audit retur</h3><p>Simpan sesi audit untuk menyimpan riwayat</p></div>';
+    updateAuditSelCount();
     return;
   }
   let lastDate = '';
@@ -4500,9 +4645,10 @@ function renderAuditHistory() {
     const goodN = items.filter(x => (x.kondisi || 'Bad') === 'Good').length;
     const badN = items.length - goodN;
     const nomor = h.nomor || h.id || '-';
+    const idSafe = esc(String(h.id || ''));
     html += `
       <div class="list-item">
-        <input type="checkbox" class="sel-check audit-sel" value="${esc(h.id)}" onchange="updateAuditSelCount()">
+        <input type="checkbox" class="sel-check audit-sel" value="${idSafe}" onchange="updateAuditSelCount()">
         <div class="info">
           <div class="nm">${esc(nomor)} <span class="badge badge-muted">Audit Retur</span></div>
           <div class="meta">${items.length} item · qty ${qty}${h.user ? ' · oleh ' + esc(h.user) : ''}${h.dcName ? ' · ' + esc(h.dcName) : ''}</div>
@@ -4513,10 +4659,10 @@ function renderAuditHistory() {
           </div>
         </div>
         <div class="actions" style="flex-wrap:wrap;">
-          <button class="btn btn-outline btn-sm" onclick="viewAuditSession('${esc(h.id)}')" title="Pratinjau & cetak">👁 Pratinjau</button>
-          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','pdf')" title="PDF A4">📑 PDF</button>
-          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','png')" title="PNG A4">🖼 PNG</button>
-          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${esc(h.id)}','xlsx')" title="Excel">📊 Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="viewAuditSession('${idSafe}')" title="Pratinjau & cetak">👁 Pratinjau</button>
+          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${idSafe}','xlsx')" title="Excel">📊 Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${idSafe}','pdf')" title="PDF A4">📑 PDF</button>
+          <button class="btn btn-danger-outline btn-sm" onclick="deleteAuditSession('${idSafe}')" title="Hapus sesi">🗑 Hapus</button>
         </div>
       </div>`;
   });
@@ -4526,7 +4672,82 @@ function renderAuditHistory() {
     document.querySelectorAll('.audit-sel').forEach(c => { c.checked = all.checked; });
     updateAuditSelCount();
   };
+  updateAuditSelCount();
 }
+
+window.deleteAuditSession = async function(id) {
+  if (!state.user || state.user.locked || currentRole() === 'pending') {
+    return showToast('Tidak punya hak hapus — login dulu');
+  }
+  const key = String(id || '').trim();
+  if (!key) return;
+  const existing = (state.auditHistory || []).find(h => String(h.id) === key);
+  if (existing && !canAccessDc(existing.dcName)) {
+    return showToast('Sesi DC lain tidak dapat dihapus (akses: ' + userAssignedDc() + ')');
+  }
+  const label = existing ? (existing.nomor || existing.id) : key;
+  if (!confirm('Hapus sesi audit retur?\n\n' + label + '\n\nSesi akan hilang dari riwayat dan server.')) return;
+
+  if (!state.pendingAuditDeletes) state.pendingAuditDeletes = {};
+  state.pendingAuditDeletes[key] = Date.now();
+  try { cacheLocal('pendingAuditDeletes', state.pendingAuditDeletes); } catch (_) {}
+
+  state.auditHistory = (state.auditHistory || []).filter(h => String(h.id) !== key);
+  cacheLocal('auditHistory', state.auditHistory);
+  renderAuditHistory();
+  if (state.page === 'dashboard') renderDashboard();
+
+  if (firebaseReady && db) {
+    try {
+      await db.collection('auditHistory').doc(key).delete();
+      logActivity('DELETE', 'Audit Retur', 'Sesi ' + label);
+      showToast('Sesi ' + label + ' dihapus ☁');
+    } catch (err) {
+      console.error('[deleteAuditSession]', err);
+      logActivity('DELETE', 'Audit Retur', 'Sesi ' + label + ' (lokal; server gagal)');
+      showToast('Dihapus lokal. Server: ' + (err.code || err.message || 'gagal').toString().slice(0, 50));
+    }
+  } else {
+    logActivity('DELETE', 'Audit Retur', 'Sesi ' + label + ' (mode lokal)');
+    showToast('Sesi dihapus (mode lokal)');
+  }
+};
+
+window.deleteSelectedAuditSessions = async function() {
+  if (!state.user || state.user.locked || currentRole() === 'pending') {
+    return showToast('Tidak punya hak hapus — login dulu');
+  }
+  const ids = getSelectedAuditIds();
+  if (!ids.length) return showToast('Centang sesi yang mau dihapus dulu');
+  if (!confirm('Hapus ' + ids.length + ' sesi audit retur terpilih?\n\nSesi hilang dari riwayat dan server.')) return;
+
+  if (!state.pendingAuditDeletes) state.pendingAuditDeletes = {};
+  ids.forEach(id => { state.pendingAuditDeletes[String(id)] = Date.now(); });
+  try { cacheLocal('pendingAuditDeletes', state.pendingAuditDeletes); } catch (_) {}
+
+  const set = new Set(ids.map(String));
+  state.auditHistory = (state.auditHistory || []).filter(h => !set.has(String(h.id)));
+  cacheLocal('auditHistory', state.auditHistory);
+  renderAuditHistory();
+
+  if (firebaseReady && db) {
+    try {
+      const CHUNK = 400;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const batch = db.batch();
+        ids.slice(i, i + CHUNK).forEach(id => batch.delete(db.collection('auditHistory').doc(String(id))));
+        await batch.commit();
+      }
+      logActivity('DELETE', 'Audit Retur', 'Hapus terpilih ' + ids.length + ' sesi');
+      showToast(ids.length + ' sesi dihapus ☁');
+    } catch (err) {
+      console.error('[deleteSelectedAudit]', err);
+      showToast('Lokal terhapus. Server: ' + (err.message || err));
+    }
+  } else {
+    showToast(ids.length + ' sesi dihapus (mode lokal)');
+  }
+};
 
 
 /** Modal pratinjau sesi audit — setara openNotaModal (pilih item, cetak, plakat) */
@@ -4902,17 +5123,13 @@ window.viewAuditSession = function(id) {
 window.exportOneAuditSession = function(id, fmt, onlyItems) {
   const h = (state.auditHistory || []).find(x => x.id === id);
   if (!h) return showToast('Sesi tidak ditemukan');
-  const items = onlyItems || h.items || [];
-  const meta = ExportEngine.getMeta('Nota Audit Retur', items.length);
+  const session = onlyItems ? Object.assign({}, h, { items: onlyItems }) : h;
+  const detail = buildAuditExportRows([session]);
+  const meta = ExportEngine.getMeta('Nota Audit Retur', detail.rows.length);
   meta.tanggal = h.tanggal || meta.tanggal;
-  const headers = ['No','Kode','Nama','Exp Date','Qty','Satuan','Kondisi','Rak','Status','Catatan'];
-  const rows = items.map((it,i) => {
-    const s = getExpStatus(it.expDate);
-    return [i+1, it.kode, it.nama, it.expDate, it.qty, it.satuan||'PCS', it.kondisi||'Good', it.rak||'', s.label, it.catatan||''];
-  });
-  if (fmt === 'xlsx') ExportEngine.toExcel(headers, rows, 'Audit_Sesi', meta);
-  else if (fmt === 'pdf') ExportEngine.toPDF('Nota Audit Retur — ' + (h.tanggalLabel||''), headers, rows, meta);
-  else if (fmt === 'png') ExportEngine.toAuditPNG(h);
+  if (fmt === 'xlsx') ExportEngine.toExcel(detail.headers, detail.rows, 'Audit_Sesi', meta);
+  else if (fmt === 'pdf') ExportEngine.toPDF('Nota Audit Retur — ' + (h.nomor || h.tanggalLabel || ''), detail.headers, detail.rows, meta);
+  else if (fmt === 'png') ExportEngine.toAuditPNG(session);
   else showToast('Format tidak dikenali');
 };
 
@@ -9010,6 +9227,7 @@ function loadState() {
   state.dcName = storage.get('dcName', 'DC INDUK');
   state.sysName = storage.get('sysName', 'DC NONBUAH');
   state.pendingDeletes = storage.get('pendingDeletes', {}) || {};
+  state.pendingAuditDeletes = storage.get('pendingAuditDeletes', {}) || {};
   // Hapus pendingDeletes kadaluarsa (> 10 menit) agar nota tidak "hilang" permanen di UI
   {
     const now = Date.now();
@@ -9021,13 +9239,26 @@ function loadState() {
         changed = true;
       }
     });
+    Object.keys(state.pendingAuditDeletes || {}).forEach(k => {
+      const t = state.pendingAuditDeletes[k];
+      if (typeof t !== 'number' || now - t > 10 * 60 * 1000) {
+        delete state.pendingAuditDeletes[k];
+        changed = true;
+      }
+    });
     if (changed) {
-      try { storage.set('pendingDeletes', state.pendingDeletes); } catch (_) {}
+      try {
+        storage.set('pendingDeletes', state.pendingDeletes);
+        storage.set('pendingAuditDeletes', state.pendingAuditDeletes);
+      } catch (_) {}
     }
   }
-  // Saring nota yang masih pending hapus (baru saja)
+  // Saring nota / audit yang masih pending hapus (baru saja)
   if (state.pendingDeletes && Object.keys(state.pendingDeletes).length) {
     state.history = state.history.filter(h => !state.pendingDeletes[String(h.nomor || '').trim()]);
+  }
+  if (state.pendingAuditDeletes && Object.keys(state.pendingAuditDeletes).length) {
+    state.auditHistory = (state.auditHistory || []).filter(h => !state.pendingAuditDeletes[String(h.id || h.nomor || '')]);
   }
   // Scope DC diterapkan setelah user login (enterApp) — di sini belum ada user
 }
@@ -10453,6 +10684,7 @@ function bindEvents() {
       btn.onclick = () => { doExport(btn.dataset.fmt); ahExpDd.classList.remove('show'); };
     });
   }
+  $('#auditHistDeleteSelBtn')?.addEventListener('click', () => deleteSelectedAuditSessions());
   const hExpBtn = $('#histExportBtn');
   const hExpDd = $('#histExportDropdown');
   if (hExpBtn && hExpDd) {
