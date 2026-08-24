@@ -4660,8 +4660,8 @@ function renderAuditHistory() {
         </div>
         <div class="actions" style="flex-wrap:wrap;">
           <button class="btn btn-outline btn-sm" onclick="viewAuditSession('${idSafe}')" title="Pratinjau & cetak">👁 Pratinjau</button>
+          <button class="btn btn-primary btn-sm" onclick="editAuditSession('${idSafe}')" title="Edit qty, judul, tambah item">✏️ Edit</button>
           <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${idSafe}','xlsx')" title="Excel">📊 Excel</button>
-          <button class="btn btn-outline btn-sm" onclick="exportOneAuditSession('${idSafe}','pdf')" title="PDF A4">📑 PDF</button>
           <button class="btn btn-danger-outline btn-sm" onclick="deleteAuditSession('${idSafe}')" title="Hapus sesi">🗑 Hapus</button>
         </div>
       </div>`;
@@ -4780,15 +4780,25 @@ function openAuditModal(session) {
 
   function buildItemsHtml(items) {
     return items.map((c, i) => {
-      const s = getExpStatus(c.expDate);
-      const kond = (c.kondisi || 'Good') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
+      const s = c.expDate ? getExpStatus(c.expDate) : null;
+      const isGood = (c.kondisi || 'Bad') === 'Good';
+      const kond = isGood ? '🟢 Bagus' : '🔴 Jelek';
+      const kondCls = isGood ? 'badge-success' : 'badge-danger';
       return `<div class="rline">
         <div class="top"><span>${i+1}. ${esc(c.nama)}</span><span>${esc(c.qty)} ${esc(c.satuan||'PCS')}</span></div>
-        <div class="sub">Kode: ${esc(c.kode||'-')} · Exp: <b>${esc(c.expDate||'-')}</b> · <span class="badge ${s.cls}">${s.label}</span></div>
-        <div class="sub">${kond}${c.rak ? ' · Rak: ' + esc(c.rak) : ''}</div>
+        <div class="sub">Kode: ${esc(c.kode||'-')}${c.expDate ? ' · Exp: <b>'+esc(c.expDate)+'</b>' : ''}${s ? ' · <span class="badge '+s.cls+'">'+esc(s.label)+'</span>' : ''}</div>
+        <div class="sub"><span class="badge ${kondCls}">${kond}</span>${c.rak ? ' · Rak: ' + esc(c.rak) : ''}${c.alasan ? ' · ' + esc(c.alasan) : ''}</div>
         ${c.catatan ? `<div class="sub" style="color:var(--danger);">Catatan: ${esc(c.catatan)}</div>` : ''}
       </div>`;
     }).join('');
+  }
+
+  function buildSummaryMeta(items) {
+    const good = items.filter(x => (x.kondisi || 'Bad') === 'Good');
+    const bad = items.filter(x => (x.kondisi || 'Bad') !== 'Good');
+    const gQty = good.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+    const bQty = bad.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+    return { goodN: good.length, badN: bad.length, gQty, bQty, totalQty: gQty + bQty };
   }
 
   function itemSearchText(it) {
@@ -4918,8 +4928,11 @@ function openAuditModal(session) {
             </div>
             <hr>
             <div class="meta-row"><span>Sesi</span><b>${esc(session.tanggalLabel || session.tanggal || '')}</b></div>
+            <div class="meta-row"><span>No</span><b>${esc(session.nomor || session.id || '-')}</b></div>
             <div class="meta-row"><span>Oleh</span><b>${esc(session.user || '')}</b></div>
             <div class="meta-row"><span>Item</span><b id="auditItemCount">${initItems.length} produk</b></div>
+            <div class="meta-row" id="auditSumBad"><span>🔴 Jelek</span><b>—</b></div>
+            <div class="meta-row" id="auditSumGood"><span>🟢 Bagus</span><b>—</b></div>
             <hr>
             <div id="auditItemsBody">${buildItemsHtml(initItems)}</div>
             <hr>
@@ -4963,6 +4976,11 @@ function openAuditModal(session) {
     if (body) body.innerHTML = items.length ? buildItemsHtml(items) : '<div class="sub" style="padding:8px 0;color:var(--text-muted);">Tidak ada item dipilih</div>';
     if ($('#auditItemCount')) $('#auditItemCount').textContent = items.length + ' produk';
     if ($('#auditSelCountModal')) $('#auditSelCountModal').textContent = selectedIds.size + ' / ' + allItems.length + ' dipilih';
+    const sum = buildSummaryMeta(items);
+    const badEl = $('#auditSumBad');
+    const goodEl = $('#auditSumGood');
+    if (badEl) badEl.innerHTML = `<span>🔴 Jelek</span><b>${sum.badN} item · qty ${sum.bQty}</b>`;
+    if (goodEl) goodEl.innerHTML = `<span>🟢 Bagus</span><b>${sum.goodN} item · qty ${sum.gQty}</b>`;
     applyDensity(items.length);
     const t = $('#auditJudul')?.value || 'NOTA AUDIT RETUR';
     const te = $('#auditReceiptTitle');
@@ -4973,6 +4991,7 @@ function openAuditModal(session) {
   $('#auditClose').onclick = close;
   $('#auditBackdrop').onclick = e => { if (e.target.id === 'auditBackdrop') close(); };
   rebind();
+  try { refresh(); } catch (_) {}
   $('#auditSelAllM')?.addEventListener('click', () => { allItems.forEach((it,i)=>selectedIds.add(itemKey(it,i))); refreshPicker(); refresh(); });
   $('#auditSelNoneM')?.addEventListener('click', () => { selectedIds.clear(); refreshPicker(); refresh(); });
   $('#auditSelVisM')?.addEventListener('click', () => {
@@ -5010,24 +5029,57 @@ function openAuditModal(session) {
   });
   $('#auditJudul')?.addEventListener('input', refresh);
 
+  // Simpan judul ke sesi tersimpan (jika sudah punya id)
+  if (session.id && session.id !== 'DRAFT-AUDIT') {
+    const judulWrap = $('#auditJudul')?.closest('.form-group');
+    if (judulWrap && !document.getElementById('auditSaveJudul')) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm btn-outline';
+      btn.id = 'auditSaveJudul';
+      btn.style.marginTop = '8px';
+      btn.textContent = '💾 Simpan Judul';
+      judulWrap.appendChild(btn);
+      btn.onclick = async () => {
+        const t = ($('#auditJudul')?.value || '').trim() || 'NOTA AUDIT RETUR';
+        session.judul = t;
+        const idx = (state.auditHistory || []).findIndex(x => String(x.id) === String(session.id));
+        if (idx >= 0) state.auditHistory[idx].judul = t;
+        cacheLocal('auditHistory', state.auditHistory);
+        try {
+          await cloudSaveAuditSession(Object.assign({}, session, { judul: t }));
+          showToast('Judul disimpan ☁');
+        } catch (e) {
+          showToast('Judul disimpan lokal');
+        }
+        refresh();
+      };
+    }
+  }
+
   $('#auditCopy').onclick = () => {
     const items = filteredItems();
     if (!items.length) return showToast('Pilih minimal 1 item');
+    const sum = buildSummaryMeta(items);
     const lines = [
       `*${($('#auditJudul')?.value || 'NOTA AUDIT RETUR').trim()}*`,
       session.dcName || '',
+      `No: ${session.nomor || session.id || '-'}`,
       `Sesi: ${session.tanggalLabel || session.tanggal || ''}`,
-      `Oleh: ${session.user || ''}`, '',
+      `Oleh: ${session.user || ''}`,
+      '',
     ];
-    items.forEach((c,i) => {
-      const s = getExpStatus(c.expDate);
-      lines.push(`${i+1}. ${c.nama}`);
-      lines.push(`Qty: ${c.qty} ${c.satuan||'PCS'} | Exp: ${c.expDate||'-'} (${s.label})${c.rak?' | Rak: '+c.rak:''}`);
+    items.forEach((c, i) => {
+      const kond = (c.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek';
+      lines.push(`${i + 1}. ${c.nama}`);
+      lines.push(`Qty: ${c.qty} ${c.satuan || 'PCS'} | ${kond}${c.alasan ? ' | ' + c.alasan : ''}${c.expDate ? ' | Exp: ' + c.expDate : ''}`);
       if (c.catatan) lines.push(`Catatan: ${c.catatan}`);
       lines.push('');
     });
-    lines.push(`Total: ${items.length} produk`);
-    navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Disalin')).catch(()=>showToast('Gagal salin'));
+    lines.push(`Total: ${items.length} produk | Qty: ${sum.totalQty}`);
+    lines.push(`🔴 Jelek: ${sum.badN} item · qty ${sum.bQty}`);
+    lines.push(`🟢 Bagus: ${sum.goodN} item · qty ${sum.gQty}`);
+    navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Disalin')).catch(() => showToast('Gagal salin'));
   };
   $('#auditPdf').onclick = () => {
     const items = filteredItems();
@@ -5119,6 +5171,314 @@ window.viewAuditSession = function(id) {
   if (!canAccessDc(h.dcName)) return showToast('Sesi audit DC lain tidak dapat dibuka (akses: ' + userAssignedDc() + ')');
   openAuditModal(h);
 };
+
+window.editAuditSession = function(id) {
+  if (!can('edit') && !isAdmin()) return showToast('Tidak punya hak edit');
+  const h = (state.auditHistory || []).find(x => String(x.id) === String(id));
+  if (!h) return showToast('Sesi tidak ditemukan');
+  if (!canAccessDc(h.dcName)) return showToast('Sesi DC lain tidak dapat diedit (akses: ' + userAssignedDc() + ')');
+  openAuditEditModal(h);
+};
+
+/** Modal edit sesi audit retur — setara edit nota: qty, judul, tambah item, auto-sum, ringkasan Bagus/Jelek */
+function openAuditEditModal(session) {
+  const root = $('#modalRoot');
+  if (!root) return showToast('Modal tidak tersedia — refresh halaman');
+  let items = (session.items || []).map(it => Object.assign({}, it));
+  let judul = session.judul || 'NOTA AUDIT RETUR';
+
+  function summaryHtml() {
+    const good = items.filter(x => (x.kondisi || 'Bad') === 'Good');
+    const bad = items.filter(x => (x.kondisi || 'Bad') !== 'Good');
+    const gQty = good.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+    const bQty = bad.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+    return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <span class="badge badge-danger">🔴 Jelek: ${bad.length} item · qty ${bQty}</span>
+      <span class="badge badge-success">🟢 Bagus: ${good.length} item · qty ${gQty}</span>
+      <span class="badge badge-muted">Total: ${items.length} item · qty ${gQty + bQty}</span>
+    </div>`;
+  }
+
+  const rowHtml = (c, i) => {
+    const pic = resolveItemPic(c) || c.pic || '-';
+    const kond = c.kondisi || 'Bad';
+    return `
+    <div class="card" style="margin-bottom:10px;padding:12px;border:1px solid var(--border);border-radius:10px;" data-item-row="${i}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div style="font-weight:700;font-size:13.5px;">${i + 1}. ${esc(c.nama)}</div>
+        <button type="button" class="btn btn-icon btn-outline btn-sm" data-remove="${i}" title="Hapus item">🗑</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--text-muted);margin:2px 0 8px;">
+        Kode: ${esc(c.kode || '-')} · Vendor: ${esc(c.vendor || '-')} · <b style="color:#0f766e;">PIC: ${esc(pic)}</b>
+      </div>
+      <div class="form-row" style="gap:8px;">
+        <div class="form-group" style="flex:1;margin-bottom:6px;">
+          <label style="font-size:11px;">Qty *</label>
+          <input type="number" min="0.01" step="any" class="aedit-qty" data-idx="${i}" value="${c.qty != null ? esc(String(c.qty)) : '1'}" inputmode="decimal">
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:6px;">
+          <label style="font-size:11px;">UOM</label>
+          <select class="aedit-satuan" data-idx="${i}">
+            ${UOM_LIST.map(u => `<option value="${u}"${normalizeUom(c.satuan || 'PCS') === u ? ' selected' : ''}>${u}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;margin-bottom:6px;">
+          <label style="font-size:11px;">Kondisi</label>
+          <select class="aedit-kondisi" data-idx="${i}">
+            <option value="Bad" ${kond === 'Bad' ? 'selected' : ''}>🔴 Jelek (Bad)</option>
+            <option value="Good" ${kond === 'Good' ? 'selected' : ''}>🟢 Bagus (Good)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:6px;">
+        <label style="font-size:11px;">Alasan</label>
+        <input type="text" class="aedit-alasan" data-idx="${i}" value="${esc(c.alasan || '')}">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="font-size:11px;">Catatan</label>
+        <input type="text" class="aedit-catatan" data-idx="${i}" value="${esc(c.catatan || '')}" placeholder="mis. tukar guling vendor">
+      </div>
+    </div>`;
+  };
+
+  const renderItemsHtml = () => items.length
+    ? items.map((c, i) => rowHtml(c, i)).join('')
+    : '<div class="empty-state"><p>Semua item dihapus — tambahkan minimal 1 item sebelum menyimpan</p></div>';
+
+  root.innerHTML = `
+    <div class="modal-backdrop" id="editAuditBackdrop">
+      <div class="modal-sheet" style="max-height:94vh;">
+        <div class="handle"></div>
+        <div class="modal-header">
+          <h3>✏️ Edit Audit ${esc(session.nomor || session.id || '')}</h3>
+          <button type="button" class="btn btn-icon btn-outline" id="editAuditClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="editAuditSummary">${summaryHtml()}</div>
+          <div class="form-group">
+            <label>Judul Laporan</label>
+            <input type="text" id="editAuditJudul" value="${esc(judul)}">
+          </div>
+          <div class="form-group" style="position:relative;">
+            <label>+ Tambah Item (auto-sum jika sudah ada)</label>
+            <input type="text" id="editAuditSearch" placeholder="Cari nama/kode/barcode..." autocomplete="off">
+            <div id="editAuditSuggest" class="suggest-list" style="display:none;position:absolute;z-index:20;left:0;right:0;"></div>
+          </div>
+          <div id="editAuditAddPanel" style="display:none;background:#f0fdfa;border:1.5px solid #99f6e4;border-radius:12px;padding:12px;margin-bottom:12px;">
+            <div style="font-weight:800;font-size:13px;margin-bottom:4px;" id="editAuditAddName">—</div>
+            <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:10px;" id="editAuditAddMeta">—</div>
+            <div class="form-row" style="gap:8px;align-items:flex-end;">
+              <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">Qty *</label>
+                <input type="number" id="editAuditAddQty" min="0.01" step="any" value="1" inputmode="decimal" style="font-size:16px;font-weight:700;">
+              </div>
+              <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">UOM</label>
+                <select id="editAuditAddUom" style="width:100%;">
+                  <option value="RENTENG">RENTENG</option>
+                  <option value="PCS" selected>PCS</option>
+                  <option value="BALL">BALL</option>
+                  <option value="DUS">DUS</option>
+                  <option value="BOX">BOX</option>
+                  <option value="PACK">PACK</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">Kondisi</label>
+                <select id="editAuditAddKondisi" style="width:100%;">
+                  <option value="Good">🟢 Bagus</option>
+                  <option value="Bad" selected>🔴 Jelek</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:8px;margin-bottom:0;">
+              <label style="font-size:11px;">Catatan (opsional)</label>
+              <input type="text" id="editAuditAddCatatan" placeholder="mis. tukar guling dari vendor">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button type="button" class="btn btn-primary" id="editAuditAddConfirm">+ Tambah</button>
+              <button type="button" class="btn btn-outline" id="editAuditAddCancel">Batal</button>
+            </div>
+          </div>
+          <div id="editAuditItems">${renderItemsHtml()}</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="editAuditCancel">Batal</button>
+          <button type="button" class="btn btn-primary" id="editAuditSave">💾 Simpan Perubahan</button>
+        </div>
+      </div>
+    </div>`;
+
+  const close = () => { root.innerHTML = ''; };
+  $('#editAuditClose').onclick = close;
+  $('#editAuditCancel').onclick = close;
+  $('#editAuditBackdrop')?.addEventListener('click', e => { if (e.target.id === 'editAuditBackdrop') close(); });
+
+  function syncItemsFromDom() {
+    $$('#editAuditItems [data-item-row]').forEach(row => {
+      const i = +row.getAttribute('data-item-row');
+      if (!items[i]) return;
+      const qtyEl = row.querySelector('.aedit-qty');
+      const satEl = row.querySelector('.aedit-satuan');
+      const kondEl = row.querySelector('.aedit-kondisi');
+      const alEl = row.querySelector('.aedit-alasan');
+      const catEl = row.querySelector('.aedit-catatan');
+      if (qtyEl) items[i].qty = parseFloat(qtyEl.value) || 0;
+      if (satEl) items[i].satuan = normalizeUom(satEl.value || 'PCS');
+      if (kondEl) items[i].kondisi = kondEl.value || 'Bad';
+      if (alEl) items[i].alasan = alEl.value.trim();
+      if (catEl) items[i].catatan = catEl.value.trim();
+    });
+  }
+
+  function refreshList() {
+    $('#editAuditItems').innerHTML = renderItemsHtml();
+    const sum = $('#editAuditSummary');
+    if (sum) sum.innerHTML = summaryHtml();
+    bindItemInputs();
+  }
+
+  function bindItemInputs() {
+    $$('#editAuditItems .aedit-qty').forEach(inp => {
+      const h = () => { items[+inp.dataset.idx].qty = parseFloat(inp.value) || 0; const s = $('#editAuditSummary'); if (s) s.innerHTML = summaryHtml(); };
+      inp.oninput = h; inp.onchange = h;
+    });
+    $$('#editAuditItems .aedit-satuan').forEach(inp => {
+      inp.onchange = () => { items[+inp.dataset.idx].satuan = normalizeUom(inp.value || 'PCS'); };
+    });
+    $$('#editAuditItems .aedit-kondisi').forEach(inp => {
+      inp.onchange = () => {
+        items[+inp.dataset.idx].kondisi = inp.value;
+        const s = $('#editAuditSummary');
+        if (s) s.innerHTML = summaryHtml();
+      };
+    });
+    $$('#editAuditItems .aedit-alasan').forEach(inp => {
+      const h = () => { items[+inp.dataset.idx].alasan = inp.value.trim(); };
+      inp.oninput = h; inp.onchange = h;
+    });
+    $$('#editAuditItems .aedit-catatan').forEach(inp => {
+      const h = () => { items[+inp.dataset.idx].catatan = inp.value.trim(); };
+      inp.oninput = h; inp.onchange = h;
+    });
+    $$('#editAuditItems [data-remove]').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        syncItemsFromDom();
+        items.splice(+btn.dataset.remove, 1);
+        refreshList();
+      };
+    });
+  }
+  bindItemInputs();
+
+  let pendingProduct = null;
+  const searchInput = $('#editAuditSearch');
+  const suggestBox = $('#editAuditSuggest');
+  const addPanel = $('#editAuditAddPanel');
+
+  function hideAdd() {
+    if (addPanel) addPanel.style.display = 'none';
+    pendingProduct = null;
+    if (searchInput) searchInput.value = '';
+    if (suggestBox) suggestBox.style.display = 'none';
+  }
+
+  if (typeof attachSearch === 'function') {
+    attachSearch('#editAuditSearch', '#editAuditSuggest', (p) => {
+      pendingProduct = p;
+      if ($('#editAuditAddName')) $('#editAuditAddName').textContent = p.nama || p.kode;
+      if ($('#editAuditAddMeta')) {
+        const pic = resolveItemPic(p) || p.pic || '-';
+        $('#editAuditAddMeta').textContent = (p.kode || '') + ' · ' + (p.vendor || '-') + ' · PIC: ' + pic;
+      }
+      const defUom = normalizeUom(p.satuan || p.uom || 'PCS');
+      if ($('#editAuditAddUom')) $('#editAuditAddUom').value = defUom;
+      if ($('#editAuditAddQty')) { $('#editAuditAddQty').value = '1'; $('#editAuditAddQty').focus(); }
+      if ($('#editAuditAddKondisi')) $('#editAuditAddKondisi').value = 'Good'; // default bagus utk tukar guling
+      if ($('#editAuditAddCatatan')) $('#editAuditAddCatatan').value = '';
+      if (addPanel) addPanel.style.display = 'block';
+      if (suggestBox) suggestBox.style.display = 'none';
+    });
+  }
+
+  $('#editAuditAddCancel')?.addEventListener('click', hideAdd);
+  $('#editAuditAddConfirm')?.addEventListener('click', () => {
+    if (!pendingProduct) return showToast('Pilih produk dulu');
+    const qty = parseFloat($('#editAuditAddQty')?.value);
+    if (!qty || qty <= 0) return showToast('Isi qty');
+    const satuan = normalizeUom($('#editAuditAddUom')?.value || 'PCS');
+    const kondisi = $('#editAuditAddKondisi')?.value || 'Bad';
+    const catatan = ($('#editAuditAddCatatan')?.value || '').trim();
+    const p = pendingProduct;
+    syncItemsFromDom();
+    const existing = items.find(it =>
+      String(it.kode || '') === String(p.kode || '') &&
+      normalizeUom(it.satuan || 'PCS') === satuan &&
+      (it.kondisi || 'Bad') === kondisi
+    );
+    if (existing) {
+      existing.qty = (parseFloat(existing.qty) || 0) + qty;
+      if (catatan) existing.catatan = [existing.catatan, catatan].filter(Boolean).join(' | ');
+      showToast('Qty digabung (auto-sum): ' + existing.qty + ' ' + satuan);
+    } else {
+      items.push({
+        id: uid(),
+        nama: p.nama,
+        kode: p.kode,
+        barcode: p.barcode || '',
+        kategori: p.kategori || '',
+        vendor: p.vendor || '',
+        pic: resolveItemPic(p) || p.pic || '',
+        qty,
+        satuan,
+        kondisi,
+        alasan: kondisi === 'Good' ? 'Tukar guling / revisi' : '',
+        catatan,
+        expDate: '',
+        rak: ''
+      });
+      showToast('Item ditambahkan (' + (kondisi === 'Good' ? 'Bagus' : 'Jelek') + ')');
+    }
+    hideAdd();
+    refreshList();
+  });
+
+  $('#editAuditSave')?.addEventListener('click', async () => {
+    syncItemsFromDom();
+    if (!items.length) return showToast('Minimal 1 item');
+    const badQty = items.some(it => !(parseFloat(it.qty) > 0));
+    if (badQty) return showToast('Semua qty harus > 0');
+    judul = ($('#editAuditJudul')?.value || '').trim() || 'NOTA AUDIT RETUR';
+
+    const totalQty = items.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+    const goodN = items.filter(x => (x.kondisi || 'Bad') === 'Good').length;
+    const badN = items.length - goodN;
+
+    session.items = items;
+    session.judul = judul;
+    session.totalItem = items.length;
+    session.totalQty = totalQty;
+    session.updatedAt = new Date().toISOString();
+    session.updatedBy = state.user ? (state.user.name || state.user.username) : 'Lokal';
+
+    const idx = (state.auditHistory || []).findIndex(x => String(x.id) === String(session.id));
+    if (idx >= 0) state.auditHistory[idx] = session;
+    else state.auditHistory.unshift(session);
+    cacheLocal('auditHistory', state.auditHistory);
+
+    try {
+      await cloudSaveAuditSession(session);
+      logActivity('UPDATE', 'Audit Retur', `Edit ${session.nomor || session.id} · ${items.length} item · Bagus ${goodN} · Jelek ${badN}`);
+      showToast('Sesi audit disimpan ☁ · Bagus ' + goodN + ' · Jelek ' + badN);
+    } catch (e) {
+      console.warn(e);
+      showToast('Disimpan lokal. Server: ' + (e.message || e));
+    }
+    close();
+    renderAuditHistory();
+  });
+}
 
 window.exportOneAuditSession = function(id, fmt, onlyItems) {
   const h = (state.auditHistory || []).find(x => x.id === id);
