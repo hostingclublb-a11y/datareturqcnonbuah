@@ -10433,20 +10433,13 @@ function bindEvents() {
 
       const rawRole = profile.role;
       let role;
-      if (String(rawRole || '').toLowerCase() === 'pending') {
-        await auth.signOut();
-        showAuthCard('pending');
-        return;
-      }
       if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '') {
-        role = 'Anggota Tim';
+        role = 'Administrator';
+      } else if (String(rawRole).toLowerCase() === 'pending') {
+        // Approval dihapus — akun pending otomatis dijadikan admin
+        role = 'Administrator';
       } else {
         role = normalizeRole(rawRole);
-      }
-      if (role === 'pending') {
-        await auth.signOut();
-        showAuthCard('pending');
-        return;
       }
       if (profile.locked) {
         await auth.signOut();
@@ -10454,11 +10447,11 @@ function bindEvents() {
         return;
       }
 
-      // Tulis role default jika kosong (abaikan error rules)
-      if (db && (rawRole === undefined || rawRole === null || String(rawRole).trim() === '')) {
+      // Tulis role default jika kosong/pending (abaikan error rules)
+      if (db && (rawRole === undefined || rawRole === null || String(rawRole).trim() === '' || String(rawRole).toLowerCase() === 'pending')) {
         try {
           await db.collection('users').doc(cred.user.uid).set({
-            role: toFirestoreRole('Anggota Tim'),
+            role: toFirestoreRole('Administrator'),
             email: cred.user.email || '',
             username: profile.username || u,
             name: profile.name || '',
@@ -10521,14 +10514,11 @@ function bindEvents() {
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         await db.collection('users').doc(cred.user.uid).set({
           name, username, email,
-          role: 'pending',
+          role: 'admin',
           locked: false,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        await auth.signOut();
-        showAuthCard('pending');
-        showToast('Pendaftaran berhasil — menunggu approval admin');
-        return;
+        showToast('Pendaftaran berhasil — akun langsung aktif sebagai admin');
       } catch (err) {
         $('#regError').style.display = 'block';
         $('#regError').textContent = err.code === 'auth/email-already-in-use'
@@ -11158,12 +11148,19 @@ async function restoreFirebaseUser(firebaseUser) {
   try {
     const snap = await db.collection('users').doc(firebaseUser.uid).get();
     const profile = snap.exists ? snap.data() : {};
-    const role = normalizeRole(profile.role || 'pending');
-    if (!snap.exists || role === 'pending' || profile.locked) {
-      await auth.signOut();
-      state.user = null;
-      showAuthCardForSecurity('pending');
-      return;
+    const role = normalizeRole(profile.role || 'admin');
+    if (!snap.exists) {
+      // Tidak ada profil tersimpan — buat otomatis sebagai admin (approval dihapus)
+      try {
+        await db.collection('users').doc(firebaseUser.uid).set({
+          name: firebaseUser.email || 'User',
+          username: firebaseUser.email || '',
+          email: firebaseUser.email || '',
+          role: 'admin',
+          locked: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (_) {}
     }
     state.user = {
       uid: firebaseUser.uid,
