@@ -1,0 +1,8 @@
+{
+  "name": "DC NONBUAH · Sistem Retur & Master Data",
+  "description": "Sistem Manajemen Retur Barang & Master Data Gudang Enterprise Edition dengan sinkronisasi Firebase dan database produk",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
