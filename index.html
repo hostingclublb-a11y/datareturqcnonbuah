@@ -1354,7 +1354,6 @@ table.data-table .actions { display: flex; gap: 4px; }
             <option value="Good">🟢 Bagus (Good)</option>
             <option value="Bad">🔴 Jelek (Bad)</option>
           </select>
-          <button class="btn btn-outline btn-sm" id="auditHistRekapBtn" title="Gabungkan item sama antar sesi + jumlahkan qty">Σ Rekap Gabungan</button>
           <button class="btn btn-outline btn-sm" id="auditHistDeleteSelBtn" title="Hapus sesi yang dicentang" style="color:#b91c1c;border-color:#fecaca;display:none;">🗑 Hapus Terpilih</button>
           <div class="export-menu">
             <button class="btn btn-outline btn-sm" id="auditHistExportBtn">📤 Export ▾</button>
@@ -2224,28 +2223,14 @@ function cloudDeleteWarehouse(id) {
   return db.collection('warehouses').doc(String(id)).delete().catch(e => console.warn(e));
 }
 
-/** Audit Retur history — simpan penuh termasuk judul */
+/** Audit Retur history */
 function cloudSaveAuditSession(session) {
-  if (!requireServer(true) || !session || !session.id) {
-    return Promise.reject(new Error('Server tidak terhubung / id sesi kosong'));
-  }
+  if (!requireServer(true) || !session || !session.id) return Promise.resolve();
   const clean = JSON.parse(JSON.stringify(session));
-  clean.id = String(session.id);
-  clean.nomor = session.nomor || session.id;
-  clean.judul = (session.judul != null && String(session.judul).trim())
-    ? String(session.judul).trim()
-    : 'NOTA AUDIT RETUR';
   clean.updatedAt = tsNow();
   clean.updatedBy = actorName();
-  // set tanpa merge field-hilang: merge true tetap OK asal judul selalu diisi
   return db.collection('auditHistory').doc(String(session.id)).set(clean, { merge: true })
-    .then(() => {
-      console.log('[server] audit saved', clean.id, 'judul=', clean.judul);
-    })
-    .catch(err => {
-      console.warn('[server] audit save fail', err);
-      throw err;
-    });
+    .catch(err => console.warn('[server] audit', err));
 }
 
 /** Kategori master */
@@ -2686,26 +2671,9 @@ function startCloudSync() {
       : { query: db.collection('auditHistory').orderBy('tanggal', 'desc').limit(200), scoped: false, dc: '' };
     const unsub = built.query.onSnapshot(snap => apply(() => {
       const list = [];
-      const localById = {};
-      (state.auditHistory || []).forEach(h => {
-        if (h && h.id) localById[String(h.id)] = h;
-      });
       snap.forEach(doc => {
         const d = doc.data();
-        if (!d) return;
-        // Pastikan id selalu ada (fallback ke doc id)
-        if (!d.id) d.id = doc.id;
-        if (!d.nomor) d.nomor = d.id;
-        // Jika cloud belum punya judul tapi lokal sudah diedit, pertahankan judul lokal
-        const loc = localById[String(d.id)];
-        if (loc && loc.judul && (!d.judul || d.judul === 'NOTA AUDIT RETUR') && loc.judul !== 'NOTA AUDIT RETUR') {
-          d.judul = loc.judul;
-        }
-        // Jika lokal lebih baru (updatedAt), prefer field judul dari lokal
-        if (loc && loc.updatedAt && d.updatedAt && String(loc.updatedAt) > String(d.updatedAt) && loc.judul) {
-          d.judul = loc.judul;
-        }
-        list.push(d);
+        if (d && d.id) list.push(d);
       });
       const pendingA = state.pendingAuditDeletes || {};
       let filtered = list.filter(h => !pendingA[String(h.id || h.nomor || '')]);
@@ -3891,18 +3859,14 @@ function buildAuditExportRows(list) {
 }
 
 /** Rekap digabung: sum qty per kode+satuan+kondisi antar sesi */
-/** Bangun rekap item lintas sesi: sum qty, tetap catat asal sesi + qty per sesi */
-function buildAuditRekapData(list) {
+function buildAuditRekapRows(list) {
   const map = new Map();
   list.forEach(h => {
-    const nomor = h.nomor || h.id || '-';
-    const tgl = h.tanggalLabel || h.tanggal || '';
     (h.items || []).forEach(it => {
       const kode = String(it.kode || '').trim();
       const satuan = normalizeUom(it.satuan || 'PCS');
       const kond = (it.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek';
-      // Grup utama: kode + satuan + kondisi (nama ikut dari item pertama)
-      const key = [kode || normNamaKey(it.nama), satuan, kond].join('||');
+      const key = [kode, satuan, kond].join('||');
       if (!map.has(key)) {
         map.set(key, {
           kode,
@@ -3914,185 +3878,26 @@ function buildAuditRekapData(list) {
           vendor: it.vendor || '',
           pic: (typeof resolveItemPic === 'function' ? resolveItemPic(it) : null) || it.pic || '',
           alasan: it.alasan || '',
-          sesi: [], // [{nomor, tgl, qty}]
-          sesiSet: new Set()
+          sesi: new Set()
         });
       }
       const row = map.get(key);
-      const q = parseFloat(it.qty) || 0;
-      row.qty += q;
+      row.qty += parseFloat(it.qty) || 0;
+      row.sesi.add(h.nomor || h.id || '');
       if (!row.nama && it.nama) row.nama = it.nama;
       if (!row.barcode && it.barcode) row.barcode = it.barcode;
       if (!row.vendor && it.vendor) row.vendor = it.vendor;
-      if (!row.pic && it.pic) row.pic = it.pic;
-      // Akumulasi qty per sesi (jika item sama muncul 2x di 1 sesi, sum juga)
-      const existingSesi = row.sesi.find(s => s.nomor === nomor);
-      if (existingSesi) existingSesi.qty += q;
-      else {
-        row.sesi.push({ nomor, tgl, qty: q });
-        row.sesiSet.add(nomor);
-      }
     });
   });
-  const items = Array.from(map.values()).sort((a, b) => String(a.nama).localeCompare(String(b.nama), 'id'));
-  return items;
+  const headers = ['No', 'Kode', 'Nama', 'Barcode', 'Qty Total', 'Satuan', 'Kondisi', 'Vendor', 'PIC', 'Alasan (contoh)', 'Jumlah Sesi', 'Nomor Sesi'];
+  const rows = Array.from(map.values())
+    .sort((a, b) => String(a.nama).localeCompare(String(b.nama), 'id'))
+    .map((r, i) => [
+      i + 1, r.kode, r.nama, r.barcode, r.qty, r.satuan, r.kondisi,
+      r.vendor, r.pic, r.alasan, r.sesi.size, Array.from(r.sesi).join(', ')
+    ]);
+  return { headers, rows };
 }
-
-function normNamaKey(n) {
-  return String(n || '').trim().toUpperCase().replace(/\s+/g, ' ');
-}
-
-function buildAuditRekapRows(list) {
-  const items = buildAuditRekapData(list);
-  const headers = [
-    'No', 'Kode', 'Nama', 'Barcode', 'Qty Total', 'Satuan', 'Kondisi',
-    'Vendor', 'PIC', 'Alasan', 'Jumlah Sesi', 'Nomor Sesi', 'Rincian per Sesi'
-  ];
-  const rows = items.map((r, i) => [
-    i + 1,
-    r.kode,
-    r.nama,
-    r.barcode,
-    r.qty,
-    r.satuan,
-    r.kondisi,
-    r.vendor,
-    r.pic,
-    r.alasan,
-    r.sesiSet.size,
-    Array.from(r.sesiSet).join(', '),
-    r.sesi.map(s => `${s.nomor} (${s.tgl}): ${s.qty}`).join(' | ')
-  ]);
-  return { headers, rows, items };
-}
-
-/** Modal rekap gabungan: item sama dijumlah, tetap tampil asal sesi */
-function openAuditRekapModal(list) {
-  const root = $('#modalRoot');
-  if (!root) return;
-  list = list || getFilteredAuditHistoryList();
-  if (!list.length) return showToast('Pilih minimal 1 sesi (atau pastikan filter tidak kosong)');
-
-  const items = buildAuditRekapData(list);
-  const good = items.filter(x => x.kondisi === 'Bagus');
-  const bad = items.filter(x => x.kondisi === 'Jelek');
-  const gQty = good.reduce((s, x) => s + x.qty, 0);
-  const bQty = bad.reduce((s, x) => s + x.qty, 0);
-  const termRef = { q: '' };
-
-  function rowHtml(r, i) {
-    const badge = r.kondisi === 'Bagus' ? 'badge-success' : 'badge-danger';
-    const sesiLines = r.sesi.map(s =>
-      `<span class="badge badge-muted" style="margin:2px;">${esc(s.nomor)} · ${esc(s.tgl || '')} · qty ${s.qty}</span>`
-    ).join(' ');
-    return `
-      <div class="list-item" data-rekap-nama="${esc((r.nama || '').toLowerCase())}" data-rekap-kode="${esc((r.kode || '').toLowerCase())}">
-        <div class="idx">${i + 1}</div>
-        <div class="info">
-          <div class="nm">${esc(r.nama)} <span class="badge ${badge}">${r.kondisi === 'Bagus' ? '🟢 Bagus' : '🔴 Jelek'}</span></div>
-          <div class="meta">${esc(r.kode || '-')} · <b>${r.qty} ${esc(r.satuan)}</b>${r.vendor ? ' · ' + esc(r.vendor) : ''}</div>
-          <div class="meta" style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
-            <span style="font-size:11px;color:var(--text-muted);">Dari ${r.sesiSet.size} sesi:</span>
-            ${sesiLines}
-          </div>
-        </div>
-      </div>`;
-  }
-
-  function filtered() {
-    const q = (termRef.q || '').trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(r =>
-      (r.nama || '').toLowerCase().includes(q) ||
-      (r.kode || '').toLowerCase().includes(q) ||
-      (r.barcode || '').toLowerCase().includes(q) ||
-      Array.from(r.sesiSet).some(n => String(n).toLowerCase().includes(q))
-    );
-  }
-
-  function renderList() {
-    const f = filtered();
-    const el = $('#auditRekapList');
-    if (!el) return;
-    el.innerHTML = f.length
-      ? f.map((r, i) => rowHtml(r, i)).join('')
-      : '<div class="empty-state"><p>Tidak ada item cocok filter</p></div>';
-    if ($('#auditRekapCount')) $('#auditRekapCount').textContent = f.length + ' / ' + items.length + ' produk unik';
-  }
-
-  root.innerHTML = `
-    <div class="modal-backdrop" id="auditRekapBackdrop">
-      <div class="modal-sheet" style="max-height:94vh;">
-        <div class="handle"></div>
-        <div class="modal-header">
-          <h3>Σ Rekap Gabungan Audit</h3>
-          <button type="button" class="btn btn-icon btn-outline" id="auditRekapClose">✕</button>
-        </div>
-        <div class="modal-body">
-          <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 10px;">
-            Item yang sama (kode + satuan + kondisi) dari <b>${list.length} sesi</b> dijumlahkan otomatis.
-            Rincian sesi asal tetap ditampilkan.
-          </p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-            <span class="badge badge-danger">🔴 Jelek: ${bad.length} jenis · qty ${bQty}</span>
-            <span class="badge badge-success">🟢 Bagus: ${good.length} jenis · qty ${gQty}</span>
-            <span class="badge badge-muted">Total qty ${gQty + bQty}</span>
-          </div>
-          <div class="form-group">
-            <input type="text" id="auditRekapSearch" placeholder="Cari nama / kode / nomor sesi… (contoh: potabee)" autocomplete="off">
-          </div>
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;" id="auditRekapCount">${items.length} produk unik</div>
-          <div id="auditRekapList">${items.map((r, i) => rowHtml(r, i)).join('')}</div>
-        </div>
-        <div class="modal-footer" style="flex-wrap:wrap;">
-          <button type="button" class="btn btn-primary" id="auditRekapCopy">📋 Salin WA</button>
-          <button type="button" class="btn btn-outline" id="auditRekapExcel">📊 Excel Rekap</button>
-          <button type="button" class="btn btn-outline" id="auditRekapClose2">Tutup</button>
-        </div>
-      </div>
-    </div>`;
-
-  const close = () => { root.innerHTML = ''; };
-  $('#auditRekapClose').onclick = close;
-  $('#auditRekapClose2').onclick = close;
-  $('#auditRekapBackdrop')?.addEventListener('click', e => { if (e.target.id === 'auditRekapBackdrop') close(); });
-
-  let st = null;
-  $('#auditRekapSearch')?.addEventListener('input', e => {
-    termRef.q = e.target.value || '';
-    clearTimeout(st);
-    st = setTimeout(renderList, 120);
-  });
-
-  $('#auditRekapCopy')?.addEventListener('click', () => {
-    const f = filtered();
-    const lines = [
-      `*REKAP GABUNGAN AUDIT RETUR*`,
-      `${list.length} sesi digabung · ${f.length} produk unik`,
-      `🔴 Jelek: ${bad.length} jenis · qty ${bQty}`,
-      `🟢 Bagus: ${good.length} jenis · qty ${gQty}`,
-      ''
-    ];
-    f.forEach((r, i) => {
-      lines.push(`${i + 1}. ${r.nama}`);
-      lines.push(`Qty total: ${r.qty} ${r.satuan} | ${r.kondisi}${r.kode ? ' | ' + r.kode : ''}`);
-      lines.push(`Dari sesi: ${r.sesi.map(s => `${s.nomor} (${s.qty})`).join(', ')}`);
-      lines.push('');
-    });
-    navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Rekap disalin')).catch(() => showToast('Gagal salin'));
-  });
-
-  $('#auditRekapExcel')?.addEventListener('click', () => {
-    const built = buildAuditRekapRows(list);
-    const meta = ExportEngine.getMeta('Rekap Gabungan Audit', built.rows.length);
-    ExportEngine.toExcel(built.headers, built.rows, 'Rekap_Audit', meta);
-    showToast('Excel rekap: ' + built.rows.length + ' produk unik');
-  });
-}
-
-window.openAuditRekapModal = function() {
-  openAuditRekapModal(getFilteredAuditHistoryList());
-};
 
 function exportAuditHistory(fmt) {
   const list = getFilteredAuditHistoryList();
@@ -4628,10 +4433,6 @@ function updateAuditSelCount() {
     delBtn.style.display = n > 0 ? '' : 'none';
     delBtn.textContent = n > 0 ? ('🗑 Hapus Terpilih (' + n + ')') : '🗑 Hapus Terpilih';
   }
-  const rekapBtn = $('#auditHistRekapBtn');
-  if (rekapBtn) {
-    rekapBtn.textContent = n > 0 ? ('Σ Rekap Gabungan (' + n + ')') : 'Σ Rekap Gabungan';
-  }
 }
 window.updateHistSelCount = updateHistSelCount;
 window.updateAuditSelCount = updateAuditSelCount;
@@ -4781,13 +4582,12 @@ function saveAuditSession() {
   const session = {
     id: nomor,
     nomor,
-    judul: 'NOTA AUDIT RETUR',
     tanggal: todayStr(),
     tanggalLabel: nowLabel(),
     items,
     totalItem: items.length,
     totalQty,
-    user: state.user ? (state.user.name || state.user.username || state.user.email) : 'Lokal',
+    user: state.user ? state.user.name : 'Lokal',
     dcName: effectiveDcName()
   };
   state.auditHistory.unshift(session);
@@ -4796,10 +4596,9 @@ function saveAuditSession() {
   saveLocalAuditList();
   cloudSaveAuditList();
   renderAuditList();
-  cloudSaveAuditSession(session)
-    .then(() => showToast('Sesi audit retur tersimpan ☁ · ' + nomor))
-    .catch(e => showToast('Lokal tersimpan. Server: ' + (e.message || e)));
+  cloudSaveAuditSession(session);
   logActivity('CREATE', 'Audit Retur', `Sesi ${nomor} · ${items.length} item · qty ${totalQty}`);
+  showToast('Sesi audit retur tersimpan ☁ · ' + nomor);
 }
 
 function renderAuditHistory() {
@@ -4847,14 +4646,11 @@ function renderAuditHistory() {
     const badN = items.length - goodN;
     const nomor = h.nomor || h.id || '-';
     const idSafe = esc(String(h.id || ''));
-    const judul = (h.judul || '').trim();
-    const judulShow = judul && judul !== 'NOTA AUDIT RETUR' ? judul : '';
     html += `
       <div class="list-item">
         <input type="checkbox" class="sel-check audit-sel" value="${idSafe}" onchange="updateAuditSelCount()">
         <div class="info">
           <div class="nm">${esc(nomor)} <span class="badge badge-muted">Audit Retur</span></div>
-          ${judulShow ? `<div class="meta" style="font-weight:700;color:var(--primary);margin-top:2px;">📌 ${esc(judulShow)}</div>` : ''}
           <div class="meta">${items.length} item · qty ${qty}${h.user ? ' · oleh ' + esc(h.user) : ''}${h.dcName ? ' · ' + esc(h.dcName) : ''}</div>
           <div class="meta" style="margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;">
             ${badN ? `<span class="badge badge-danger">🔴 Jelek ${badN}</span>` : ''}
@@ -5247,20 +5043,14 @@ function openAuditModal(session) {
       btn.onclick = async () => {
         const t = ($('#auditJudul')?.value || '').trim() || 'NOTA AUDIT RETUR';
         session.judul = t;
-        session.updatedAt = new Date().toISOString();
         const idx = (state.auditHistory || []).findIndex(x => String(x.id) === String(session.id));
-        if (idx >= 0) {
-          state.auditHistory[idx].judul = t;
-          state.auditHistory[idx].updatedAt = session.updatedAt;
-        }
+        if (idx >= 0) state.auditHistory[idx].judul = t;
         cacheLocal('auditHistory', state.auditHistory);
         try {
           await cloudSaveAuditSession(Object.assign({}, session, { judul: t }));
-          showToast('Judul disimpan ke server ☁: ' + t);
-          if (state.page === 'riwayat-audit') renderAuditHistory();
+          showToast('Judul disimpan ☁');
         } catch (e) {
-          console.warn(e);
-          showToast('Judul lokal OK. Server: ' + (e.message || e));
+          showToast('Judul disimpan lokal');
         }
         refresh();
       };
@@ -5679,11 +5469,11 @@ function openAuditEditModal(session) {
 
     try {
       await cloudSaveAuditSession(session);
-      logActivity('UPDATE', 'Audit Retur', `Edit ${session.nomor || session.id} · judul "${judul}" · ${items.length} item · Bagus ${goodN} · Jelek ${badN}`);
-      showToast('Sesi + judul disimpan ☁ · ' + judul);
+      logActivity('UPDATE', 'Audit Retur', `Edit ${session.nomor || session.id} · ${items.length} item · Bagus ${goodN} · Jelek ${badN}`);
+      showToast('Sesi audit disimpan ☁ · Bagus ' + goodN + ' · Jelek ' + badN);
     } catch (e) {
       console.warn(e);
-      showToast('Lokal OK (judul: ' + judul + '). Server gagal: ' + (e.message || e));
+      showToast('Disimpan lokal. Server: ' + (e.message || e));
     }
     close();
     renderAuditHistory();
@@ -7259,88 +7049,74 @@ function productAllBarcodes(p) {
   return out;
 }
 
-function searchProducts(term, limit = 40) {
+function searchProducts(term, limit=20) {
   if (!term || term.length < 1) return [];
   const t = term.trim().toLowerCase();
   const tRaw = term.trim();
-  const tokens = t.split(/\s+/).filter(w => w.length > 0);
 
+  // Helper: prefer product with real kode (LB…) over AUTO-
   const prefer = (a, b) => {
     const aReal = a.kode && !String(a.kode).startsWith('AUTO-');
     const bReal = b.kode && !String(b.kode).startsWith('AUTO-');
     if (aReal && !bReal) return a;
     if (!aReal && bReal) return b;
+    // prefer one that has more barcodes
     const aN = productAllBarcodes(a).length;
     const bN = productAllBarcodes(b).length;
     if (aN !== bN) return aN > bN ? a : b;
-    if ((a.barcode || '') && !(b.barcode || '')) return a;
-    if (!(a.barcode || '') && (b.barcode || '')) return b;
+    if ((a.barcode||'') && !(b.barcode||'')) return a;
+    if (!(a.barcode||'') && (b.barcode||'')) return b;
     return a;
   };
 
-  // 1) Exact barcode → 1 item (scan)
+  // 1) Exact barcode match (primary ATAU salah satu dari barcodes[]) → 1 produk
+  //    Memudahkan scan: barcode ke-2/ke-3 tetap ketemu item yang sama
   for (let i = 0; i < state.products.length; i++) {
     const p = state.products[i];
-    for (const b of productAllBarcodes(p)) {
+    const allBc = productAllBarcodes(p);
+    for (const b of allBc) {
       if (b === tRaw || b.toLowerCase() === t) return [p];
     }
   }
 
-  // 2) Exact kode → 1 item
+  // 2) Exact kode match → 1 product
   for (let i = 0; i < state.products.length; i++) {
     const p = state.products[i];
     if (p.kode && String(p.kode).toLowerCase() === t) return [p];
   }
 
-  // 3) Pencarian luas + ranking — tampil banyak item terkait (NABATI → semua varian)
+  // 3) Partial search — dedupe by kode AND by nama (normalized)
+  //    so duplicate entries (same nama, different barcode/kode) only show once
   const seenKode = new Set();
-  const seenNama = new Map();
-  const scored = [];
-
+  const seenNama = new Map(); // nama → product
+  const results = [];
   for (let i = 0; i < state.products.length; i++) {
     const p = state.products[i];
     const kodeKey = (p.kode || '').toLowerCase();
     const namaKey = (p.nama || '').trim().toLowerCase().replace(/\s+/g, ' ');
     if (kodeKey && seenKode.has(kodeKey)) continue;
-
-    const hay = (namaKey + ' ' + kodeKey + ' ' + productAllBarcodes(p).join(' ').toLowerCase() + ' ' + (p.vendor || '').toLowerCase());
-
-    let score = 0;
-    if (namaKey === t) score = 10000;
-    else if (namaKey.startsWith(t)) score = 5000;
-    else if (hay.includes(t)) score = 2000;
-
-    let tokHit = 0;
-    for (const tok of tokens) {
-      if (hay.includes(tok)) tokHit++;
-    }
-    if (tokens.length && tokHit === 0) continue;
-    if (tokens.length) {
-      score += tokHit * 200;
-      if (tokHit === tokens.length) score += 800;
-      if (namaKey.startsWith(tokens[0])) score += 400;
-    }
-    if (score <= 0) continue;
+    const hay = ((p.nama||'') + ' ' + (p.kode||'') + ' ' + productAllBarcodes(p).join(' ') + ' ' + (p.vendor||'')).toLowerCase();
+    if (!hay.includes(t)) continue;
 
     if (kodeKey) seenKode.add(kodeKey);
+
+    // Dedupe by exact same nama: keep the better entry only
     if (namaKey && seenNama.has(namaKey)) {
       const existing = seenNama.get(namaKey);
-      const better = prefer(existing.p, p);
-      if (better !== existing.p) {
-        existing.p = better;
-        existing.score = Math.max(existing.score, score);
-      } else {
-        existing.score = Math.max(existing.score, score);
+      const better = prefer(existing, p);
+      if (better !== existing) {
+        // replace in results
+        const idx = results.indexOf(existing);
+        if (idx >= 0) results[idx] = better;
+        seenNama.set(namaKey, better);
       }
       continue;
     }
-    const row = { p, score };
-    if (namaKey) seenNama.set(namaKey, row);
-    scored.push(row);
+    if (namaKey) seenNama.set(namaKey, p);
+    results.push(p);
+    if (results.length >= limit) break;
   }
-
-  scored.sort((a, b) => b.score - a.score || String(a.p.nama || '').localeCompare(String(b.p.nama || ''), 'id'));
-  return scored.slice(0, limit).map(r => r.p);
+  return results;
 }
 
 function attachSearch(inputId, suggestId, onSelect) {
@@ -7348,7 +7124,6 @@ function attachSearch(inputId, suggestId, onSelect) {
   const suggest = $(suggestId);
   if (!input || !suggest) return;
   let debounceTimer = null;
-  let lastTerm = '';
 
   // Selalu sembunyikan dulu — baru muncul setelah user mengetik
   suggest.style.display = 'none';
@@ -7362,85 +7137,39 @@ function attachSearch(inputId, suggestId, onSelect) {
     suggest.innerHTML = '';
   };
 
-  /** Highlight kata pencarian di hasil (kata tetap kelihatan) */
-  const highlightTerm = (text, term) => {
-    const raw = String(text || '');
-    const t = String(term || '').trim();
-    if (!t || t.length < 1) return esc(raw);
-    try {
-      const parts = t.split(/\s+/).filter(Boolean).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-      if (!parts.length) return esc(raw);
-      const re = new RegExp('(' + parts.join('|') + ')', 'ig');
-      return esc(raw).replace(re, '<mark style="background:#fef08a;color:inherit;padding:0 1px;border-radius:2px;">$1</mark>');
-    } catch (_) {
-      return esc(raw);
-    }
-  };
-
-  /** Setelah pilih: nama produk tetap di kotak cari (bukan dikosongkan) */
-  const afterSelect = (p, opts) => {
-    opts = opts || {};
-    hideSuggest();
-    if (opts.clearForScan) {
-      input.value = '';
-    } else {
-      input.value = (p && p.nama) ? p.nama : (lastTerm || input.value);
-      try { input.focus(); input.select(); } catch (_) {}
-    }
-  };
-
-  let activeIdx = -1;
-
-  const getItems = () => Array.from(suggest.querySelectorAll('.suggest-item[data-kode]'));
-
-  const setActive = (idx) => {
-    const items = getItems();
-    if (!items.length) { activeIdx = -1; return; }
-    activeIdx = ((idx % items.length) + items.length) % items.length;
-    items.forEach((el, i) => {
-      if (i === activeIdx) {
-        el.style.background = '#ccfbf1';
-        el.scrollIntoView({ block: 'nearest' });
-      } else {
-        el.style.background = '';
-      }
-    });
-  };
-
   const doSearch = () => {
     const term = input.value.trim();
-    lastTerm = term;
-    activeIdx = -1;
+    // Minimal 1 karakter; kosong = sembunyikan total
     if (term.length < 1) { hideSuggest(); return; }
-    const results = searchProducts(term, 40);
+    const results = searchProducts(term);
 
-    // Scan barcode/kode exact saja yang auto-pilih 1 item
+    // Auto-select exact barcode / kode (scan mode)
     if (results.length === 1) {
       const p = results[0];
       const tRaw = term;
       const t = term.toLowerCase();
-      const exactBc = productAllBarcodes(p).some(b => String(b).trim() === tRaw || String(b).toLowerCase() === t);
+      const exactBc = (p.barcode && String(p.barcode).trim() === tRaw) ||
+        (Array.isArray(p.barcodes) && p.barcodes.some(b => String(b).trim() === tRaw));
       const exactKode = p.kode && String(p.kode).toLowerCase() === t;
       if (exactBc || exactKode) {
         onSelect(p);
-        afterSelect(p, { clearForScan: true });
+        hideSuggest();
+        input.value = '';
         return;
       }
     }
 
     if (!results.length) {
-      suggest.innerHTML = '<div class="suggest-item"><div class="meta">Tidak ditemukan untuk \"' + esc(term) + '\"</div></div>';
+      suggest.innerHTML = '<div class="suggest-item"><div class="meta">Tidak ditemukan</div></div>';
     } else {
       suggest.innerHTML = results.map(p => `
-        <div class="suggest-item" data-kode="${esc(p.kode)}" style="cursor:pointer;">
-          <div class="nm">${highlightTerm(p.nama, term)}</div>
-          <div class="meta">${highlightTerm(p.kode || '', term)} · ${esc(p.barcode || '-')} · ${esc(p.vendor || '-')}</div>
+        <div class="suggest-item" data-kode="${esc(p.kode)}">
+          <div class="nm">${esc(p.nama)}</div>
+          <div class="meta">${esc(p.kode)} · ${esc(p.barcode||'-')} · ${esc(p.vendor||'-')}</div>
         </div>
       `).join('');
     }
     suggest.style.display = 'block';
-    suggest.style.maxHeight = '280px';
-    suggest.style.overflowY = 'auto';
   };
 
   input.addEventListener('input', () => {
@@ -7449,49 +7178,23 @@ function attachSearch(inputId, suggestId, onSelect) {
     debounceTimer = setTimeout(doSearch, 80);
   });
   input.addEventListener('focus', () => {
-    if (input.value.trim()) doSearch();
-    else hideSuggest();
+    // Jangan tampilkan daftar saat focus kosong
+    if (!input.value.trim()) hideSuggest();
   });
   input.addEventListener('keydown', e => {
-    const open = suggest.style.display !== 'none' && getItems().length > 0;
-
     if (e.key === 'Escape') { hideSuggest(); return; }
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (!open) { doSearch(); setTimeout(() => setActive(0), 30); }
-      else setActive(activeIdx + 1);
-      return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (open) setActive(activeIdx < 0 ? 0 : activeIdx - 1);
-      return;
-    }
-
     if (e.key === 'Enter') {
       e.preventDefault();
       clearTimeout(debounceTimer);
-      const items = getItems();
-      if (open && activeIdx >= 0 && items[activeIdx]) {
-        const kode = items[activeIdx].dataset.kode;
-        const p = state.products.find(x => x.kode === kode);
-        if (p) { onSelect(p); afterSelect(p, { clearForScan: false }); }
-        return;
-      }
       const term = input.value.trim();
       if (!term) { hideSuggest(); return; }
-      const results = searchProducts(term, 40);
+      const results = searchProducts(term, 5);
       if (results.length === 1) {
-        const p = results[0];
-        onSelect(p);
-        const t = term.toLowerCase();
-        const exactBc = productAllBarcodes(p).some(b => String(b).trim() === term || String(b).toLowerCase() === t);
-        const exactKode = p.kode && String(p.kode).toLowerCase() === t;
-        afterSelect(p, { clearForScan: !!(exactBc || exactKode) });
+        onSelect(results[0]);
+        hideSuggest();
+        input.value = '';
       } else if (results.length > 1) {
         doSearch();
-        setTimeout(() => setActive(0), 30);
       } else {
         hideSuggest();
         showToast('Produk tidak ditemukan');
@@ -7502,12 +7205,9 @@ function attachSearch(inputId, suggestId, onSelect) {
     const item = e.target.closest('.suggest-item');
     if (!item || !item.dataset.kode) return;
     const p = state.products.find(x => x.kode === item.dataset.kode);
-    if (p) {
-      onSelect(p);
-      afterSelect(p, { clearForScan: false });
-    } else {
-      hideSuggest();
-    }
+    if (p) onSelect(p);
+    hideSuggest();
+    input.value = '';
   });
   document.addEventListener('click', e => {
     if (!input.contains(e.target) && !suggest.contains(e.target)) hideSuggest();
@@ -10653,6 +10353,7 @@ function bindEvents() {
 
     const showLoginErr = (msg) => {
       $('#loginError').style.display = 'block';
+      // Jangan tampilkan teks mentah Firestore ke user
       if (/permission|insufficient|Missing or insufficient/i.test(String(msg || ''))) {
         $('#loginError').textContent = 'Login ditolak server. Coba pakai EMAIL lengkap (contoh: nama@gmail.com), bukan NIK/username saja.';
         return;
@@ -10665,7 +10366,7 @@ function bindEvents() {
     if (btn) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
 
     try {
-      // Kandidat email — tanpa query Firestore (hindari permission-denied)
+      // 1) Kandidat email murni — TANPA query Firestore (ini penyebab permission-denied)
       const candidates = [];
       if (u.includes('@')) {
         candidates.push(u.trim());
@@ -10674,6 +10375,7 @@ function bindEvents() {
         candidates.push(raw + '@nik.retur.local');
         candidates.push(raw.toLowerCase() + '@nik.retur.local');
         candidates.push(raw.toUpperCase() + '@nik.retur.local');
+        // pola lain yang kadang dipakai
         candidates.push(raw + '@retur.local');
         candidates.push(raw.toLowerCase() + '@gmail.com');
       }
@@ -10692,9 +10394,11 @@ function bindEvents() {
           lastAuthErr = ae;
           if (ae.code === 'auth/user-not-found' || ae.code === 'auth/invalid-email') continue;
           if (ae.code === 'auth/wrong-password' || ae.code === 'auth/invalid-credential') {
+            // Password salah untuk email ini — kalau input sudah email, stop
             if (u.includes('@')) break;
             continue;
           }
+          // error lain (network dll) — stop
           break;
         }
       }
@@ -10709,57 +10413,56 @@ function bindEvents() {
         } else if (code === 'auth/operation-not-allowed') {
           showLoginErr('Login Email/Password belum diaktifkan di Firebase Console → Authentication → Sign-in method.');
         } else if (u.includes('@')) {
-          showLoginErr('Email/password tidak cocok, atau akun belum ada di Firebase Authentication. Reset password di Firebase Console (project hostinglb-6428b).');
+          // Input sudah email: user-not-found ATAU password salah (Firebase sering pakai invalid-credential)
+          showLoginErr('Email/password tidak cocok, atau akun belum ada di Firebase Authentication. Reset password / tambah user di Firebase Console (project hostinglb-6428b).');
         } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-          showLoginErr('Password salah, atau NIK belum terhubung ke email Auth. Coba login dengan EMAIL lengkap.');
+          showLoginErr('Password salah, atau NIK belum terhubung ke email Auth. Coba login dengan EMAIL lengkap dari Master User.');
         } else {
-          showLoginErr('Akun tidak ditemukan. Login pakai EMAIL lengkap, bukan NIK saja.');
+          showLoginErr('Akun tidak ditemukan untuk NIK/username itu. Login pakai EMAIL lengkap (contoh di Master User), bukan NIK saja.');
         }
         return;
       }
 
-      // Baca profil — gagal tetap boleh masuk (hindari stuck)
+      // 2) Baca profil — gagal pun tetap boleh masuk
       let profile = {};
       if (db) {
         try {
-          const uref = await Promise.race([
-            db.collection('users').doc(cred.user.uid).get(),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout profil')), 8000))
-          ]);
-          if (uref && uref.exists) profile = uref.data() || {};
+          const uref = await db.collection('users').doc(cred.user.uid).get();
+          if (uref.exists) profile = uref.data() || {};
         } catch (pe) {
           console.warn('[login] profil tidak terbaca (lanjut):', pe.code || pe.message);
           profile = {};
         }
       }
 
+      const rawRole = profile.role;
+      let role;
+      if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '') {
+        role = 'Administrator';
+      } else if (String(rawRole).toLowerCase() === 'pending') {
+        // Approval dihapus — akun pending otomatis dijadikan admin
+        role = 'Administrator';
+      } else {
+        role = normalizeRole(rawRole);
+      }
       if (profile.locked) {
-        await auth.signOut().catch(() => {});
+        await auth.signOut();
         showLoginErr('Akun dikunci admin. Hubungi Administrator.');
         return;
       }
 
-      const rawRole = profile.role;
-      let role;
-      // Profil kosong / pending → anggap Administrator agar tidak stuck di layar approval
-      if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '' ||
-          String(rawRole).toLowerCase() === 'pending') {
-        role = 'Administrator';
-        if (db) {
-          try {
-            await db.collection('users').doc(cred.user.uid).set({
-              role: (typeof toFirestoreRole === 'function' ? toFirestoreRole('Administrator') : 'admin'),
-              email: cred.user.email || '',
-              username: profile.username || u,
-              name: profile.name || (cred.user.email || u),
-              assignedDc: profile.assignedDc || 'DC INDUK',
-              locked: false,
-              updatedAt: (typeof tsNow === 'function' ? tsNow() : new Date().toISOString())
-            }, { merge: true });
-          } catch (_) {}
-        }
-      } else {
-        role = normalizeRole(rawRole);
+      // Tulis role default jika kosong/pending (abaikan error rules)
+      if (db && (rawRole === undefined || rawRole === null || String(rawRole).trim() === '' || String(rawRole).toLowerCase() === 'pending')) {
+        try {
+          await db.collection('users').doc(cred.user.uid).set({
+            role: toFirestoreRole('Administrator'),
+            email: cred.user.email || '',
+            username: profile.username || u,
+            name: profile.name || '',
+            assignedDc: profile.assignedDc || 'DC INDUK',
+            updatedAt: tsNow()
+          }, { merge: true });
+        } catch (_) {}
       }
 
       state.user = {
@@ -10817,14 +10520,11 @@ function bindEvents() {
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         await db.collection('users').doc(cred.user.uid).set({
           name, username, email,
-          role: 'pending',
+          role: 'admin',
           locked: false,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        await auth.signOut();
-        showAuthCard('pending');
-        showToast('Pendaftaran berhasil — menunggu approval admin');
-        return;
+        showToast('Pendaftaran berhasil — akun langsung aktif sebagai admin');
       } catch (err) {
         $('#regError').style.display = 'block';
         $('#regError').textContent = err.code === 'auth/email-already-in-use'
@@ -11341,7 +11041,6 @@ function bindEvents() {
     });
   }
   $('#auditHistDeleteSelBtn')?.addEventListener('click', () => deleteSelectedAuditSessions());
-  $('#auditHistRekapBtn')?.addEventListener('click', () => openAuditRekapModal());
   const hExpBtn = $('#histExportBtn');
   const hExpDd = $('#histExportDropdown');
   if (hExpBtn && hExpDd) {
@@ -11453,56 +11152,33 @@ async function restoreFirebaseUser(firebaseUser) {
     return;
   }
   try {
-    let profile = {};
-    try {
-      const snap = await Promise.race([
-        db.collection('users').doc(firebaseUser.uid).get(),
-        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
-      ]);
-      if (snap && snap.exists) profile = snap.data() || {};
-    } catch (pe) {
-      console.warn('[security] profil restore gagal (lanjut):', pe.message || pe);
-      profile = {};
-    }
-
-    if (profile.locked) {
-      await auth.signOut().catch(() => {});
-      state.user = null;
-      showAuthCardForSecurity('pending');
-      const pm = $('#pendingMsg');
-      if (pm) pm.textContent = 'Akun dikunci admin. Hubungi Administrator.';
-      return;
-    }
-
-    const rawRole = profile.role;
-    let role;
-    if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '' ||
-        String(rawRole).toLowerCase() === 'pending') {
-      role = 'Administrator';
+    const snap = await db.collection('users').doc(firebaseUser.uid).get();
+    const profile = snap.exists ? snap.data() : {};
+    const role = normalizeRole(profile.role || 'admin');
+    if (!snap.exists) {
+      // Tidak ada profil tersimpan — buat otomatis sebagai admin (approval dihapus)
       try {
         await db.collection('users').doc(firebaseUser.uid).set({
-          role: (typeof toFirestoreRole === 'function' ? toFirestoreRole('Administrator') : 'admin'),
-          email: firebaseUser.email || profile.email || '',
-          name: profile.name || firebaseUser.email || 'User',
-          assignedDc: profile.assignedDc || 'DC INDUK',
+          name: firebaseUser.email || 'User',
+          username: firebaseUser.email || '',
+          email: firebaseUser.email || '',
+          role: 'admin',
           locked: false,
-          updatedAt: (typeof tsNow === 'function' ? tsNow() : new Date().toISOString())
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
       } catch (_) {}
-    } else {
-      role = normalizeRole(rawRole);
     }
-
     state.user = {
       uid: firebaseUser.uid,
       name: profile.name || firebaseUser.email || 'User',
       username: profile.username || firebaseUser.email || '',
       email: firebaseUser.email || profile.email || '',
-      role,
-      locked: false,
+      role, locked: !!profile.locked,
       assignedDc: profile.assignedDc || 'DC INDUK'
     };
+    // Do not persist credentials or an app-level session token in localStorage.
     storage.set('session', null);
+    // Non-Induk: kunci DC aktif ke penempatan user
     if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
       state.dcName = state.user.assignedDc;
       cacheLocal('dcName', state.dcName);
@@ -11510,22 +11186,9 @@ async function restoreFirebaseUser(firebaseUser) {
     enterApp();
   } catch (e) {
     console.error('[security] restore auth', e);
-    // Jangan signOut otomatis agar tidak loop stuck — biarkan user coba lagi / refresh
-    try {
-      state.user = {
-        uid: firebaseUser.uid,
-        name: firebaseUser.email || 'User',
-        username: firebaseUser.email || '',
-        email: firebaseUser.email || '',
-        role: 'Administrator',
-        locked: false,
-        assignedDc: 'DC INDUK'
-      };
-      enterApp();
-    } catch (e2) {
-      console.error(e2);
-      showToast('Gagal memverifikasi akun. Refresh halaman.');
-    }
+    await auth.signOut().catch(()=>{});
+    state.user = null;
+    showToast('Gagal memverifikasi akun dari server.');
   }
 }
 
