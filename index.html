@@ -10825,6 +10825,10 @@ function bindEvents() {
       $('#loginError').textContent = msg || 'Gagal login';
     };
 
+    const btn = $('#loginBtn');
+    const origText = btn ? btn.textContent : 'Masuk';
+    if (btn) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
+
     try {
       // 1) Kandidat email murni â€” TANPA query Firestore (ini penyebab permission-denied)
       const candidates = [];
@@ -10946,6 +10950,8 @@ function bindEvents() {
     } catch (err) {
       console.error('[login]', err);
       showLoginErr(err.message || 'Gagal login');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = origText; }
     }
   };
 
@@ -10995,7 +11001,8 @@ function bindEvents() {
   });
 
   // Mode offline ditiadakan â€” semua aktivitas lewat server Firebase
-  $('#loginPass').addEventListener('keydown', e => { if(e.key==='Enter') $('#loginBtn').click(); });
+  $('#loginUser')?.addEventListener('keydown', e => { if(e.key==='Enter') $('#loginPass')?.focus(); });
+  $('#loginPass')?.addEventListener('keydown', e => { if(e.key==='Enter') $('#loginBtn').click(); });
 
   // Show / hide password (login & daftar)
   function bindPassToggle(inputId, btnId) {
@@ -11558,16 +11565,8 @@ function bindEvents() {
         if (data.products) { state.products = data.products; storage.set('products', state.products); }
         if (data.categories) { state.categories = data.categories; storage.set('categories', state.categories); }
         if (data.history) { state.history = data.history; storage.set('history', state.history); }
-        if (data.auditHistory) { state.auditHistory = data.auditHistory; storage.set('auditHistory', state.auditHistory); }
-        if (data.activityLog) { state.activityLog = data.activityLog; storage.set('activityLog', state.activityLog); }
-        if (data.dcName) { state.dcName = data.dcName; storage.set('dcName', state.dcName); }
-        showToast('Data berhasil diimpor');
-    xœœWÝnÛ:¾ÏSLp•„æ¨½\¤›nÜl‹¦?ˆ“ƒ³(Š-Ò6hQ ©¤ÞÔÀ>Ä¾ËÞï£ì“œoDÉ–7'8¾°Dr8~3ßÌˆˆÈØù¨úZ‡Uš¼ûðùÓÅerDÉkQ”MÍoÊëIá4Í´QIöâ€º_%®õ\•ú€ÿ¼sµY]S!B±H•sÝ’_Ø›K+|H“3h¡ ¥(éZ-¡‘Öí®uÜì”ÊåüùKõ-¤|p«yÝþÿ%M~rÊ«02æu¨’,·UatQÒ	¥¼¤ÛV‘žQzXØj¦Ý2MÞŽ>_MhòæÃÕˆÆ£Ëz?:E—­)SíI=A˜RT‡I–ÁÐ¸êÅ]ÿ¥®È« #æúÕ]ù/Ií¬lŠà“£P¨¹uZñÀ\~Þ§¶ñ*J¸€ÇB3Ü+¼‰FêpŽaÿþv»ÔyìÜÎ1’ÅG±Tx"¯m•|ÍgÖ½À¾d(Œ-„™`+¼L—öZ½
-w˜×ÇÉÓ2ë<ÆbÛ!b¬i„ûÅþŸ=£ÏÂ‹jNÁ.§ÖPúkFïØà©TÀaÙÒUÝªU…»hQL,˜Æ5Z#–¢‚. è	c&J¸b1QF°ÍÃs_Z;Ø³@1.sþÔÞ~0žŠJêj>˜©MÙ:Œã]owç$<Í@õ°ÇîªºV•´C{œ(##êáh¨äêFPõ•ñ¼ï¯ Õ6p#J<ƒXÇJ¶AH„€-§ª^7!Ø*íD˜ëƒƒYSìKRUPnT× ÅmÇÑ„Å¤pJ1m
-#¼ç Ë…”)¢OJžï9&êz²PÆ@Ò‡•Q¹Ô¾6b³’™Qßd£"ÿÊàúö=wL?¡Êº%xò/uqzg½=ö6kŸ’(T"ªIjYÃK¥¥*¦ÚH.Á»g,÷®‚¯²{Ð“'t¨}+ˆkÇQ+;.†gãâz^)9.²¬C=®F>Áì½ÂôýûŽ\tLw¨s&ZºáãŽXôNwSåDõÓé	µI8&p(P¹h|ã·8¤5òÒ"¦_L¡[bÕ¬c^bƒ±&mkÁØ‰YðgÖá¾Oò-Z³²< ¡žZFv/Yu×‰ÁÇ¾9Ó6‹Æ9ˆ·îËè)íÇ‘^QBÿû/þžþ »cJ’“Xã=“6'%G×wO6½cÿ÷ïÉU’}yþ5öªJ§Â«-²x-äüþ‘j6SœTÕ¸õVÜ€è7«q1)l­.í„,|PUó‹özªÏ¬§ÂFº¸ÉMSh©2ŠÏ„ÃöwmÝ”ÎD
-¿˜Zád„ráÔØFNVUçÁ¦F²R<nÍ“(—z©lÒXó¦Öç#w­\šÑ_Ÿ?Axl¦M^p±ªŸi§¦ è
-ð¡Æn‘mÉ»?Í6ÚúŽ‰4p9S¾1¦ŸŽ•æ¦›uÔ
-tÿ(ÓT¶RÉ@t‹•m7‡Ñ "3ù‚[í$X_‰'ˆÊi^XÃi¦	_Äãi‹hòFË,Ÿã6ÝQJ7)Ì((ÍÕ7ØäÁˆvÄ¥>:¦ÛõpÏÞôØ)Š¹É&œÉ’A8œÐ{¤M,±‘RtÖ’¿×H¡ýÿßÿ¡)ç—MÙö¸Ñ\hjÕS
-8‹vÉe!êÆgÚ-düûH±ß·
-8ð—ê˜väÔRÀX¾+»Â¬ûÁ;ÒíôãDÞãÜáú RI(Æ«áB¤°…í9¿´LÊÏ´2òaŽt¦s”X¢ön”¬Ð	/•›ãèàÕµ³ƒv™ÒÂ¥]7|ŸV=@öÎ51ÓñêãˆG|ýÇ ¾E»ßÝÏ< a³ûAô{…{ö±+Ž6¸ö¢q¦—Ú–‘­u»e9á¦àãøê}2ü˜ /ÆãÎl íàHdˆ á`²ŽÀÿÏF]£Öu	
-n©*t´»Ýó#Žüh«ŸÛ¦ã˜Ê‡ÆwKì?×¶<®qéíq­J}Û²Í¡}ªlG-»Õ9ëÒä‹GŸæP¿ö%†8]ã„^mÌ <™³eŸP½ÅÛ/Å4;yy»þƒj²ýŒü;Ò—›– ›žéRx$3€{¥HÂ<é¯aSÌ:F0à5÷Œ;ûhrº´²»WLÏhß '›¢sÎãÓ¶PázóÁÒ…š#²¸Ûˆ«ð0¢$>Ç™ÓMg‡·'dñ {uÍ¡“Àv=áöjÊœH¸ÚEÖcøãsþ€×YøšÎê¬7ÿuÄ~mC°u¥C÷õÁê ‹š¢Qzƒ«à·ÍÓ¦Û¸À·ÿŠI}Èàµ/rºi?~àÀ¨A[ÑN¼áØÜ×XDÃ ½Û &}«D|0gøµL7â7=m­’ZäÉ¾¶£v[ñÎöþ§ôîJ¦{º°Ø­¡’6KÂ_e-DÜá i€aãO:«Î§’ CŒ}ëŒüÛ3_8]‡—x›Z¹âç",ÍËƒß  ÿÿ ÊÆ¸H
+        if (data.auditHistory) { staxœœWÛnÛ8¾ÏS0˜A)¡µ—‹dÓÂµ›iÑô€8Ì¢(´DÛQ¢@RI³©yˆy—½ßGÙ'™ïu²ãf‚ñ…%’?ÿÃ÷åe"êLù7ÊycoÙ)Ë„[{'Œb%'}ÄÇGügÂoóˆOØæ€µ?µdQà˜zu­üí¹YÅì®»6lö’‡­]ÁÃÉ wÄu¯Ø,ý 
+9HëNXXíÈ	›½ˆ–Ã˜»[››K#ˆg`ÃÒ®…SšeJ•±<>éiµYMZ%#þöý§—`Í_‰4¯+z»$]B!«ØRi9¾]Škµ‚QÐ¥‚’ýé†¥Â§ëHZÛØ7(u.Ì«LäìZh•ñ^ûM¸l¥È¤Mè1q—ò«HpÃyÓüÿñ¬­_ù’Ç‰)S­ÒÈE1;}Áî:œSS.•-"þfòéjÎæ¯ß_MØlr9açßMÎ_²ËF•…r-€˜ÎEyÈãŠøÚ–'{xýKäªdNæ0€i±R/wé?óÊš¬N½ãGPÈ•±JÒÂ\zÞ+×¦v2PXÇº‹ÜÈçXvïo†£q¨õÁÁÈ)Sò/ÉÒØ×Øç…6©Ðó6„¬,Ìµ|ë%lXUÇüi·#2ë ÑFdQ€ûä ÿÏž±OÂ‰rÅ¼)F³è×˜¼ã‚c¹E-˜*«Ú³J–°E‰`â@×¶^³µÐ¢%xAç™Ðz.…M×s©e
+Ý<÷¹Ñƒ<Ã1Eàõ£õB”™*W£JçÝªåA8î²x³½G)F@ŒùÇvY]Ë23c}¬ÈG+-ªñjÌÉÕ®ÀêáyßîÞW€jÜ€í Öq1ˆÞãÊTƒÕ«Ú{SF-	¥Çæà`Y—)ù’ÉÒK;©*$Å]›7¢öëyj¥¤´IµpŽ‚,Y!ú²Œö»U5_K­Aéü­FµQ®Ò‚ê0_jù•!)ò¡Œ\Þk4³ÒØyòyu´sÞC„½ƒÎŠÍ¦Lä,Uˆ$YTðRÉ¢\¦5¥Ú$+wÏˆîm	_Å÷`Ož°CåB˜Ví,Ë†ájUÊl–Æq‹úNÞKÌ¾}Û¢ŽIáyN‰öÝMÞi-•V”¿Q:=aM`23ägùºvµpˆ*Ô¥u(¿ØÔB5‰UUŽ‰E(PÒ6Ì¬Xzwf,ìí=IV4jÅ‰GAFé·,[sBð‘oÎÅ¢‰Á´¶äûbö”íÇ‘½dœýï¿ø{úìŽç[*Ç{*õ’Ç”“k‚½Gíèÿí¿âñçç_o®* 4N0dé+‘­î‹”Ë¥¤¢*g·ÂD¿¾¥óÔTòÒÌIÐèà½,ë_”S¥©yÆ]*Ü(”‹›D×©ÊÐÙÃ3AÂáú[‚6ö­“gÂ­FØ,@ƒ¬ŸjSgóÛ²õ`]¡XIZ7ê‡M´¿KUHSû(ô¼…1ÞyKõÈ^KÅGìÏŸ‡Š .³¾.ØÐÕÏ”• tøÐc‡EÈˆ¦åÝß&Mµ£"¹œR¾ÖºÛ/]‹:jÚ‹UiJSJ>"Ý_ÀBgÛ®alÔ‘)ù<FÈqu¥¨ AÜ$a¶HR£©,CÃˆ“!2“nA“Ô*‹“¬iEVh4¤PFi"¿B'‡ŒhVÔjà£cv·ßÙ[[F¡v¢ØpA•Œ:ÀáHBç‘¦°„AFd¢Õ†¡ø;Œ|( ÿÿý¶ úÒ·m‹VB±†=‹à k0Ž¡¸¬EU»¸e;@F¿¿ù}`@_Èc¶E'eÉVZ¶7üˆ÷ƒ7¶¨›íÇ‘¼Ç¸ãÌA¹ÌÀDh'Ç!…³‰$ôÒdRr¦¤Î~º¦H§ô£ÜDJè½=“Í&áBÚD{[ËvœË,ú7\ÚNÃ÷ÓªÈî˜‰NÙ€WG´"óƒø€vw»Ûy€CûAô;†{î‘+ŽzÜ;Ò°ÓQmdÐn»-s
+>Ì®ÞññÇòbfc4™"vp$*„Wp03–!;ü?iy^×(º¹,1ÑnOÏ,hùÁ”?5CÇ1Ëlß!±ÿÞØò¸Á¥´Ç*]ôdSC» •ñ¨Žr«µÆFü³ÃœfÑ¿t-†Q¹†„Žm¨ ´™fÑ½PÅ›/Å(>}q·ù‹n2|FþŒò¥‘M’M-UŽO\@\—aV
+I˜ðvðÅÄc¦è¹g4Ù•£Âd­]¡<c|G œöMçœÖÓ¦QÁ¼ÕèèB®Y4m„Sx˜>QFŸÂÎ´ïóäðFBÝë{¤;=ElÎ9WÊ	NsTß‰”¡ÏÕ<l«áClZ­ãNýØµû¹ÁV¥òí×M¨£)jAé5>®¼†§~Ú¸À·ÿ-%õ!×¼d‹~üøŽ[ FcE³ñšbsß`ÿõö€È»Q‰‘`ªák™ÝˆßÔ¢i´2S"áûÆŽ&ÚMI7û§kÌî2‹öLaaZC'­¡¯²"špP4a³ï[­Î§ÌZ1îlbòŸÏ\jUå_àma²[z®}¡_ü	  ÿÿ ã-‚
