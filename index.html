@@ -7334,6 +7334,7 @@ function attachSearch(inputId, suggestId, onSelect) {
   const suggest = $(suggestId);
   if (!input || !suggest) return;
   let debounceTimer = null;
+  let lastTerm = '';
 
   // Selalu sembunyikan dulu — baru muncul setelah user mengetik
   suggest.style.display = 'none';
@@ -7347,13 +7348,40 @@ function attachSearch(inputId, suggestId, onSelect) {
     suggest.innerHTML = '';
   };
 
+  /** Highlight kata pencarian di hasil (kata tetap kelihatan) */
+  const highlightTerm = (text, term) => {
+    const raw = String(text || '');
+    const t = String(term || '').trim();
+    if (!t || t.length < 1) return esc(raw);
+    try {
+      const parts = t.split(/\s+/).filter(Boolean).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      if (!parts.length) return esc(raw);
+      const re = new RegExp('(' + parts.join('|') + ')', 'ig');
+      return esc(raw).replace(re, '<mark style="background:#fef08a;color:inherit;padding:0 1px;border-radius:2px;">$1</mark>');
+    } catch (_) {
+      return esc(raw);
+    }
+  };
+
+  /** Setelah pilih: nama produk tetap di kotak cari (bukan dikosongkan) */
+  const afterSelect = (p, opts) => {
+    opts = opts || {};
+    hideSuggest();
+    if (opts.clearForScan) {
+      input.value = '';
+    } else {
+      input.value = (p && p.nama) ? p.nama : (lastTerm || input.value);
+      try { input.focus(); input.select(); } catch (_) {}
+    }
+  };
+
   const doSearch = () => {
     const term = input.value.trim();
-    // Minimal 1 karakter; kosong = sembunyikan total
+    lastTerm = term;
     if (term.length < 1) { hideSuggest(); return; }
     const results = searchProducts(term);
 
-    // Auto-select exact barcode / kode (scan mode)
+    // Scan barcode/kode exact → kosongkan untuk scan berikutnya
     if (results.length === 1) {
       const p = results[0];
       const tRaw = term;
@@ -7363,19 +7391,18 @@ function attachSearch(inputId, suggestId, onSelect) {
       const exactKode = p.kode && String(p.kode).toLowerCase() === t;
       if (exactBc || exactKode) {
         onSelect(p);
-        hideSuggest();
-        input.value = '';
+        afterSelect(p, { clearForScan: true });
         return;
       }
     }
 
     if (!results.length) {
-      suggest.innerHTML = '<div class="suggest-item"><div class="meta">Tidak ditemukan</div></div>';
+      suggest.innerHTML = '<div class="suggest-item"><div class="meta">Tidak ditemukan untuk \"' + esc(term) + '\"</div></div>';
     } else {
       suggest.innerHTML = results.map(p => `
         <div class="suggest-item" data-kode="${esc(p.kode)}">
-          <div class="nm">${esc(p.nama)}</div>
-          <div class="meta">${esc(p.kode)} · ${esc(p.barcode||'-')} · ${esc(p.vendor||'-')}</div>
+          <div class="nm">${highlightTerm(p.nama, term)}</div>
+          <div class="meta">${highlightTerm(p.kode || '', term)} · ${esc(p.barcode || '-')} · ${esc(p.vendor || '-')}</div>
         </div>
       `).join('');
     }
@@ -7388,8 +7415,9 @@ function attachSearch(inputId, suggestId, onSelect) {
     debounceTimer = setTimeout(doSearch, 80);
   });
   input.addEventListener('focus', () => {
-    // Jangan tampilkan daftar saat focus kosong
-    if (!input.value.trim()) hideSuggest();
+    // Jika masih ada teks, tampilkan ulang hasil (kata tidak hilang)
+    if (input.value.trim()) doSearch();
+    else hideSuggest();
   });
   input.addEventListener('keydown', e => {
     if (e.key === 'Escape') { hideSuggest(); return; }
@@ -7400,9 +7428,12 @@ function attachSearch(inputId, suggestId, onSelect) {
       if (!term) { hideSuggest(); return; }
       const results = searchProducts(term, 5);
       if (results.length === 1) {
-        onSelect(results[0]);
-        hideSuggest();
-        input.value = '';
+        const p = results[0];
+        onSelect(p);
+        const t = term.toLowerCase();
+        const exactBc = productAllBarcodes(p).some(b => String(b).trim() === term || String(b).toLowerCase() === t);
+        const exactKode = p.kode && String(p.kode).toLowerCase() === t;
+        afterSelect(p, { clearForScan: !!(exactBc || exactKode) });
       } else if (results.length > 1) {
         doSearch();
       } else {
@@ -7415,9 +7446,12 @@ function attachSearch(inputId, suggestId, onSelect) {
     const item = e.target.closest('.suggest-item');
     if (!item || !item.dataset.kode) return;
     const p = state.products.find(x => x.kode === item.dataset.kode);
-    if (p) onSelect(p);
-    hideSuggest();
-    input.value = '';
+    if (p) {
+      onSelect(p);
+      afterSelect(p, { clearForScan: false });
+    } else {
+      hideSuggest();
+    }
   });
   document.addEventListener('click', e => {
     if (!input.contains(e.target) && !suggest.contains(e.target)) hideSuggest();
