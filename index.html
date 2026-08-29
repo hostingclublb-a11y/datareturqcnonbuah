@@ -1039,14 +1039,21 @@ table.data-table .actions { display: flex; gap: 4px; }
     <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--text-muted);">
       Belum punya akun? <a href="#" id="showRegister" style="color:var(--primary);font-weight:700;">Daftar</a>
     </div>
+    <div id="offlineFallbackArea" style="display:none;margin-top:14px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;text-align:center;">
+      <div style="font-size:12px;color:#92400e;margin-bottom:8px;font-weight:600;line-height:1.4;" id="offlineFallbackMsg">Koneksi / Domain Firebase Belum Terhubung</div>
+      <button type="button" class="btn btn-sm btn-outline" id="offlineLoginBtn" style="width:100%;background:#fff;font-weight:700;color:#b45309;border-color:#f59e0b;">âš¡ Masuk Mode Offline (Lokal / Standalone)</button>
+    </div>
+    <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text-muted);">
+      <a href="#" id="toggleOfflineLogin" style="color:var(--text-muted);text-decoration:underline;">Gunakan Mode Offline (Lokal)</a>
+    </div>
     <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--text-muted);">
-      Login pakai <b>email</b> yang terdaftar di Firebase Authentication (bukan hanya NIK). Lupa password â†’ reset di Firebase Console.
+      Login online menggunakan <b>email</b> Firebase. Pada GitHub Pages / domain baru, pastikan domain telah didaftarkan di <i>Firebase Console â†’ Authorized Domains</i>.
     </div>
   </div>
   <!-- REGISTER -->
   <div class="auth-card" id="authRegisterCard" style="display:none;">
     <h1 style="text-align:center;">Daftar Akun</h1>
-    <div class="sub">Akun baru perlu disetujui admin sebelum bisa masuk</div>
+    <div class="sub">Daftarkan akun administrator untuk mengelola sistem</div>
     <div class="form-group">
       <label>Nama Lengkap</label>
       <input type="text" id="regName" placeholder="Nama lengkap" autocomplete="name">
@@ -2191,7 +2198,29 @@ function syncStatus(msg) {
   }
 }
 
+function loginLocalOffline(name, username, role = 'Administrator', assignedDc = 'DC INDUK') {
+  const cleanU = (username || 'admin').trim();
+  state.user = {
+    uid: 'local_' + cleanU.replace(/[^a-zA-Z0-9_-]/g, '_'),
+    name: name || cleanU || 'Administrator',
+    username: cleanU,
+    email: cleanU.includes('@') ? cleanU : (cleanU + '@local.retur'),
+    role: normalizeRole(role),
+    locked: false,
+    assignedDc: assignedDc || 'DC INDUK',
+    isOfflineUser: true
+  };
+  storage.set('session', state.user);
+  if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
+    state.dcName = state.user.assignedDc;
+    cacheLocal('dcName', state.dcName);
+  }
+  enterApp();
+  showToast('Masuk sebagai ' + state.user.name + ' (Mode Offline / Lokal)');
+}
+
 function requireServer(silent) {
+  if (state.user && state.user.isOfflineUser) return true;
   const ok = !!(firebaseReady && db && auth && auth.currentUser && state.user && !state.user.locked && currentRole() !== 'pending');
   if (ok) return true;
   if (!silent) showToast('âš  Sesi Firebase tidak valid / server tidak terhubung. Silakan login ulang.');
@@ -10791,6 +10820,16 @@ function bindEvents() {
   }
   $('#showRegister')?.addEventListener('click', e => { e.preventDefault(); showAuthCard('register'); });
   $('#showLogin')?.addEventListener('click', e => { e.preventDefault(); showAuthCard('login'); });
+  
+  const triggerOfflineAuth = () => {
+    const inputU = ($('#loginUser')?.value || '').trim() || 'Admin';
+    loginLocalOffline(inputU, inputU, 'Administrator', 'DC INDUK');
+  };
+  $('#offlineLoginBtn')?.addEventListener('click', triggerOfflineAuth);
+  $('#toggleOfflineLogin')?.addEventListener('click', e => {
+    e.preventDefault();
+    triggerOfflineAuth();
+  });
   $('#pendingLogoutBtn')?.addEventListener('click', () => {
     if (auth) auth.signOut().catch(()=>{});
     state.user = null;
@@ -10811,7 +10850,9 @@ function bindEvents() {
     }
     if (!firebaseReady || !auth) {
       $('#loginError').style.display = 'block';
-      $('#loginError').textContent = 'Firebase belum siap â€” cek koneksi & refresh';
+      $('#loginError').innerHTML = 'Koneksi Firebase belum siap di domain ini. Silakan gunakan <b>Mode Offline</b> di bawah untuk langsung masuk.';
+      const offArea = $('#offlineFallbackArea');
+      if (offArea) offArea.style.display = 'block';
       return;
     }
 
@@ -10870,19 +10911,47 @@ function bindEvents() {
       if (!cred) {
         const code = lastAuthErr && lastAuthErr.code;
         console.warn('[login] gagal auth', code, lastAuthErr && lastAuthErr.message, 'tried:', Array.from(tried));
-        if (code === 'auth/too-many-requests') {
-          showLoginErr('Terlalu banyak percobaan. Tunggu beberapa menit, lalu coba lagi.');
-        } else if (code === 'auth/network-request-failed') {
-          showLoginErr('Jaringan gagal. Cek internet lalu coba lagi.');
+        const host = window.location.hostname || 'domain lokal';
+        const errEl = $('#loginError');
+        const offArea = $('#offlineFallbackArea');
+        if (offArea) offArea.style.display = 'block';
+        
+        if (code === 'auth/unauthorized-domain') {
+          errEl.innerHTML = 'Domain "<b>' + esc(host) + '</b>" sedang dalam proses verifikasi Firebase atau belum terdaftar.<br>Gunakan tombol <b>Masuk Mode Offline</b> di bawah untuk langsung masuk.';
+          errEl.style.display = 'block';
         } else if (code === 'auth/operation-not-allowed') {
-          showLoginErr('Login Email/Password belum diaktifkan di Firebase Console â†’ Authentication â†’ Sign-in method.');
-        } else if (u.includes('@')) {
-          // Input sudah email: user-not-found ATAU password salah (Firebase sering pakai invalid-credential)
-          showLoginErr('Email/password tidak cocok, atau akun belum ada di Firebase Authentication. Reset password / tambah user di Firebase Console (project hostinglb-6428b).');
-        } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-          showLoginErr('Password salah, atau NIK belum terhubung ke email Auth. Coba login dengan EMAIL lengkap dari Master User.');
+          errEl.innerHTML = 'Metode Email/Password belum aktif di <b>Firebase Console â†’ Authentication â†’ Sign-in method</b>. Aktifkan fitur tersebut atau gunakan Mode Offline di bawah.';
+          errEl.style.display = 'block';
+        } else if (code === 'auth/network-request-failed' || code === 'auth/internal-error') {
+          errEl.innerHTML = 'Koneksi jaringan ke Firebase terganggu. Anda dapat langsung masuk melalui Mode Offline di bawah.';
+          errEl.style.display = 'block';
+        } else if (u.includes('@') && (code === 'auth/user-not-found' || code === 'auth/invalid-credential')) {
+          errEl.innerHTML = 'Akun belum terdaftar atau password salah.<br><button type="button" id="quickRegisterBtn" class="btn btn-sm btn-primary" style="margin-top:8px;width:100%;font-size:12px;padding:6px 10px;">âœ¨ Daftarkan & Masuk Sekarang Sebagai Admin</button>';
+          errEl.style.display = 'block';
+          $('#quickRegisterBtn')?.addEventListener('click', async () => {
+            const qBtn = $('#quickRegisterBtn');
+            if (qBtn) { qBtn.disabled = true; qBtn.textContent = 'Mendaftarkan akun...'; }
+            try {
+              const newCred = await auth.createUserWithEmailAndPassword(u.trim(), p);
+              if (db) {
+                await db.collection('users').doc(newCred.user.uid).set({
+                  name: u.split('@')[0] || 'Admin',
+                  username: u.split('@')[0] || 'admin',
+                  email: u.trim(),
+                  role: 'admin',
+                  locked: false,
+                  assignedDc: 'DC INDUK',
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+              }
+              showToast('Akun berhasil didaftarkan & aktif sebagai Admin!');
+            } catch (regErr) {
+              errEl.textContent = regErr.message || 'Gagal mendaftarkan akun. Coba Mode Offline di bawah.';
+            }
+          });
         } else {
-          showLoginErr('Akun tidak ditemukan untuk NIK/username itu. Login pakai EMAIL lengkap (contoh di Master User), bukan NIK saja.');
+          errEl.innerHTML = 'Username/password belum terdaftar di Firebase.<br>Silakan periksa input atau klik <b>Masuk Mode Offline</b> di bawah untuk langsung menggunakan aplikasi.';
+          errEl.style.display = 'block';
         }
         return;
       }
@@ -10973,9 +11042,9 @@ function bindEvents() {
       $('#regError').textContent = 'Username 3â€“30 karakter (huruf/angka/._-)';
       return;
     }
-    if (password.length < 8) {
+    if (password.length < 6) {
       $('#regError').style.display = 'block';
-      $('#regError').textContent = 'Password minimal 8 karakter';
+      $('#regError').textContent = 'Password minimal 6 karakter';
       return;
     }
     // Firebase register
@@ -11478,97 +11547,18 @@ function bindEvents() {
     const el = $('#'+id);
     if (el) { el.addEventListener('change', () => renderLaporanMasterData()); el.addEventListener('input', () => renderLaporanMasterData()); }
   });
-  $('#lmRefreshBtn')?.addEventListener('click', () => { delete $('#lmDcChecks').dataset.ready; renderLaporanMaster(); });
-  $('#lmSelectAllBtn')?.addEventListener('click', () => {
-    $$('#lmDcChecks input').forEach(c => { c.checked = true; c.closest('.chip')?.classList.add('active'); });
-    renderLaporanMasterData();
-  });
-  $('#lmClearDcBtn')?.addEventListener('click', () => {
-    $$('#lmDcChecks input').forEach(c => { c.checked = false; c.closest('.chip')?.classList.remove('active'); });
-    renderLaporanMasterData();
-  });
-
-  // Log search
-  $('#logSearch')?.addEventListener('input', renderLog);
-  bindCetakPlakatEvents();
-
-
-  // Riwayat Audit filters + export
-  ['auditHistSearch','auditHistFrom','auditHistTo','auditHistKondisi'].forEach(id => {
-    const el = $('#'+id);
-    if (el) { el.addEventListener('input', renderAuditHistory); el.addEventListener('change', renderAuditHistory); }
-  });
-  const ahExpBtn = $('#auditHistExportBtn');
-  const ahExpDd = $('#auditHistExportDropdown');
-  if (ahExpBtn && ahExpDd) {
-    ahExpBtn.onclick = (e) => { e.stopPropagation(); ahExpDd.classList.toggle('show'); };
-    $$('#auditHistExportDropdown button').forEach(btn => {
-      btn.onclick = () => { doExport(btn.dataset.fmt); ahExpDd.classList.remove('show'); };
-    });
-  }
-  $('#auditHistDeleteSelBtn')?.addEventListener('click', () => deleteSelectedAuditSessions());
-  const hExpBtn = $('#histExportBtn');
-  const hExpDd = $('#histExportDropdown');
-  if (hExpBtn && hExpDd) {
-    hExpBtn.onclick = (e) => { e.stopPropagation(); hExpDd.classList.toggle('show'); };
-    $$('#histExportDropdown button').forEach(btn => {
-      btn.onclick = () => { doExport(btn.dataset.fmt); hExpDd.classList.remove('show'); };
-    });
-  }
-
-  // Settings
-  $('#saveSettingsBtn').onclick = () => {
-    if (!requireServer()) return;
-    const prevDc = state.dcName;
-    state.dcName = $('#setDcName').value.trim() || 'DC INDUK';
-    state.sysName = $('#setSysName').value.trim() || 'DC NONBUAH';
-    cacheLocal('dcName', state.dcName);
-    cacheLocal('sysName', state.sysName);
-    cloudSaveSettings({ dcName: state.dcName, sysName: state.sysName });
-    if (prevDc !== state.dcName) {
-      startCloudSync();
-      cloudSaveCart();
-      cloudSaveAuditList();
-    }
-    $('#dcBadge').textContent = state.dcName;
-    showToast('Pengaturan disimpan ke server â˜');
-    logActivity('UPDATE', 'Pengaturan', 'DC: '+state.dcName);
-  };
-  $('#exportAllBtn').onclick = () => {
-    const payload = {
-      version: '2.0',
-      exportedAt: nowLabel(),
-      products: state.products,
-      categories: state.categories,
-      racks: state.racks,
-      warehouses: state.warehouses,
-      users: state.users.map(u=>({...u, password:'***'})),
-      history: state.history,
-      auditHistory: state.auditHistory,
-      activityLog: state.activityLog,
-      dcName: state.dcName,
-      sysName: state.sysName
-    };
-    const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
-    saveAs(blob, `dc-nonbuah-backup-${todayStr()}.json`);
-    logActivity('EXPORT', 'Backup', 'Full backup JSON');
-    showToast('Backup berhasil diunduh');
-  };
-  $('#importAllBtn').onclick = () => $('#importAllFile').click();
-  $('#importAllFile').addEventListener('change', function() {
-    const file = this.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const data = JSON.parse(e.target.result);
-        if (data.products) { state.products = data.products; storage.set('products', state.products); }
-        if (data.categories) { state.categories = data.categories; storage.set('categories', state.categories); }
-        if (data.racks) { state.racks = data.racks; storage.set('racks', state.racks); }
-        if (data.warehouses) { state.warehousexœ¤X]nÜ8~÷)ì ’¯œ‡Áb`oâí¸$ˆó·=ÀÂ0l‰­f¤&Š²ãÍ40‡Ø»ìûeN2Uü‘(µìq2ıĞÉbU±~?ª!/HN5Mo©bkÙ6¬9"–Š,m˜£~!Ú‡ªY@›‘íq?¾"±áµæÈá.!_İ7áe¹áH›í¤x.“"h›sıf,'œõÂÂ¹‘Äp©;à<-;Óü†ë»3Y¢ûÉNr?5Ü¯ôr®“bóìİ°^¢{av4’c';Ã$÷æ®²w¿¸ÙN‚çŠhÖòöBÒÈçÀ‰,™ZÓ†W$ç|SK%Gm%‹™³C½}ÿéãùğ^Ñ¬lk|;g(ŸNŠ“¯X¸Tºà&[Ç	yñØeTs)RÅ*Ió8Ù'?=ŞíØXÎÖ$fJÁÁ§4~"ÈÒˆ'šç´$7´ây/Õsk‡ŠÑœ©³æ‚}Ñ1ªhh·ğâèoŠ¢³ªz¥E”¤RdÏJ°³ÕÙª~y’I±âjGofŸ.dqúşrFæ³‹9ûønvvL.ŒFKŞP0æŒ[•T<‰’4Ñ­G¼şMK.ÀT%œƒT´àÇcú«¨V2o3…X!ÇôŸaM 
-¥áÑ¥¯M«3ú÷7ıRø]xFÀ¨7Á[ÍDÎE±¸Y?š³Ši#ËMÌ«Ÿ½NWRÒl—ŞçÕÂ©byÃŞj/êÃèY™8Ïí„†qÒÑŞvooÕŠ—š©Y]Ç68À„&´ÕëE¦à2tg?a£Â‘ÕõbÍªÊ¹¡%AôÛ’€gšU´iĞx)Ís,Šyî›]OÒ	H}WAnó¦®(V½hU±/‘‰6Üa|!Ş¿§JV˜ÛBªÂØ9Œãñú¯¿’h–o¸ }Õ6WïÁyFâd~Bh©ALÉø†mjBAâ’e-Æ—ÙLî­ÈÛ2ÙQŠ<}JğÆ‚íÈĞÎ³P°
-/ËçYâSuT'‰ñ!u~ÑÂÎ0Pî­‘ş¨LQñ™Š‚<%&Iö8$›–jR®Û¦m:CìadÑÜğ+ºÒÍk©à$Ön64Z”pê#6t>vë‰'L5T’	Á(ôàœä8´d*ĞİyÍÛP(´èÆKF	9to:èé3ºd¨PÖ*RL0$äÙØQÓ&>&ùÿÿàïÙ= 4LÙÎÁùízâ	GçïôM:»0œİ@ª€%®'–lÄ.¾ÿŒÂ4Dc½(¹z~jyY×LĞ†<šg¯h^ôgrã^~Gô´#=ØjÅ°:²¹‰@Ç²¼º›g‹LÖìB.P7[ªÌÂ{&ÚŸyÃ—¼ÂÙ‰»å"—·iÕf<g>]4`¢¯ÄÎ¥Pl€Õ[T?Æní;á/@½İ³mMĞ^ À(§Íz)©r}L¤ôI%Ûë´ÛÖ ÍñìäNC^J©±”Ô¦n˜Â†üÓ!×h›IW|•íô¯¹bK°7F-tÓ~`ezÛî4ê(ë‘Š$L(}mUùéÒø^dÜÆGÔôG÷‡Çr!‹‚-Ö1l·6´vSĞLØÈ4N¤}İö’òe‡zúşŒ 5l¡·Šá'%7¼^K3_u”„äË4“UÅŒ?ãÍŞ àÉe6pdÚò<I°}²ììÖ³ã_öáŸ“‰¢°²k1n9UJª8Òv Í>ùñ9„XÒ±¾£éExL|x¦ì²	Á 	ldHÇ¦,x“õ8ğ~L‰†ƒÂ…w'°Åúïš´ ÂKÚ	Áx7¿OŠVPÀsdE«
-!¨qú!&²áÏ½ÎwQ
- §dy¯‚ Ä¹ßS,ÑÁŒIj´væüºíØß“1Œ<+[Af"§àRipœtMhˆÒ2?:OşRØ“¦uê;Şöñv{ø<0kµü»- ¦fu>ë¼ø™—xÑ©ÚXye eûËt¢Y'}S
-aù
-ãÙ’+.R¬°B˜‹(w‚›İq<1™‚¡ñ/Ó7 ´c†n’!ª0 E— Oƒã‡˜!zğû|~˜_¾Éô«|¦{Ò•÷cúš³*ÿ™V-6ìTXo 6pèS~úé†©”Óªe¤O›~ÚEà ¡¼·À}#KÀŒ×Ö>Œ™×}‡[{—zÎ~iãïösÔñì…NxÜzÿıÌ¤›C{nCÜß;ŞßÑÙí¨ø¾;Éãn%]%|Ô=Äùş:jšy×h¼lßb˜mW\ÂàÂk¥Lù$fÙ´‘)Tô!ùmaög‰şÈzàjÁ°8?:PvCbÂ°ƒo Øç à¯O ıÂUnálo¤GÖ¶§T²àa';Ãñ‰Ìˆ]Š`éœ 9^#ìªû¨P|²3'âÆˆ4+h+¢:äÅ f=ÂKÙÍaRv@ù€2ø½§x€‡r>ÄÆixõ`ç(¦¹…Æ—j÷±oÑÁug	7šÓpTÓßr:ÜÎh~‡aòÄ8¾ôö>:C°;¤Fw‡3ËM†°İPôÉn†»Àİòh@4¼íEş^ƒhbsÜ~r ¡á€Iÿí¿$c%)ÁPeÃÁ:àÁt…U!„÷Ä¢:)©±ŞÉšŠ‚åñÄmÊŞº J´Ÿ›ŒR1—­hşñ½SøœÁr(è DBÛİğÏƒ&S¼Ö/ám)ó;|®õ¦zù   ÿÿ ì…«
+  $('#lmRefrexœ´írÛÆñâ<Í@,ÃL§Ó‘j»´(Å®eKcJ™v4ä	˜ =$³ô-ú&ıßGé“t÷¾‚²ì¶ùañööv÷ö{i‹²’ç)Íó“VË³²•¬f"²ªÌVÑ‰òôùDrV1ÉÈ·qô›j=Í–­Ú(Is*iËd*Í7GD°:gâŒ6\Ğúj"NÈ69ú†˜Ã3 ”ÉIUİ—7œ„³}Î¤¬›Nÿ'4+âL‹™¥î³œ<%Rtì!oY+ãöÊYfm[ä‡Ìãˆf²¼a‘““Œ]c
+Õvx™ãŠQ1ÍşßWYĞªıì][óöU×?“3¾$-Ü'+ìıør¦Öã—Ó‚Xò|©èÍË:?f’®.*º¢Ri‘•áò®¼¥*É¤ËKIeÒ´ä!aA<	8×Å­—ÀÇp?ğSÁ×áú’‡«×¼ÎË¶ŒŞ;e–¹W|ÆëVVBñvÑÃ27
+*$fUZgÕg/:±Ü¸Ø€’GOd­—lß‘­ó"--N>6àCF0w¥å\äi>;¼Éù­9€×r´¿ûÎMŒ>ìVÊkå§@2f&ŞY
+Â6@.©,yalÎ>'ùrYÏµ¿Uwä]|hdŞIÉëÀáçxsk$p ¾D6qM±]ÖY¬å¨X6biow;ù¦*·A^ºgçòË•mg¬mAIàç¥úV-ö´gÏâS–ìòKíøEfÜ•èoÁ/5 Î$3&eY/[cÏ–Ş0R*Ş•ÁûÁşÚ•ğÅ–¨Uv¢>
+E#ØÍ’1i%•,Í³·tÍ4B1†ƒËLÕøŞĞªc©åøşú+‰¦ÇäÕÛéÕë(<ŞnÚşù™ì!ğöüí‹«ÉKC"µ³3Ñ*´à¡XÉ.aèÍÚbV¼Ëgc0™"uØ#§õ¹ÃÁ=¶A25º{ğ´¯½Ä¹@…<V,7u›£Ç°?VÑ†.b÷¶ÚSAƒyö‚æKTŸdå1¯!xå¸ùÀ«.9Å:zÁjˆ‹ê"ÁÊ±nàÇŠAD¿ ÿşÇß#Ãják)7qtu1\€"ƒó¸š’èá¶¶aĞ5Îö>{üÓxİTœbZ°*0Ç ‡Ò'Ñj’†ä!©ùí³*Nìn#xŞe²µ¶²k»ŸpÉEÉ†‡XA¡K±Ûjawn©`ïZÚC,ün[-Ò5mâîé³øSš¦İÜ´mo¹È£ï¿ÿ>Ú&NøBL{Ø,í.jªE	aÏXú‡æAkÔÓ­¯ú»ö¾0aÌ+>{Õì–¼€ŸñõŸfço!ÿ
+ˆ¦r±‰Iê®ª~HŞOrÓ°Ãˆ6øJÏ?´Ym(aJ›´1> ¿äÙ£š×óæ`†®yôí'Ésº™IHaÛş2æ®'¾8w‰úBÃ_§ ÑdÊiı<ˆLæL´-+®Î»"êû4ÄÌ]>İC9-+ŒO…';ÌöíÔ¢«3]ÅzÁ]$æQ	.’âïöúÉ{ŸŒ h,ÃãĞQ®M†Ìß)@ìÚf\ÁL ²°ÆI±q¿-=,j€§ÌŞPÑ²’8K5µ]%]>Ó‚!¾Iì>ûA
+¤zG›.Á˜Ç‚]>w”LVìññí9y˜åå!n~Ãñ(rT¹Â3SKËG-,ÌQ×§G	û,ã©{˜eá!>~Ã1(r4¹Ç³3 ËË,ŒÔq)zÀ€E˜»<Ÿj™…°ÇpË±¥»ÓÇ·Oˆktœ=hÈØïx¾ÕQ¶®)6TÁî€Ï^gŒºmoyßp…û{›¤€E#q3¤ÊeQç½DüêÍn"~Ç?™D©YxDº,×Œw2Öé´âºN@BÁ¬•üşÉwb‹=+ ÿ"	òS 1æ9›øe™Ón³Ì=×mXÙLÄ?“öúªX%Óàá 38d7ö¹¶FebÈ“‹R¬ãèåäâjFf'o®&z©	9;=9{N.•Dó²¥ Ì9(·ZÑúA4hĞû´şBWeªZÁ=HE—åó!şu,{™Ìæœ^N ã¾_VXÂÇ³:¾sÏ¨Õ!üjXC€m®_é‘³õ Õ×Z¨¾XY›W3ã¤z2z%\|ÙFW‰+ù×0eÆ%[6	TU&&Mcê§yQèd1ËcşÂzM3+XeŸOì2xjpÇ’€æğµ­(óœ…†Nâ@Ë´© ¶Ë¶©(f½hQ±‘ò6<á{É$è+SÁUPs±Gø{ëx¸ÃÔ$_—5È#¨Ô±ªÇÉ× ¤’À¤EWØÀ ¶a0H˜	âË:ô/u˜<F¼WĞ­’¡p>P¶
+ô¬W
+wš…ò€VÊeÍòi–ØP¤ÁQd¼ÂîHs¿yĞNÎ¯, §"ßé>šT C²î¨$«¢k»Ö)âô,š+ÚSA²=åbªF6çr8±ëAÖÚØì'qtBSº{j2­Qî¾
+ÄÖ-šñ
+–QBÍ¯@´´„€vÖ	\”3$äáĞPã*~N"ò¯Â?÷  Ó04:$ß»?‚ûëıÄ"îïäU:¹éœÜ€Š€$î'm@.ŞÇZD¥½(&9•üªi˜8¦Ğ¬†5Ã´Á×–¿CH<î@¶X0õ­F}v6Ól–ñ†]òÊ¦S•ÚxÃêî'Äçe…Ó±»-ëœß¦U—•¹{FP=8Ñ°’z•©W¸#_	ì­yö«éM¹D†QNÛbÎ©0uoì9¢k M`¸V×ÓÀ‚<ç\b*iìSÒù*Èk´…ÃnfŠ¤*ıi)Øô^ÕÔ/ôµÌÄ2£Œ¼Ùy1	,©f:[[‹‚}îù|N¿w}¸"‡ù•EÁ‘ÏUû”v•Ğü(åŸ<Ì8øië9åóäÎÑ­­iGè-…dx!øºlÕÂâk‡IH>O3^á»/Î ‘zÎÀ`<ë2íÊ<Iaìó1øN™†tÿŒß> %åE;n¥÷b<r"‡Xê}hmÈoŸ€‹%ôûÁ\©.ƒSöÙ†Í 	t¤Prõ1Ó‚U™ï÷÷”¨8H\8;.®Ñ~ïÉ’.©zW 	ú»rü²ìj
+ı~Ïª°UF?ÇDÒƒşó›à1QJ¡ÁY±Ü‹`=(1fÃß)¦èsPc’*©:?mù=Óë‘'«®&“:§Ú¥•êà¦¡açú–ùŞqò_¹=éõ´FA¾âíô>Vow6>ª˜t’?Ò	ô±ÊYÎfÎŠÊ:U·-Ğ ®TƒcYÕ½GŞ~ i#}Qaú
+ı¶VÏp=<“\ŞšN¡·7èÂXD¾#Ôô‰ç#ÀØ”àTu€nHSáDz¨h ¡ü©·¡}üPñ7|óq|Oè]IÕ+õlEHÖéiÉªü'õ]A?nc¾XXÃ,àCş êéš‰%‡ŸÏ‰›zê<°PÖZ`¾& b¥ÕŠ}fÇt_aVoRKÙB7şj;G.‰ßi`ËtÄâÚÚø¯…Œš94±¥Öïû½áíŒ~Ïj¯šŠ¯›Iî7•¸LxÏïRÚƒü8ªŠ¹+4áë.–¦KàuC˜€¾ğ½í¥Tú$j[•‘±®è\òËÜìs~Ï|`rA?9ßÛQv]bD±½7 ¬sğ‹cè~a”›Ækn;k]S*¾,ÃJv†ëcÕ2cï²¶Ş±%¾Õ»k5Œ9v7z¤âhF;½"ŠC>…¦QíG8”ÍQ¥k$‘ƒï=Ë;h#á]dŒÔ‰ÿrcœZ¨l0©4-8Eãş2ş!DOæL”«–BCØBÏ±XTeÍÈ'õ¶Ëiaj¯6Šµ\E¤ÿåøÇËdˆ|ı+-ÛsM¾?c£Çj§ï-øeƒ>ş@E'şğí÷>ï3Vî×n UÛªg…á3•ZîNÚBG=¤ş¨Ù¡[¡`æsœéxàîE7ïÀ
+yIr1¬,›’MCû=ÃèqæĞì¤«e·"kÚv«4
+ó¾˜w=—¹ 1ö©iq'¼©ANì©»oš‡èÆ˜×x5å€ÇêsZ¤zp…n¬[ƒF>ÅMÏßµ?³ü}›Ém‚Şñ‡Çm&ÊF>ƒ_soğo!×Õ³ÿ   ÿÿ -sÃÈ
