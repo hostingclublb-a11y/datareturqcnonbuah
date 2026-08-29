@@ -7259,74 +7259,88 @@ function productAllBarcodes(p) {
   return out;
 }
 
-function searchProducts(term, limit=20) {
+function searchProducts(term, limit = 40) {
   if (!term || term.length < 1) return [];
   const t = term.trim().toLowerCase();
   const tRaw = term.trim();
+  const tokens = t.split(/\s+/).filter(w => w.length > 0);
 
-  // Helper: prefer product with real kode (LB…) over AUTO-
   const prefer = (a, b) => {
     const aReal = a.kode && !String(a.kode).startsWith('AUTO-');
     const bReal = b.kode && !String(b.kode).startsWith('AUTO-');
     if (aReal && !bReal) return a;
     if (!aReal && bReal) return b;
-    // prefer one that has more barcodes
     const aN = productAllBarcodes(a).length;
     const bN = productAllBarcodes(b).length;
     if (aN !== bN) return aN > bN ? a : b;
-    if ((a.barcode||'') && !(b.barcode||'')) return a;
-    if (!(a.barcode||'') && (b.barcode||'')) return b;
+    if ((a.barcode || '') && !(b.barcode || '')) return a;
+    if (!(a.barcode || '') && (b.barcode || '')) return b;
     return a;
   };
 
-  // 1) Exact barcode match (primary ATAU salah satu dari barcodes[]) → 1 produk
-  //    Memudahkan scan: barcode ke-2/ke-3 tetap ketemu item yang sama
+  // 1) Exact barcode → 1 item (scan)
   for (let i = 0; i < state.products.length; i++) {
     const p = state.products[i];
-    const allBc = productAllBarcodes(p);
-    for (const b of allBc) {
+    for (const b of productAllBarcodes(p)) {
       if (b === tRaw || b.toLowerCase() === t) return [p];
     }
   }
 
-  // 2) Exact kode match → 1 product
+  // 2) Exact kode → 1 item
   for (let i = 0; i < state.products.length; i++) {
     const p = state.products[i];
     if (p.kode && String(p.kode).toLowerCase() === t) return [p];
   }
 
-  // 3) Partial search — dedupe by kode AND by nama (normalized)
-  //    so duplicate entries (same nama, different barcode/kode) only show once
+  // 3) Pencarian luas + ranking — tampil banyak item terkait (NABATI → semua varian)
   const seenKode = new Set();
-  const seenNama = new Map(); // nama → product
-  const results = [];
+  const seenNama = new Map();
+  const scored = [];
+
   for (let i = 0; i < state.products.length; i++) {
     const p = state.products[i];
     const kodeKey = (p.kode || '').toLowerCase();
     const namaKey = (p.nama || '').trim().toLowerCase().replace(/\s+/g, ' ');
     if (kodeKey && seenKode.has(kodeKey)) continue;
-    const hay = ((p.nama||'') + ' ' + (p.kode||'') + ' ' + productAllBarcodes(p).join(' ') + ' ' + (p.vendor||'')).toLowerCase();
-    if (!hay.includes(t)) continue;
+
+    const hay = (namaKey + ' ' + kodeKey + ' ' + productAllBarcodes(p).join(' ').toLowerCase() + ' ' + (p.vendor || '').toLowerCase());
+
+    let score = 0;
+    if (namaKey === t) score = 10000;
+    else if (namaKey.startsWith(t)) score = 5000;
+    else if (hay.includes(t)) score = 2000;
+
+    let tokHit = 0;
+    for (const tok of tokens) {
+      if (hay.includes(tok)) tokHit++;
+    }
+    if (tokens.length && tokHit === 0) continue;
+    if (tokens.length) {
+      score += tokHit * 200;
+      if (tokHit === tokens.length) score += 800;
+      if (namaKey.startsWith(tokens[0])) score += 400;
+    }
+    if (score <= 0) continue;
 
     if (kodeKey) seenKode.add(kodeKey);
-
-    // Dedupe by exact same nama: keep the better entry only
     if (namaKey && seenNama.has(namaKey)) {
       const existing = seenNama.get(namaKey);
-      const better = prefer(existing, p);
-      if (better !== existing) {
-        // replace in results
-        const idx = results.indexOf(existing);
-        if (idx >= 0) results[idx] = better;
-        seenNama.set(namaKey, better);
+      const better = prefer(existing.p, p);
+      if (better !== existing.p) {
+        existing.p = better;
+        existing.score = Math.max(existing.score, score);
+      } else {
+        existing.score = Math.max(existing.score, score);
       }
       continue;
     }
-    if (namaKey) seenNama.set(namaKey, p);
-    results.push(p);
-    if (results.length >= limit) break;
+    const row = { p, score };
+    if (namaKey) seenNama.set(namaKey, row);
+    scored.push(row);
   }
-  return results;
+
+  scored.sort((a, b) => b.score - a.score || String(a.p.nama || '').localeCompare(String(b.p.nama || ''), 'id'));
+  return scored.slice(0, limit).map(r => r.p);
 }
 
 function attachSearch(inputId, suggestId, onSelect) {
@@ -7375,19 +7389,37 @@ function attachSearch(inputId, suggestId, onSelect) {
     }
   };
 
+  let activeIdx = -1;
+
+  const getItems = () => Array.from(suggest.querySelectorAll('.suggest-item[data-kode]'));
+
+  const setActive = (idx) => {
+    const items = getItems();
+    if (!items.length) { activeIdx = -1; return; }
+    activeIdx = ((idx % items.length) + items.length) % items.length;
+    items.forEach((el, i) => {
+      if (i === activeIdx) {
+        el.style.background = '#ccfbf1';
+        el.scrollIntoView({ block: 'nearest' });
+      } else {
+        el.style.background = '';
+      }
+    });
+  };
+
   const doSearch = () => {
     const term = input.value.trim();
     lastTerm = term;
+    activeIdx = -1;
     if (term.length < 1) { hideSuggest(); return; }
-    const results = searchProducts(term);
+    const results = searchProducts(term, 40);
 
-    // Scan barcode/kode exact → kosongkan untuk scan berikutnya
+    // Scan barcode/kode exact saja yang auto-pilih 1 item
     if (results.length === 1) {
       const p = results[0];
       const tRaw = term;
       const t = term.toLowerCase();
-      const exactBc = (p.barcode && String(p.barcode).trim() === tRaw) ||
-        (Array.isArray(p.barcodes) && p.barcodes.some(b => String(b).trim() === tRaw));
+      const exactBc = productAllBarcodes(p).some(b => String(b).trim() === tRaw || String(b).toLowerCase() === t);
       const exactKode = p.kode && String(p.kode).toLowerCase() === t;
       if (exactBc || exactKode) {
         onSelect(p);
@@ -7400,13 +7432,15 @@ function attachSearch(inputId, suggestId, onSelect) {
       suggest.innerHTML = '<div class="suggest-item"><div class="meta">Tidak ditemukan untuk \"' + esc(term) + '\"</div></div>';
     } else {
       suggest.innerHTML = results.map(p => `
-        <div class="suggest-item" data-kode="${esc(p.kode)}">
+        <div class="suggest-item" data-kode="${esc(p.kode)}" style="cursor:pointer;">
           <div class="nm">${highlightTerm(p.nama, term)}</div>
           <div class="meta">${highlightTerm(p.kode || '', term)} · ${esc(p.barcode || '-')} · ${esc(p.vendor || '-')}</div>
         </div>
       `).join('');
     }
     suggest.style.display = 'block';
+    suggest.style.maxHeight = '280px';
+    suggest.style.overflowY = 'auto';
   };
 
   input.addEventListener('input', () => {
@@ -7415,18 +7449,39 @@ function attachSearch(inputId, suggestId, onSelect) {
     debounceTimer = setTimeout(doSearch, 80);
   });
   input.addEventListener('focus', () => {
-    // Jika masih ada teks, tampilkan ulang hasil (kata tidak hilang)
     if (input.value.trim()) doSearch();
     else hideSuggest();
   });
   input.addEventListener('keydown', e => {
+    const open = suggest.style.display !== 'none' && getItems().length > 0;
+
     if (e.key === 'Escape') { hideSuggest(); return; }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!open) { doSearch(); setTimeout(() => setActive(0), 30); }
+      else setActive(activeIdx + 1);
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (open) setActive(activeIdx < 0 ? 0 : activeIdx - 1);
+      return;
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
       clearTimeout(debounceTimer);
+      const items = getItems();
+      if (open && activeIdx >= 0 && items[activeIdx]) {
+        const kode = items[activeIdx].dataset.kode;
+        const p = state.products.find(x => x.kode === kode);
+        if (p) { onSelect(p); afterSelect(p, { clearForScan: false }); }
+        return;
+      }
       const term = input.value.trim();
       if (!term) { hideSuggest(); return; }
-      const results = searchProducts(term, 5);
+      const results = searchProducts(term, 40);
       if (results.length === 1) {
         const p = results[0];
         onSelect(p);
@@ -7436,6 +7491,7 @@ function attachSearch(inputId, suggestId, onSelect) {
         afterSelect(p, { clearForScan: !!(exactBc || exactKode) });
       } else if (results.length > 1) {
         doSearch();
+        setTimeout(() => setActive(0), 30);
       } else {
         hideSuggest();
         showToast('Produk tidak ditemukan');
