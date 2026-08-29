@@ -289,95 +289,10 @@ table.data-table .actions { display: flex; gap: 4px; }
 .toolbar .search-box {
   flex: 1; min-width: 200px; position: relative;
 }
-.toolbar .search-box input { padding-left: 36px; padding-right: 32px; }
+.toolbar .search-box input { padding-left: 36px; }
 .toolbar .search-box::before {
   content: 'ğŸ”'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   font-size: 14px; pointer-events: none;
-}
-
-/* Search Clear & Dropdown Controls Wrapper */
-.search-controls-wrap {
-  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-  display: flex; align-items: center; gap: 4px; z-index: 10;
-}
-.search-clear-btn {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: #e2e8f0; color: #64748b; border: none;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer;
-  transition: background .15s, color .15s, transform .15s;
-  padding: 0; user-select: none;
-}
-.search-clear-btn:hover {
-  background: #ef4444; color: #fff; transform: scale(1.08);
-}
-.search-clear-btn:active {
-  transform: scale(0.95);
-}
-.search-dropdown-btn {
-  width: 24px; height: 24px; border-radius: 6px;
-  background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 9.5px; font-weight: 700; cursor: pointer;
-  transition: background .15s, color .15s, border-color .15s, transform .15s;
-  padding: 0; user-select: none;
-}
-.search-dropdown-btn:hover {
-  background: #e2e8f0; color: #0f172a; border-color: #94a3b8;
-}
-.search-dropdown-btn:active {
-  transform: scale(0.95);
-}
-
-.search-history-header,
-.suggest-section-title {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;
-  color: var(--text-muted); background: #f8fafc; border-bottom: 1px solid var(--border);
-  letter-spacing: 0.5px;
-}
-.search-history-clear-btn {
-  font-size: 11px; font-weight: 600; color: #ef4444; background: none; border: none;
-  cursor: pointer; padding: 2px 6px; border-radius: 4px;
-}
-.search-history-clear-btn:hover {
-  background: #fee2e2;
-}
-.suggest-item.history-item {
-  background: #fff;
-}
-.suggest-item.history-item:hover {
-  background: #f0fdfa;
-}
-.suggest-item .history-tag {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10.5px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
-  background: #e0f2fe; color: #0369a1; margin-right: 6px;
-}
-.suggest-item .del-single-history {
-  float: right; color: #94a3b8; font-size: 13px; padding: 2px 6px;
-  border-radius: 4px; border: none; background: none; cursor: pointer;
-}
-.suggest-item .del-single-history:hover {
-  color: #ef4444; background: #fee2e2;
-}
-
-.suggest-item.selected {
-  background: #0284c7 !important; color: #ffffff !important;
-}
-.suggest-item.selected .nm {
-  color: #ffffff !important; font-weight: 700;
-}
-.suggest-item.selected .meta {
-  color: #e0f2fe !important;
-}
-.suggest-item .rel-tag {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  padding: 1px 5px; border-radius: 4px; margin-left: 6px;
-  background: #dbeafe; color: #1d4ed8; vertical-align: middle;
-}
-.suggest-item.selected .rel-tag {
-  background: #ffffff; color: #0284c7;
 }
 
 /* Chips / Tags */
@@ -1310,7 +1225,6 @@ table.data-table .actions { display: flex; gap: 4px; }
             <option value="Bad">ğŸ”´ Jelek (Bad)</option>
           </select>
           <button class="btn btn-outline btn-sm" id="histRestoreBtn" title="Pulihkan dari cache lokal & unggah ke server">â™» Pulihkan Riwayat</button>
-          <button class="btn btn-outline btn-sm" id="histDeleteSelBtn" title="Hapus nota yang dicentang" style="color:#b91c1c;border-color:#fecaca;display:none;">ğŸ—‘ Hapus Terpilih</button>
           <div class="export-menu">
             <button class="btn btn-outline btn-sm" id="histExportBtn">ğŸ“¤ Export â–¾</button>
             <div class="export-dropdown" id="histExportDropdown">
@@ -1440,6 +1354,7 @@ table.data-table .actions { display: flex; gap: 4px; }
             <option value="Good">ğŸŸ¢ Bagus (Good)</option>
             <option value="Bad">ğŸ”´ Jelek (Bad)</option>
           </select>
+          <button class="btn btn-outline btn-sm" id="auditHistRekapBtn" title="Gabungkan item sama antar sesi + jumlahkan qty">Î£ Rekap Gabungan</button>
           <button class="btn btn-outline btn-sm" id="auditHistDeleteSelBtn" title="Hapus sesi yang dicentang" style="color:#b91c1c;border-color:#fecaca;display:none;">ğŸ—‘ Hapus Terpilih</button>
           <div class="export-menu">
             <button class="btn btn-outline btn-sm" id="auditHistExportBtn">ğŸ“¤ Export â–¾</button>
@@ -2309,14 +2224,28 @@ function cloudDeleteWarehouse(id) {
   return db.collection('warehouses').doc(String(id)).delete().catch(e => console.warn(e));
 }
 
-/** Audit Retur history */
+/** Audit Retur history â€” simpan penuh termasuk judul */
 function cloudSaveAuditSession(session) {
-  if (!requireServer(true) || !session || !session.id) return Promise.resolve();
+  if (!requireServer(true) || !session || !session.id) {
+    return Promise.reject(new Error('Server tidak terhubung / id sesi kosong'));
+  }
   const clean = JSON.parse(JSON.stringify(session));
+  clean.id = String(session.id);
+  clean.nomor = session.nomor || session.id;
+  clean.judul = (session.judul != null && String(session.judul).trim())
+    ? String(session.judul).trim()
+    : 'NOTA AUDIT RETUR';
   clean.updatedAt = tsNow();
   clean.updatedBy = actorName();
+  // set tanpa merge field-hilang: merge true tetap OK asal judul selalu diisi
   return db.collection('auditHistory').doc(String(session.id)).set(clean, { merge: true })
-    .catch(err => console.warn('[server] audit', err));
+    .then(() => {
+      console.log('[server] audit saved', clean.id, 'judul=', clean.judul);
+    })
+    .catch(err => {
+      console.warn('[server] audit save fail', err);
+      throw err;
+    });
 }
 
 /** Kategori master */
@@ -2640,10 +2569,16 @@ function startCloudSync() {
       });
       try { cacheLocal('pendingDeletes', pending); } catch (_) {}
 
-      // Ambil antrian offline asli (pendingSync) yang benar-benar belum sempat dikirim ke cloud
-      const pendingSync = storage.get('pendingSync', {}) || {};
+      // Jika cloud kosong tapi lokal masih ada â†’ PERTAHANKAN lokal (jangan wipe)
+      if (!list.length && (state.history || []).length) {
+        console.warn('[server] nota cloud kosong â€” pertahankan riwayat lokal:', state.history.length);
+        return;
+      }
+
+      // Merge by nomor: cloud + lokal â€” JANGAN kurangi item nota yang sudah ada
       const map = new Map();
       const preferNota = (a, b) => {
+        // pilih yang lebih lengkap / lebih baru agar data tersimpan tidak hilang
         const aN = Array.isArray(a.items) ? a.items.length : 0;
         const bN = Array.isArray(b.items) ? b.items.length : 0;
         if (bN !== aN) return bN > aN ? b : a;
@@ -2651,24 +2586,16 @@ function startCloudSync() {
         const bT = String(b.updatedAt || b.createdAt || b.tanggalLabel || b.tanggal || '');
         return bT >= aT ? b : a;
       };
-
-      // 1) Masukkan dokumen aktif dari server cloud (yang tidak sedang ditandai pending delete)
-      list.forEach(h => {
-        const k = String(h.nomor || '').trim();
-        if (!k || pending[k]) return;
-        map.set(k, h);
-      });
-
-      // 2) Hanya pertahankan item lokal jika benar-benar sedang menunggu upload offline (pendingSync)
       (state.history || []).forEach(h => {
         const k = String(h.nomor || '').trim();
-        if (!k || pending[k]) return;
-        if (pendingSync[k]) {
-          const prev = map.get(k);
-          map.set(k, prev ? preferNota(prev, h) : h);
-        }
+        if (k && !pending[k]) map.set(k, h);
       });
-
+      list.forEach(h => {
+        const k = String(h.nomor || '').trim();
+        if (!k) return;
+        const prev = map.get(k);
+        map.set(k, prev ? preferNota(prev, h) : h);
+      });
       let merged = Array.from(map.values());
       // Scope DC ketat: anggota hanya DC penempatannya
       if (!canViewAllDc()) merged = merged.filter(h => canAccessDc(h.dcName));
@@ -2759,24 +2686,28 @@ function startCloudSync() {
       : { query: db.collection('auditHistory').orderBy('tanggal', 'desc').limit(200), scoped: false, dc: '' };
     const unsub = built.query.onSnapshot(snap => apply(() => {
       const list = [];
-      const pendingA = state.pendingAuditDeletes || {};
-      const now = Date.now();
-      Object.keys(pendingA).forEach(k => {
-        const t = pendingA[k];
-        if (typeof t === 'number' && now - t > 10 * 60 * 1000) delete pendingA[k];
+      const localById = {};
+      (state.auditHistory || []).forEach(h => {
+        if (h && h.id) localById[String(h.id)] = h;
       });
       snap.forEach(doc => {
         const d = doc.data();
-        if (d && d.id) list.push(d);
+        if (!d) return;
+        // Pastikan id selalu ada (fallback ke doc id)
+        if (!d.id) d.id = doc.id;
+        if (!d.nomor) d.nomor = d.id;
+        // Jika cloud belum punya judul tapi lokal sudah diedit, pertahankan judul lokal
+        const loc = localById[String(d.id)];
+        if (loc && loc.judul && (!d.judul || d.judul === 'NOTA AUDIT RETUR') && loc.judul !== 'NOTA AUDIT RETUR') {
+          d.judul = loc.judul;
+        }
+        // Jika lokal lebih baru (updatedAt), prefer field judul dari lokal
+        if (loc && loc.updatedAt && d.updatedAt && String(loc.updatedAt) > String(d.updatedAt) && loc.judul) {
+          d.judul = loc.judul;
+        }
+        list.push(d);
       });
-      Object.keys(pendingA).forEach(k => {
-        const stillThere = snap.docs.some(doc => {
-          const d = doc.data() || {};
-          return String(d.id || doc.id || '').trim() === k || String(d.nomor || '').trim() === k;
-        });
-        if (!stillThere) delete pendingA[k];
-      });
-      try { cacheLocal('pendingAuditDeletes', pendingA); } catch (_) {}
+      const pendingA = state.pendingAuditDeletes || {};
       let filtered = list.filter(h => !pendingA[String(h.id || h.nomor || '')]);
       state.auditHistory = canViewAllDc() ? filtered : filtered.filter(h => canAccessDc(h.dcName));
       cacheLocal('auditHistory', state.auditHistory);
@@ -3960,14 +3891,18 @@ function buildAuditExportRows(list) {
 }
 
 /** Rekap digabung: sum qty per kode+satuan+kondisi antar sesi */
-function buildAuditRekapRows(list) {
+/** Bangun rekap item lintas sesi: sum qty, tetap catat asal sesi + qty per sesi */
+function buildAuditRekapData(list) {
   const map = new Map();
   list.forEach(h => {
+    const nomor = h.nomor || h.id || '-';
+    const tgl = h.tanggalLabel || h.tanggal || '';
     (h.items || []).forEach(it => {
       const kode = String(it.kode || '').trim();
       const satuan = normalizeUom(it.satuan || 'PCS');
       const kond = (it.kondisi || 'Bad') === 'Good' ? 'Bagus' : 'Jelek';
-      const key = [kode, satuan, kond].join('||');
+      // Grup utama: kode + satuan + kondisi (nama ikut dari item pertama)
+      const key = [kode || normNamaKey(it.nama), satuan, kond].join('||');
       if (!map.has(key)) {
         map.set(key, {
           kode,
@@ -3979,26 +3914,185 @@ function buildAuditRekapRows(list) {
           vendor: it.vendor || '',
           pic: (typeof resolveItemPic === 'function' ? resolveItemPic(it) : null) || it.pic || '',
           alasan: it.alasan || '',
-          sesi: new Set()
+          sesi: [], // [{nomor, tgl, qty}]
+          sesiSet: new Set()
         });
       }
       const row = map.get(key);
-      row.qty += parseFloat(it.qty) || 0;
-      row.sesi.add(h.nomor || h.id || '');
+      const q = parseFloat(it.qty) || 0;
+      row.qty += q;
       if (!row.nama && it.nama) row.nama = it.nama;
       if (!row.barcode && it.barcode) row.barcode = it.barcode;
       if (!row.vendor && it.vendor) row.vendor = it.vendor;
+      if (!row.pic && it.pic) row.pic = it.pic;
+      // Akumulasi qty per sesi (jika item sama muncul 2x di 1 sesi, sum juga)
+      const existingSesi = row.sesi.find(s => s.nomor === nomor);
+      if (existingSesi) existingSesi.qty += q;
+      else {
+        row.sesi.push({ nomor, tgl, qty: q });
+        row.sesiSet.add(nomor);
+      }
     });
   });
-  const headers = ['No', 'Kode', 'Nama', 'Barcode', 'Qty Total', 'Satuan', 'Kondisi', 'Vendor', 'PIC', 'Alasan (contoh)', 'Jumlah Sesi', 'Nomor Sesi'];
-  const rows = Array.from(map.values())
-    .sort((a, b) => String(a.nama).localeCompare(String(b.nama), 'id'))
-    .map((r, i) => [
-      i + 1, r.kode, r.nama, r.barcode, r.qty, r.satuan, r.kondisi,
-      r.vendor, r.pic, r.alasan, r.sesi.size, Array.from(r.sesi).join(', ')
-    ]);
-  return { headers, rows };
+  const items = Array.from(map.values()).sort((a, b) => String(a.nama).localeCompare(String(b.nama), 'id'));
+  return items;
 }
+
+function normNamaKey(n) {
+  return String(n || '').trim().toUpperCase().replace(/\s+/g, ' ');
+}
+
+function buildAuditRekapRows(list) {
+  const items = buildAuditRekapData(list);
+  const headers = [
+    'No', 'Kode', 'Nama', 'Barcode', 'Qty Total', 'Satuan', 'Kondisi',
+    'Vendor', 'PIC', 'Alasan', 'Jumlah Sesi', 'Nomor Sesi', 'Rincian per Sesi'
+  ];
+  const rows = items.map((r, i) => [
+    i + 1,
+    r.kode,
+    r.nama,
+    r.barcode,
+    r.qty,
+    r.satuan,
+    r.kondisi,
+    r.vendor,
+    r.pic,
+    r.alasan,
+    r.sesiSet.size,
+    Array.from(r.sesiSet).join(', '),
+    r.sesi.map(s => `${s.nomor} (${s.tgl}): ${s.qty}`).join(' | ')
+  ]);
+  return { headers, rows, items };
+}
+
+/** Modal rekap gabungan: item sama dijumlah, tetap tampil asal sesi */
+function openAuditRekapModal(list) {
+  const root = $('#modalRoot');
+  if (!root) return;
+  list = list || getFilteredAuditHistoryList();
+  if (!list.length) return showToast('Pilih minimal 1 sesi (atau pastikan filter tidak kosong)');
+
+  const items = buildAuditRekapData(list);
+  const good = items.filter(x => x.kondisi === 'Bagus');
+  const bad = items.filter(x => x.kondisi === 'Jelek');
+  const gQty = good.reduce((s, x) => s + x.qty, 0);
+  const bQty = bad.reduce((s, x) => s + x.qty, 0);
+  const termRef = { q: '' };
+
+  function rowHtml(r, i) {
+    const badge = r.kondisi === 'Bagus' ? 'badge-success' : 'badge-danger';
+    const sesiLines = r.sesi.map(s =>
+      `<span class="badge badge-muted" style="margin:2px;">${esc(s.nomor)} Â· ${esc(s.tgl || '')} Â· qty ${s.qty}</span>`
+    ).join(' ');
+    return `
+      <div class="list-item" data-rekap-nama="${esc((r.nama || '').toLowerCase())}" data-rekap-kode="${esc((r.kode || '').toLowerCase())}">
+        <div class="idx">${i + 1}</div>
+        <div class="info">
+          <div class="nm">${esc(r.nama)} <span class="badge ${badge}">${r.kondisi === 'Bagus' ? 'ğŸŸ¢ Bagus' : 'ğŸ”´ Jelek'}</span></div>
+          <div class="meta">${esc(r.kode || '-')} Â· <b>${r.qty} ${esc(r.satuan)}</b>${r.vendor ? ' Â· ' + esc(r.vendor) : ''}</div>
+          <div class="meta" style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+            <span style="font-size:11px;color:var(--text-muted);">Dari ${r.sesiSet.size} sesi:</span>
+            ${sesiLines}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function filtered() {
+    const q = (termRef.q || '').trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(r =>
+      (r.nama || '').toLowerCase().includes(q) ||
+      (r.kode || '').toLowerCase().includes(q) ||
+      (r.barcode || '').toLowerCase().includes(q) ||
+      Array.from(r.sesiSet).some(n => String(n).toLowerCase().includes(q))
+    );
+  }
+
+  function renderList() {
+    const f = filtered();
+    const el = $('#auditRekapList');
+    if (!el) return;
+    el.innerHTML = f.length
+      ? f.map((r, i) => rowHtml(r, i)).join('')
+      : '<div class="empty-state"><p>Tidak ada item cocok filter</p></div>';
+    if ($('#auditRekapCount')) $('#auditRekapCount').textContent = f.length + ' / ' + items.length + ' produk unik';
+  }
+
+  root.innerHTML = `
+    <div class="modal-backdrop" id="auditRekapBackdrop">
+      <div class="modal-sheet" style="max-height:94vh;">
+        <div class="handle"></div>
+        <div class="modal-header">
+          <h3>Î£ Rekap Gabungan Audit</h3>
+          <button type="button" class="btn btn-icon btn-outline" id="auditRekapClose">âœ•</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 10px;">
+            Item yang sama (kode + satuan + kondisi) dari <b>${list.length} sesi</b> dijumlahkan otomatis.
+            Rincian sesi asal tetap ditampilkan.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <span class="badge badge-danger">ğŸ”´ Jelek: ${bad.length} jenis Â· qty ${bQty}</span>
+            <span class="badge badge-success">ğŸŸ¢ Bagus: ${good.length} jenis Â· qty ${gQty}</span>
+            <span class="badge badge-muted">Total qty ${gQty + bQty}</span>
+          </div>
+          <div class="form-group">
+            <input type="text" id="auditRekapSearch" placeholder="Cari nama / kode / nomor sesiâ€¦ (contoh: potabee)" autocomplete="off">
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;" id="auditRekapCount">${items.length} produk unik</div>
+          <div id="auditRekapList">${items.map((r, i) => rowHtml(r, i)).join('')}</div>
+        </div>
+        <div class="modal-footer" style="flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" id="auditRekapCopy">ğŸ“‹ Salin WA</button>
+          <button type="button" class="btn btn-outline" id="auditRekapExcel">ğŸ“Š Excel Rekap</button>
+          <button type="button" class="btn btn-outline" id="auditRekapClose2">Tutup</button>
+        </div>
+      </div>
+    </div>`;
+
+  const close = () => { root.innerHTML = ''; };
+  $('#auditRekapClose').onclick = close;
+  $('#auditRekapClose2').onclick = close;
+  $('#auditRekapBackdrop')?.addEventListener('click', e => { if (e.target.id === 'auditRekapBackdrop') close(); });
+
+  let st = null;
+  $('#auditRekapSearch')?.addEventListener('input', e => {
+    termRef.q = e.target.value || '';
+    clearTimeout(st);
+    st = setTimeout(renderList, 120);
+  });
+
+  $('#auditRekapCopy')?.addEventListener('click', () => {
+    const f = filtered();
+    const lines = [
+      `*REKAP GABUNGAN AUDIT RETUR*`,
+      `${list.length} sesi digabung Â· ${f.length} produk unik`,
+      `ğŸ”´ Jelek: ${bad.length} jenis Â· qty ${bQty}`,
+      `ğŸŸ¢ Bagus: ${good.length} jenis Â· qty ${gQty}`,
+      ''
+    ];
+    f.forEach((r, i) => {
+      lines.push(`${i + 1}. ${r.nama}`);
+      lines.push(`Qty total: ${r.qty} ${r.satuan} | ${r.kondisi}${r.kode ? ' | ' + r.kode : ''}`);
+      lines.push(`Dari sesi: ${r.sesi.map(s => `${s.nomor} (${s.qty})`).join(', ')}`);
+      lines.push('');
+    });
+    navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Rekap disalin')).catch(() => showToast('Gagal salin'));
+  });
+
+  $('#auditRekapExcel')?.addEventListener('click', () => {
+    const built = buildAuditRekapRows(list);
+    const meta = ExportEngine.getMeta('Rekap Gabungan Audit', built.rows.length);
+    ExportEngine.toExcel(built.headers, built.rows, 'Rekap_Audit', meta);
+    showToast('Excel rekap: ' + built.rows.length + ' produk unik');
+  });
+}
+
+window.openAuditRekapModal = function() {
+  openAuditRekapModal(getFilteredAuditHistoryList());
+};
 
 function exportAuditHistory(fmt) {
   const list = getFilteredAuditHistoryList();
@@ -4518,11 +4612,6 @@ function updateHistSelCount() {
     all.checked = boxes.length > 0 && n === boxes.length;
     all.indeterminate = n > 0 && n < boxes.length;
   }
-  const delBtn = $('#histDeleteSelBtn');
-  if (delBtn) {
-    delBtn.style.display = n > 0 ? '' : 'none';
-    delBtn.textContent = n > 0 ? ('ğŸ—‘ Hapus Terpilih (' + n + ')') : 'ğŸ—‘ Hapus Terpilih';
-  }
 }
 function updateAuditSelCount() {
   const n = getSelectedAuditIds().length;
@@ -4538,6 +4627,10 @@ function updateAuditSelCount() {
   if (delBtn) {
     delBtn.style.display = n > 0 ? '' : 'none';
     delBtn.textContent = n > 0 ? ('ğŸ—‘ Hapus Terpilih (' + n + ')') : 'ğŸ—‘ Hapus Terpilih';
+  }
+  const rekapBtn = $('#auditHistRekapBtn');
+  if (rekapBtn) {
+    rekapBtn.textContent = n > 0 ? ('Î£ Rekap Gabungan (' + n + ')') : 'Î£ Rekap Gabungan';
   }
 }
 window.updateHistSelCount = updateHistSelCount;
@@ -4688,12 +4781,13 @@ function saveAuditSession() {
   const session = {
     id: nomor,
     nomor,
+    judul: 'NOTA AUDIT RETUR',
     tanggal: todayStr(),
     tanggalLabel: nowLabel(),
     items,
     totalItem: items.length,
     totalQty,
-    user: state.user ? state.user.name : 'Lokal',
+    user: state.user ? (state.user.name || state.user.username || state.user.email) : 'Lokal',
     dcName: effectiveDcName()
   };
   state.auditHistory.unshift(session);
@@ -4702,9 +4796,10 @@ function saveAuditSession() {
   saveLocalAuditList();
   cloudSaveAuditList();
   renderAuditList();
-  cloudSaveAuditSession(session);
+  cloudSaveAuditSession(session)
+    .then(() => showToast('Sesi audit retur tersimpan â˜ Â· ' + nomor))
+    .catch(e => showToast('Lokal tersimpan. Server: ' + (e.message || e)));
   logActivity('CREATE', 'Audit Retur', `Sesi ${nomor} Â· ${items.length} item Â· qty ${totalQty}`);
-  showToast('Sesi audit retur tersimpan â˜ Â· ' + nomor);
 }
 
 function renderAuditHistory() {
@@ -4752,11 +4847,14 @@ function renderAuditHistory() {
     const badN = items.length - goodN;
     const nomor = h.nomor || h.id || '-';
     const idSafe = esc(String(h.id || ''));
+    const judul = (h.judul || '').trim();
+    const judulShow = judul && judul !== 'NOTA AUDIT RETUR' ? judul : '';
     html += `
       <div class="list-item">
         <input type="checkbox" class="sel-check audit-sel" value="${idSafe}" onchange="updateAuditSelCount()">
         <div class="info">
           <div class="nm">${esc(nomor)} <span class="badge badge-muted">Audit Retur</span></div>
+          ${judulShow ? `<div class="meta" style="font-weight:700;color:var(--primary);margin-top:2px;">ğŸ“Œ ${esc(judulShow)}</div>` : ''}
           <div class="meta">${items.length} item Â· qty ${qty}${h.user ? ' Â· oleh ' + esc(h.user) : ''}${h.dcName ? ' Â· ' + esc(h.dcName) : ''}</div>
           <div class="meta" style="margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;">
             ${badN ? `<span class="badge badge-danger">ğŸ”´ Jelek ${badN}</span>` : ''}
@@ -4782,16 +4880,13 @@ function renderAuditHistory() {
 }
 
 window.deleteAuditSession = async function(id) {
-  if (state.user && (state.user.locked || currentRole() === 'pending')) {
-    return showToast('Akun Anda terkunci atau belum disetujui');
-  }
-  if (state.user && currentRole() === 'Viewer') {
-    return showToast('Role Viewer hanya memiliki hak melihat data');
+  if (!state.user || state.user.locked || currentRole() === 'pending') {
+    return showToast('Tidak punya hak hapus â€” login dulu');
   }
   const key = String(id || '').trim();
   if (!key) return;
   const existing = (state.auditHistory || []).find(h => String(h.id) === key);
-  if (existing && state.user && !canAccessDc(existing.dcName)) {
+  if (existing && !canAccessDc(existing.dcName)) {
     return showToast('Sesi DC lain tidak dapat dihapus (akses: ' + userAssignedDc() + ')');
   }
   const label = existing ? (existing.nomor || existing.id) : key;
@@ -4809,14 +4904,6 @@ window.deleteAuditSession = async function(id) {
   if (firebaseReady && db) {
     try {
       await db.collection('auditHistory').doc(key).delete();
-      try {
-        const q = await db.collection('auditHistory').where('id', '==', key).get();
-        if (!q.empty) {
-          const b = db.batch();
-          q.forEach(d => b.delete(d.ref));
-          await b.commit();
-        }
-      } catch (_) {}
       logActivity('DELETE', 'Audit Retur', 'Sesi ' + label);
       showToast('Sesi ' + label + ' dihapus â˜');
     } catch (err) {
@@ -4831,11 +4918,8 @@ window.deleteAuditSession = async function(id) {
 };
 
 window.deleteSelectedAuditSessions = async function() {
-  if (state.user && (state.user.locked || currentRole() === 'pending')) {
-    return showToast('Akun Anda terkunci atau belum disetujui');
-  }
-  if (state.user && currentRole() === 'Viewer') {
-    return showToast('Role Viewer hanya memiliki hak melihat data');
+  if (!state.user || state.user.locked || currentRole() === 'pending') {
+    return showToast('Tidak punya hak hapus â€” login dulu');
   }
   const ids = getSelectedAuditIds();
   if (!ids.length) return showToast('Centang sesi yang mau dihapus dulu');
@@ -5163,14 +5247,20 @@ function openAuditModal(session) {
       btn.onclick = async () => {
         const t = ($('#auditJudul')?.value || '').trim() || 'NOTA AUDIT RETUR';
         session.judul = t;
+        session.updatedAt = new Date().toISOString();
         const idx = (state.auditHistory || []).findIndex(x => String(x.id) === String(session.id));
-        if (idx >= 0) state.auditHistory[idx].judul = t;
+        if (idx >= 0) {
+          state.auditHistory[idx].judul = t;
+          state.auditHistory[idx].updatedAt = session.updatedAt;
+        }
         cacheLocal('auditHistory', state.auditHistory);
         try {
           await cloudSaveAuditSession(Object.assign({}, session, { judul: t }));
-          showToast('Judul disimpan â˜');
+          showToast('Judul disimpan ke server â˜: ' + t);
+          if (state.page === 'riwayat-audit') renderAuditHistory();
         } catch (e) {
-          showToast('Judul disimpan lokal');
+          console.warn(e);
+          showToast('Judul lokal OK. Server: ' + (e.message || e));
         }
         refresh();
       };
@@ -5589,11 +5679,11 @@ function openAuditEditModal(session) {
 
     try {
       await cloudSaveAuditSession(session);
-      logActivity('UPDATE', 'Audit Retur', `Edit ${session.nomor || session.id} Â· ${items.length} item Â· Bagus ${goodN} Â· Jelek ${badN}`);
-      showToast('Sesi audit disimpan â˜ Â· Bagus ' + goodN + ' Â· Jelek ' + badN);
+      logActivity('UPDATE', 'Audit Retur', `Edit ${session.nomor || session.id} Â· judul "${judul}" Â· ${items.length} item Â· Bagus ${goodN} Â· Jelek ${badN}`);
+      showToast('Sesi + judul disimpan â˜ Â· ' + judul);
     } catch (e) {
       console.warn(e);
-      showToast('Disimpan lokal. Server: ' + (e.message || e));
+      showToast('Lokal OK (judul: ' + judul + '). Server gagal: ' + (e.message || e));
     }
     close();
     renderAuditHistory();
@@ -7239,250 +7329,52 @@ function searchProducts(term, limit=20) {
   return results;
 }
 
-// -------------------- RIWAYAT KETIKAN CARI BARANG & HELPER KONTROL (X & â–¼) --------------------
-const SEARCH_HISTORY_KEY = 'search_history_items';
-function getSearchHistory() {
-  return storage.get(SEARCH_HISTORY_KEY, []);
-}
-function saveSearchHistoryItem(term) {
-  const t = String(term || '').trim();
-  if (!t || t.length < 2) return;
-  let list = getSearchHistory();
-  // Filter out duplicates (case insensitive)
-  list = list.filter(item => String(item).toLowerCase() !== t.toLowerCase());
-  list.unshift(t);
-  if (list.length > 20) list = list.slice(0, 20); // simpan 20 riwayat terakhir
-  storage.set(SEARCH_HISTORY_KEY, list);
-}
-function removeSearchHistoryItem(term) {
-  const t = String(term || '').trim().toLowerCase();
-  let list = getSearchHistory();
-  list = list.filter(item => String(item).toLowerCase() !== t);
-  storage.set(SEARCH_HISTORY_KEY, list);
-}
-function clearAllSearchHistory() {
-  storage.set(SEARCH_HISTORY_KEY, []);
-}
-
-/** Ekstrak token brand / keluarga produk (misal "INDOMIE", "SEDAAP", "ABC") untuk mencari varian terkait */
-function extractBrandTokens(str) {
-  if (!str) return [];
-  const clean = String(str)
-    .toUpperCase()
-    .replace(/[^A-Z0-9\s]/g, ' ')
-    .trim();
-  const words = clean.split(/\s+/).filter(w => w.length > 0);
-  if (!words.length) return [];
-
-  const GENERIC_PREFIXES = new Set([
-    'MIE', 'MINYAK', 'AIR', 'SUSU', 'ROKOK', 'SABUN', 'SNACK', 'BISKUIT',
-    'TEH', 'KOPI', 'KECAP', 'SAUS', 'SAMBAL', 'BERAS', 'GULA', 'TERIGU',
-    'PASTA', 'DETERGEN', 'SHAMPOO', 'PEMBERSIH', 'TISSUE', 'OBAT',
-    'MINUMAN', 'MAKANAN', 'BUBUK', 'CREAM', 'KRIM', 'BUMBU', 'SIRUP',
-    'JUS', 'SARI', 'POPOK', 'PAMPERS', 'ROTI', 'COKLAT', 'WAFER', 'IKAN',
-    'SARDEN', 'CORNET', 'FLAVOR', 'RASA', 'INSTAN', 'INSTANT', 'EXTRA', 'PREMIUM'
-  ]);
-
-  // Cari token pembeda utama / brand (misal "INDOMIE", "SEDAAP", "ABC", "SAMPOERNA", "BIMOLI")
-  const distinctive = words.filter(w => !GENERIC_PREFIXES.has(w) && w.length >= 3);
-  if (distinctive.length > 0) {
-    const tokens = [distinctive[0]];
-    if (words.length >= 2) tokens.push(words.slice(0, 2).join(' '));
-    return tokens;
-  }
-  // Jika semua kata termasuk prefix generik (misal "MIE GORENG"), ambil 2 kata pertama
-  if (words.length >= 2) return [words.slice(0, 2).join(' '), words[0]];
-  return [words[0]];
-}
-
-/** Cari produk langsung sekaligus varian terkait berdasarkan brand / keluarga produk */
-function searchProductsWithRelated(term, currentProduct, limit = 50) {
-  const tRaw = (term || '').trim();
-  if (!tRaw) return { results: [], brand: '' };
-  const currentKode = currentProduct ? currentProduct.kode : null;
-
-  // 1. Direct matches
-  const directMatches = searchProducts(tRaw, limit);
-  const seenKode = new Set();
-  const results = [];
-
-  directMatches.forEach(p => {
-    const k = (p.kode || '').toLowerCase();
-    if (k) seenKode.add(k);
-    results.push({
-      product: p,
-      isDirect: true,
-      isSelected: Boolean(currentKode && (p.kode === currentKode || String(p.kode).toLowerCase() === String(currentKode).toLowerCase()))
-    });
-  });
-
-  // 2. Token brand/keluarga produk untuk cari varian terkait
-  const brandTokens = extractBrandTokens(tRaw);
-  let primaryBrand = '';
-  if (brandTokens.length > 0) {
-    primaryBrand = brandTokens[0];
-    const pbLower = primaryBrand.toLowerCase();
-    
-    // Cari semua produk di master yang mengandung brand ini (misal "INDOMIE")
-    for (let i = 0; i < state.products.length; i++) {
-      if (results.length >= limit) break;
-      const p = state.products[i];
-      const k = (p.kode || '').toLowerCase();
-      if (k && seenKode.has(k)) continue;
-
-      const hay = ((p.nama || '') + ' ' + (p.kode || '') + ' ' + (p.vendor || '')).toLowerCase();
-      if (hay.includes(pbLower)) {
-        if (k) seenKode.add(k);
-        results.push({
-          product: p,
-          isDirect: false,
-          isSelected: Boolean(currentKode && (p.kode === currentKode || String(p.kode).toLowerCase() === String(currentKode).toLowerCase()))
-        });
-      }
-    }
-  }
-
-  return { results, brand: primaryBrand };
-}
-
-/** Pasang tombol (X) clear dan (â–¼) dropdown cepat pada input pencarian */
-function attachClearButton(inputEl, onClear, onToggleDropdown) {
-  if (!inputEl) return;
-  const parent = inputEl.parentElement;
-  if (!parent) return;
-  if (getComputedStyle(parent).position === 'static') {
-    parent.style.position = 'relative';
-  }
-  let wrap = parent.querySelector('.search-controls-wrap');
-  if (!wrap) {
-    wrap = document.createElement('div');
-    wrap.className = 'search-controls-wrap';
-    wrap.innerHTML = `
-      <button type="button" class="search-clear-btn" title="Hapus semua kata (Clear)" style="display:${inputEl.value ? 'flex' : 'none'};">âœ•</button>
-      <button type="button" class="search-dropdown-btn" title="Buka daftar varian / riwayat">â–¼</button>
-    `;
-    parent.appendChild(wrap);
-
-    const clearBtn = wrap.querySelector('.search-clear-btn');
-    const dropBtn = wrap.querySelector('.search-dropdown-btn');
-
-    clearBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      inputEl.value = '';
-      clearBtn.style.display = 'none';
-      inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-      if (typeof onClear === 'function') onClear();
-      inputEl.focus();
-    });
-
-    dropBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (typeof onToggleDropdown === 'function') onToggleDropdown();
-    });
-  }
-
-  const clearBtn = wrap.querySelector('.search-clear-btn');
-  const syncClear = () => {
-    if (clearBtn) clearBtn.style.display = inputEl.value ? 'flex' : 'none';
-  };
-  inputEl.addEventListener('input', syncClear);
-  inputEl.addEventListener('change', syncClear);
-  return wrap;
-}
-
 function attachSearch(inputId, suggestId, onSelect) {
   const input = $(inputId);
   const suggest = $(suggestId);
   if (!input || !suggest) return;
   let debounceTimer = null;
-  let selectedProduct = null;
+
+  // Selalu sembunyikan dulu â€” baru muncul setelah user mengetik
+  suggest.style.display = 'none';
+  suggest.innerHTML = '';
+  if (input.parentElement && getComputedStyle(input.parentElement).position === 'static') {
+    input.parentElement.style.position = 'relative';
+  }
 
   const hideSuggest = () => {
     suggest.style.display = 'none';
     suggest.innerHTML = '';
   };
 
-  const showHistorySuggest = () => {
-    const historyList = getSearchHistory();
-    if (!historyList || !historyList.length) {
-      hideSuggest();
-      return;
-    }
-    const headerHtml = `
-      <div class="search-history-header">
-        <span>ğŸ•’ Riwayat Pencarian Barang</span>
-        <button type="button" class="search-history-clear-btn" id="${suggest.id}-clear-all-hist">Hapus Semua</button>
-      </div>
-    `;
-    const itemsHtml = historyList.map(hist => `
-      <div class="suggest-item history-item" data-history-term="${esc(hist)}">
-        <button type="button" class="del-single-history" title="Hapus dari riwayat" data-del-history="${esc(hist)}">âœ•</button>
-        <div class="nm"><span class="history-tag">Riwayat</span>${esc(hist)}</div>
-      </div>
-    `).join('');
-    suggest.innerHTML = headerHtml + itemsHtml;
-    suggest.style.display = 'block';
-
-    const clearAllBtn = suggest.querySelector(`#${suggest.id}-clear-all-hist`);
-    if (clearAllBtn) {
-      clearAllBtn.onclick = (e) => {
-        e.stopPropagation();
-        clearAllSearchHistory();
-        hideSuggest();
-        showToast('Riwayat pencarian dihapus');
-      };
-    }
-  };
-
-  const doSearch = (forceShowAll = false) => {
+  const doSearch = () => {
     const term = input.value.trim();
-    // Jika kosong, tampilkan riwayat pencarian bila ada
-    if (term.length < 1) {
-      showHistorySuggest();
-      return;
-    }
+    // Minimal 1 karakter; kosong = sembunyikan total
+    if (term.length < 1) { hideSuggest(); return; }
+    const results = searchProducts(term);
 
-    // Cari produk langsung + varian terkait
-    const { results, brand } = searchProductsWithRelated(term, selectedProduct, 50);
-
-    // Auto-select scan mode (hanya jika mengetik/scan barcode/kode exact dan bukan saat klik dropdown browse)
-    if (!forceShowAll && results.length === 1 && results[0].isDirect) {
-      const p = results[0].product;
+    // Auto-select exact barcode / kode (scan mode)
+    if (results.length === 1) {
+      const p = results[0];
       const tRaw = term;
       const t = term.toLowerCase();
       const exactBc = (p.barcode && String(p.barcode).trim() === tRaw) ||
         (Array.isArray(p.barcodes) && p.barcodes.some(b => String(b).trim() === tRaw));
       const exactKode = p.kode && String(p.kode).toLowerCase() === t;
       if (exactBc || exactKode) {
-        selectedProduct = p;
-        input.value = p.nama || term;
-        saveSearchHistoryItem(p.nama || term);
         onSelect(p);
         hideSuggest();
-        const clr = input.parentElement ? input.parentElement.querySelector('.search-clear-btn') : null;
-        if (clr) clr.style.display = input.value ? 'flex' : 'none';
+        input.value = '';
         return;
       }
     }
 
     if (!results.length) {
-      suggest.innerHTML = '<div class="suggest-item"><div class="meta">Tidak ditemukan produk</div></div>';
+      suggest.innerHTML = '<div class="suggest-item"><div class="meta">Tidak ditemukan</div></div>';
     } else {
-      let header = '';
-      if (brand && results.some(r => !r.isDirect)) {
-        header = `<div class="suggest-section-title">
-          <span>ğŸ“¦ Varian Terkait (${esc(brand)})</span>
-          <span style="font-weight:normal;font-size:11px;">${results.length} item</span>
-        </div>`;
-      }
-      suggest.innerHTML = header + results.map(({ product: p, isDirect, isSelected }) => `
-        <div class="suggest-item ${isSelected ? 'selected' : ''}" data-kode="${esc(p.kode)}">
-          <div class="nm">
-            ${esc(p.nama)}
-            ${!isDirect ? `<span class="rel-tag">Varian</span>` : ''}
-          </div>
+      suggest.innerHTML = results.map(p => `
+        <div class="suggest-item" data-kode="${esc(p.kode)}">
+          <div class="nm">${esc(p.nama)}</div>
           <div class="meta">${esc(p.kode)} Â· ${esc(p.barcode||'-')} Â· ${esc(p.vendor||'-')}</div>
         </div>
       `).join('');
@@ -7490,61 +7382,15 @@ function attachSearch(inputId, suggestId, onSelect) {
     suggest.style.display = 'block';
   };
 
-  const toggleSuggest = () => {
-    if (suggest.style.display === 'block') {
-      hideSuggest();
-    } else {
-      if (input.value.trim()) {
-        doSearch(true);
-      } else {
-        showHistorySuggest();
-      }
-    }
-  };
-
-  // Pasang tombol (X) clear dan (â–¼) dropdown pada input
-  attachClearButton(input, () => {
-    selectedProduct = null;
-    showHistorySuggest();
-  }, toggleSuggest);
-
-  // Selalu sembunyikan dulu saat awal
-  suggest.style.display = 'none';
-  suggest.innerHTML = '';
-  if (input.parentElement && getComputedStyle(input.parentElement).position === 'static') {
-    input.parentElement.style.position = 'relative';
-  }
-
   input.addEventListener('input', () => {
     clearTimeout(debounceTimer);
-    if (!input.value.trim()) {
-      selectedProduct = null;
-      showHistorySuggest();
-      return;
-    }
-    debounceTimer = setTimeout(() => doSearch(false), 80);
+    if (!input.value.trim()) { hideSuggest(); return; }
+    debounceTimer = setTimeout(doSearch, 80);
   });
-
-  input.addEventListener('click', () => {
-    if (suggest.style.display !== 'block') {
-      if (input.value.trim()) {
-        doSearch(true);
-      } else {
-        showHistorySuggest();
-      }
-    }
-  });
-
   input.addEventListener('focus', () => {
-    if (suggest.style.display !== 'block') {
-      if (input.value.trim()) {
-        doSearch(true);
-      } else {
-        showHistorySuggest();
-      }
-    }
+    // Jangan tampilkan daftar saat focus kosong
+    if (!input.value.trim()) hideSuggest();
   });
-
   input.addEventListener('keydown', e => {
     if (e.key === 'Escape') { hideSuggest(); return; }
     if (e.key === 'Enter') {
@@ -7552,69 +7398,29 @@ function attachSearch(inputId, suggestId, onSelect) {
       clearTimeout(debounceTimer);
       const term = input.value.trim();
       if (!term) { hideSuggest(); return; }
-      const { results } = searchProductsWithRelated(term, selectedProduct, 10);
+      const results = searchProducts(term, 5);
       if (results.length === 1) {
-        const p = results[0].product;
-        selectedProduct = p;
-        input.value = p.nama || term;
-        saveSearchHistoryItem(p.nama || term);
-        onSelect(p);
+        onSelect(results[0]);
         hideSuggest();
-        const clr = input.parentElement ? input.parentElement.querySelector('.search-clear-btn') : null;
-        if (clr) clr.style.display = input.value ? 'flex' : 'none';
+        input.value = '';
       } else if (results.length > 1) {
-        saveSearchHistoryItem(term);
-        doSearch(true);
+        doSearch();
       } else {
         hideSuggest();
         showToast('Produk tidak ditemukan');
       }
     }
   });
-
   suggest.addEventListener('click', e => {
-    // Tombol hapus satuan riwayat
-    const delHistBtn = e.target.closest('[data-del-history]');
-    if (delHistBtn) {
-      e.stopPropagation();
-      const hTerm = delHistBtn.dataset.delHistory;
-      removeSearchHistoryItem(hTerm);
-      showHistorySuggest();
-      return;
-    }
-
-    // Klik item riwayat
-    const histItem = e.target.closest('[data-history-term]');
-    if (histItem) {
-      e.stopPropagation();
-      const hTerm = histItem.dataset.historyTerm;
-      input.value = hTerm;
-      const clr = input.parentElement ? input.parentElement.querySelector('.search-clear-btn') : null;
-      if (clr) clr.style.display = 'flex';
-      input.focus();
-      doSearch(true);
-      return;
-    }
-
-    // Klik item produk suggest: Simpan riwayat, pilih produk, isi input, sembunyikan dropdown
     const item = e.target.closest('.suggest-item');
     if (!item || !item.dataset.kode) return;
     const p = state.products.find(x => x.kode === item.dataset.kode);
-    if (p) {
-      selectedProduct = p;
-      input.value = p.nama;
-      saveSearchHistoryItem(p.nama);
-      onSelect(p);
-    }
+    if (p) onSelect(p);
     hideSuggest();
-    const clr = input.parentElement ? input.parentElement.querySelector('.search-clear-btn') : null;
-    if (clr) clr.style.display = input.value ? 'flex' : 'none';
+    input.value = '';
   });
-
   document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !suggest.contains(e.target) && !e.target.closest('.search-controls-wrap')) {
-      hideSuggest();
-    }
+    if (!input.contains(e.target) && !suggest.contains(e.target)) hideSuggest();
   });
 }
 
@@ -8313,7 +8119,6 @@ function openNotaModal(nota, isHistory) {
           ${!isHistory ? `<button class="btn btn-primary" id="notaSave">âœ… Simpan & Selesai</button>` : ''}
           ${isHistory && can('edit') ? `<button class="btn btn-primary" id="notaEditFromView">âœï¸ Edit Qty</button>` : ''}
           ${isHistory ? `<button class="btn btn-outline" id="notaSaveJudul">ğŸ’¾ Simpan Judul</button>` : ''}
-          ${isHistory ? `<button class="btn btn-danger-outline nota-view-only" id="notaDeleteFromView" title="Hapus nota ini">ğŸ—‘ Hapus Nota</button>` : ''}
         </div>
       </div>
     </div>
@@ -8727,13 +8532,6 @@ function openNotaModal(nota, isHistory) {
         showToast('Judul disimpan ke server â˜');
         close();
         renderHistory();
-      };
-    }
-    const delFromViewBtn = $('#notaDeleteFromView');
-    if (delFromViewBtn) {
-      delFromViewBtn.onclick = async () => {
-        close();
-        await deleteNota(nota.nomor);
       };
     }
   }
@@ -9157,31 +8955,26 @@ function openNotaEditModal(nota) {
 }
 
 window.deleteNota = async function(nomor) {
-  // Cegah jika akun terkunci atau pending
-  if (state.user && (state.user.locked || currentRole() === 'pending')) {
-    return showToast('Akun Anda terkunci atau belum disetujui');
-  }
-  // Cegah jika role strictly Viewer
-  if (state.user && currentRole() === 'Viewer') {
-    return showToast('Role Viewer hanya memiliki hak melihat data');
+  // Izinkan semua user yang sudah login (bukan pending)
+  if (!state.user || state.user.locked || currentRole() === 'pending') {
+    return showToast('Tidak punya hak hapus â€” login dulu');
   }
   const key = String(nomor || '').trim();
   if (!key) return showToast('Nomor nota tidak valid');
   const existing = (state.history || []).find(h => String(h.nomor || '').trim() === key);
-  if (existing && state.user && !canAccessDc(existing.dcName)) {
+  if (existing && !canAccessDc(existing.dcName)) {
     return showToast('Nota DC lain tidak dapat dihapus (akses: ' + userAssignedDc() + ')');
   }
   if (!confirm('Hapus nota ' + key + '?\n\nNota akan hilang permanen dari daftar dan server.')) return;
 
-  // 1) Tandai pending SEBELUM hapus & bersihkan dari antrian pending sync
+  // 1) Tandai pending SEBELUM hapus â€” mencegah onSnapshot mengembalikan nota
   if (!state.pendingDeletes) state.pendingDeletes = {};
   state.pendingDeletes[key] = Date.now();
   try { cacheLocal('pendingDeletes', state.pendingDeletes); } catch(e) {}
-  markSynced(key);
 
   // 2) Hapus dari state lokal (bandingkan sebagai string)
-  const before = (state.history || []).length;
-  state.history = (state.history || []).filter(h => String(h.nomor || '').trim() !== key);
+  const before = state.history.length;
+  state.history = state.history.filter(h => String(h.nomor || '').trim() !== key);
   cacheLocal('history', state.history);
   renderHistory();
   if (state.page === 'dashboard') renderDashboard();
@@ -9217,54 +9010,6 @@ window.deleteNota = async function(nomor) {
   } else {
     logActivity('DELETE', 'Retur', 'Nota ' + key + ' (mode lokal)');
     showToast('Nota dihapus (mode lokal)');
-  }
-};
-
-window.deleteSelectedNota = async function() {
-  if (state.user && (state.user.locked || currentRole() === 'pending')) {
-    return showToast('Akun Anda terkunci atau belum disetujui');
-  }
-  if (state.user && currentRole() === 'Viewer') {
-    return showToast('Role Viewer tidak dapat menghapus data');
-  }
-  const nomors = getSelectedHistNomors();
-  if (!nomors.length) return showToast('Centang nota yang mau dihapus dulu');
-  if (!confirm('Hapus ' + nomors.length + ' nota retur terpilih?\n\nNota akan hilang dari riwayat dan server.')) return;
-
-  if (!state.pendingDeletes) state.pendingDeletes = {};
-  nomors.forEach(nomor => {
-    const k = String(nomor || '').trim();
-    state.pendingDeletes[k] = Date.now();
-    markSynced(k);
-  });
-  try { cacheLocal('pendingDeletes', state.pendingDeletes); } catch (_) {}
-
-  const set = new Set(nomors.map(String));
-  state.history = (state.history || []).filter(h => !set.has(String(h.nomor || '').trim()));
-  cacheLocal('history', state.history);
-  renderHistory();
-  if (state.page === 'dashboard') renderDashboard();
-  if (state.page === 'laporan') renderLaporan();
-
-  if (firebaseReady && db) {
-    try {
-      const CHUNK = 400;
-      for (let i = 0; i < nomors.length; i += CHUNK) {
-        const batch = db.batch();
-        nomors.slice(i, i + CHUNK).forEach(nomor => {
-          batch.delete(db.collection('notaRetur').doc(String(nomor)));
-        });
-        await batch.commit();
-      }
-      logActivity('DELETE', 'Retur', 'Hapus terpilih ' + nomors.length + ' nota');
-      showToast(nomors.length + ' nota berhasil dihapus â˜');
-    } catch (err) {
-      console.error('[deleteSelectedNota]', err);
-      showToast('Lokal terhapus. Server: ' + (err.message || err));
-    }
-  } else {
-    logActivity('DELETE', 'Retur', 'Hapus terpilih ' + nomors.length + ' nota (lokal)');
-    showToast(nomors.length + ' nota dihapus (mode lokal)');
   }
 };
 window.removeCartItem = removeCartItem;
@@ -10776,6 +10521,7 @@ function bindCetakPlakatEvents() {
         note: ''
       });
       paintPlakatItems();
+      $('#plkSearch').value = '';
       showToast('Ditambahkan ke plakat');
     });
   }
@@ -10817,7 +10563,6 @@ function bindEvents() {
 
     const showLoginErr = (msg) => {
       $('#loginError').style.display = 'block';
-      // Jangan tampilkan teks mentah Firestore ke user
       if (/permission|insufficient|Missing or insufficient/i.test(String(msg || ''))) {
         $('#loginError').textContent = 'Login ditolak server. Coba pakai EMAIL lengkap (contoh: nama@gmail.com), bukan NIK/username saja.';
         return;
@@ -10830,7 +10575,7 @@ function bindEvents() {
     if (btn) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
 
     try {
-      // 1) Kandidat email murni â€” TANPA query Firestore (ini penyebab permission-denied)
+      // Kandidat email â€” tanpa query Firestore (hindari permission-denied)
       const candidates = [];
       if (u.includes('@')) {
         candidates.push(u.trim());
@@ -10839,7 +10584,6 @@ function bindEvents() {
         candidates.push(raw + '@nik.retur.local');
         candidates.push(raw.toLowerCase() + '@nik.retur.local');
         candidates.push(raw.toUpperCase() + '@nik.retur.local');
-        // pola lain yang kadang dipakai
         candidates.push(raw + '@retur.local');
         candidates.push(raw.toLowerCase() + '@gmail.com');
       }
@@ -10858,11 +10602,9 @@ function bindEvents() {
           lastAuthErr = ae;
           if (ae.code === 'auth/user-not-found' || ae.code === 'auth/invalid-email') continue;
           if (ae.code === 'auth/wrong-password' || ae.code === 'auth/invalid-credential') {
-            // Password salah untuk email ini â€” kalau input sudah email, stop
             if (u.includes('@')) break;
             continue;
           }
-          // error lain (network dll) â€” stop
           break;
         }
       }
@@ -10877,56 +10619,57 @@ function bindEvents() {
         } else if (code === 'auth/operation-not-allowed') {
           showLoginErr('Login Email/Password belum diaktifkan di Firebase Console â†’ Authentication â†’ Sign-in method.');
         } else if (u.includes('@')) {
-          // Input sudah email: user-not-found ATAU password salah (Firebase sering pakai invalid-credential)
-          showLoginErr('Email/password tidak cocok, atau akun belum ada di Firebase Authentication. Reset password / tambah user di Firebase Console (project hostinglb-6428b).');
+          showLoginErr('Email/password tidak cocok, atau akun belum ada di Firebase Authentication. Reset password di Firebase Console (project hostinglb-6428b).');
         } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-          showLoginErr('Password salah, atau NIK belum terhubung ke email Auth. Coba login dengan EMAIL lengkap dari Master User.');
+          showLoginErr('Password salah, atau NIK belum terhubung ke email Auth. Coba login dengan EMAIL lengkap.');
         } else {
-          showLoginErr('Akun tidak ditemukan untuk NIK/username itu. Login pakai EMAIL lengkap (contoh di Master User), bukan NIK saja.');
+          showLoginErr('Akun tidak ditemukan. Login pakai EMAIL lengkap, bukan NIK saja.');
         }
         return;
       }
 
-      // 2) Baca profil â€” gagal pun tetap boleh masuk
+      // Baca profil â€” gagal tetap boleh masuk (hindari stuck)
       let profile = {};
       if (db) {
         try {
-          const uref = await db.collection('users').doc(cred.user.uid).get();
-          if (uref.exists) profile = uref.data() || {};
+          const uref = await Promise.race([
+            db.collection('users').doc(cred.user.uid).get(),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout profil')), 8000))
+          ]);
+          if (uref && uref.exists) profile = uref.data() || {};
         } catch (pe) {
           console.warn('[login] profil tidak terbaca (lanjut):', pe.code || pe.message);
           profile = {};
         }
       }
 
-      const rawRole = profile.role;
-      let role;
-      if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '') {
-        role = 'Administrator';
-      } else if (String(rawRole).toLowerCase() === 'pending') {
-        // Approval dihapus â€” akun pending otomatis dijadikan admin
-        role = 'Administrator';
-      } else {
-        role = normalizeRole(rawRole);
-      }
       if (profile.locked) {
-        await auth.signOut();
+        await auth.signOut().catch(() => {});
         showLoginErr('Akun dikunci admin. Hubungi Administrator.');
         return;
       }
 
-      // Tulis role default jika kosong/pending (abaikan error rules)
-      if (db && (rawRole === undefined || rawRole === null || String(rawRole).trim() === '' || String(rawRole).toLowerCase() === 'pending')) {
-        try {
-          await db.collection('users').doc(cred.user.uid).set({
-            role: toFirestoreRole('Administrator'),
-            email: cred.user.email || '',
-            username: profile.username || u,
-            name: profile.name || '',
-            assignedDc: profile.assignedDc || 'DC INDUK',
-            updatedAt: tsNow()
-          }, { merge: true });
-        } catch (_) {}
+      const rawRole = profile.role;
+      let role;
+      // Profil kosong / pending â†’ anggap Administrator agar tidak stuck di layar approval
+      if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '' ||
+          String(rawRole).toLowerCase() === 'pending') {
+        role = 'Administrator';
+        if (db) {
+          try {
+            await db.collection('users').doc(cred.user.uid).set({
+              role: (typeof toFirestoreRole === 'function' ? toFirestoreRole('Administrator') : 'admin'),
+              email: cred.user.email || '',
+              username: profile.username || u,
+              name: profile.name || (cred.user.email || u),
+              assignedDc: profile.assignedDc || 'DC INDUK',
+              locked: false,
+              updatedAt: (typeof tsNow === 'function' ? tsNow() : new Date().toISOString())
+            }, { merge: true });
+          } catch (_) {}
+        }
+      } else {
+        role = normalizeRole(rawRole);
       }
 
       state.user = {
@@ -10984,11 +10727,14 @@ function bindEvents() {
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         await db.collection('users').doc(cred.user.uid).set({
           name, username, email,
-          role: 'admin',
+          role: 'pending',
           locked: false,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        showToast('Pendaftaran berhasil â€” akun langsung aktif sebagai admin');
+        await auth.signOut();
+        showAuthCard('pending');
+        showToast('Pendaftaran berhasil â€” menunggu approval admin');
+        return;
       } catch (err) {
         $('#regError').style.display = 'block';
         $('#regError').textContent = err.code === 'auth/email-already-in-use'
@@ -11001,8 +10747,7 @@ function bindEvents() {
   });
 
   // Mode offline ditiadakan â€” semua aktivitas lewat server Firebase
-  $('#loginUser')?.addEventListener('keydown', e => { if(e.key==='Enter') $('#loginPass')?.focus(); });
-  $('#loginPass')?.addEventListener('keydown', e => { if(e.key==='Enter') $('#loginBtn').click(); });
+  $('#loginPass').addEventListener('keydown', e => { if(e.key==='Enter') $('#loginBtn').click(); });
 
   // Show / hide password (login & daftar)
   function bindPassToggle(inputId, btnId) {
@@ -11150,7 +10895,6 @@ function bindEvents() {
     if (!confirm('Pulihkan riwayat retur dari cache perangkat?\nFlag hapus sementara dibersihkan, lalu data diunggah ulang ke server (admin).')) return;
     restoreRiwayatRetur();
   });
-  $('#histDeleteSelBtn')?.addEventListener('click', () => deleteSelectedNota());
 
   // Audit Retur
   attachSearch('#auditSearch', '#auditSuggest', (p) => {
@@ -11507,6 +11251,7 @@ function bindEvents() {
     });
   }
   $('#auditHistDeleteSelBtn')?.addEventListener('click', () => deleteSelectedAuditSessions());
+  $('#auditHistRekapBtn')?.addEventListener('click', () => openAuditRekapModal());
   const hExpBtn = $('#histExportBtn');
   const hExpDd = $('#histExportDropdown');
   if (hExpBtn && hExpDd) {
@@ -11565,8 +11310,157 @@ function bindEvents() {
         if (data.products) { state.products = data.products; storage.set('products', state.products); }
         if (data.categories) { state.categories = data.categories; storage.set('categories', state.categories); }
         if (data.history) { state.history = data.history; storage.set('history', state.history); }
-        if (data.auditHistory) { staxœœWÛnÛ8¾ÏS0˜A)¡µ—‹dÓÂµ›iÑô€8Ì¢(´DÛQ¢@RI³©yˆy—½ßGÙ'™ïu²ãf‚ñ…%’?ÿÃ÷åe"êLù7ÊycoÙ)Ë„[{'Œb%'}ÄÇGügÂoóˆOØæ€µ?µdQà˜zu­üí¹YÅì®»6lö’‡­]ÁÃÉ wÄu¯Ø,ı 
-9HëNXXíÈ	›½ˆ–Ã˜»[››K#ˆg`ÃÒ®…SšeJ•±<>éiµYMZ%#şöı§—`Í_‰4¯+z»$]B!«ØRi9¾]Škµ‚QĞ¥‚’ıé†¥Â§ëHZÛØ7(u.Ì«LäìZh•ñ^ûM¸l¥È¤Mè1q—ò«HpÃyÓüÿñ¬­_ù’Ç‰)S­ÒÈE1;}Áî:œSS.•-"şfòéjÎæ¯ß_MØlr9açßMÎ_²ËF•…r-€˜ÎEyÈãŠøÚ–'{xıKäªdNæ0€i±R/wé?óÊš¬N½ãGPÈ•±JÒÂ\zŞ+×¦v2PXÇº‹ÜÈçXvïo†£q¨õÁÁÈ)Sò/ÉÒØ×Øç…6©Ğó6„¬,Ìµ|ë%lXUÇüi·#2ë ÑFdQ€ûä ÿÏ±OÂ‰rÅ¼)F³è×˜¼ã‚c¹E-˜*«Ú³J–°E‰`â@×¶^³µĞ¢%xAç™Ğz.…M×s©e
-İ<÷¹Ñƒ<Ã1Eàõ£õB”™*W£JçİªåA8î²x³½G)F@ŒùÇvY]Ë23c}¬ÈG+-ªñjÌÉÕ®ÀêáyßîŞW€jÜ€í Öq1ˆŞãÊTƒÕ«Ú{SF-	¥Çæà`Y—)ù’ÉÒK;©*$Å]›7¢öëyj¥¤´Iµp‚,Y!ú²Œö»U5_K­Aéü­FµQ®Ò‚ê0_jù•!)ò¡Œ\Şk4³ÒØyòyu´sŞC„½ƒÎŠÍ¦Lä,Uˆ$YTğRÉ¢\¦5¥Ú$+wÏˆîm	_Å÷`O°CåB˜Ví,Ë†ájUÊl–Æq‹úNŞKÌ¾}Û¢IáyN‰öİMŞi-•V”¿Q:=aM`23ägùºvµpˆ*Ô¥u(¿ØÔB5‰UU‰E(PÒ6Ì¬Xzwf,ìí=IV4jÅ‰GAFé·,[sBğ‘oÎÅ¢‰Á´¶äûbö”íÇ‘½dœıï¿ø{úìç[*Ç{*õ’Ç”“k‚½Gíèÿí¿âñçç_o®* 4N0dé+‘­î‹”Ë¥¤¢*g·ÂD¿¾¥óÔTòÒÌIĞèà½,ë_”S¥©yÆ]*Ü(”‹›D×©ÊĞÙÃ3AÂáú[‚6ö­“gÂ­FØ,@ƒ¬ŸjSgóÛ²õ`]¡XIZ7ê‡M´¿KUHSû(ô¼…1ŞyKõÈ^KÅGìÏŸ‡Š .³¾.ØĞÕÏ”• tøĞc‡EÈˆ¦åİß&Mµ£"¹œR¾ÖºÛ/]‹:jÚ‹UiJSJ>"İ_ÀBgÛ®alÔ‘)ù<FÈqu¥¨ AÜ$a¶HR£©,CÃˆ“!2“nA“Ô*‹“¬iEVh4¤PFi"¿B'‡ŒhVÔjà£cv·ßÙ[[F¡v¢ØpA•Œ:ÀáHBç‘¦°„AFd¢Õ†¡ø;Œ|( ÿÿı¶ úÒ·m‹VB±†=‹à k0¡¸¬EU»¸e;@F¿¿ù}`@_Èc¶E'eÉVZ¶7üˆ÷ƒ7¶¨›íÇ‘¼Ç¸ãÌA¹ÌÀDh'Ç!…³‰$ôÒdRr¦¤Î~º¦H§ô£ÜDJè½=“Í&áBÚD{[ËvœË,ú7\ÚNÃ÷ÓªÈî˜‰NÙ€WG´"óƒø€vw»Ûy€CûAô;†{î‘+zÜ;Ò°ÓQmdĞn»-s
->Ì®ŞññÇòbfc4™"vp$*„Wp03–!;ü?iy^×(º¹,1ÑnOÏ,hùÁ”?5CÇ1Ëlß!±ÿŞØò¸Á¥´Ç*]ôdSC» •ñ¨r«µÆFü³ÃœfÑ¿t-†Q¹†„m¨ ´™fÑ½PÅ›/Å(>}q·ù‹n2|FşŒò¥‘M’M-UO\@\—aV
-I˜ğvğÅÄc¦è¹g4Ù•£Âd­]¡<c|G œöMçœÖÓ¦QÁ¼ÕèèB®Y4m„Sx˜>QFŸÂÎ´ïóäğFBİë{¤;=ElÎ9WÊ	NsTß‰”¡ÏÕ<l«áClZ­ãNıØµû¹ÁV¥òí×M¨£)jAé5>®¼†§~Ú¸À·ÿ-%õ!×¼d‹~üø[ FcE³ñšbsß`ÿõö€È»Q‰‘`ªák™İˆßÔ¢i´2S"áûÆ&ÚMI7û§kÌî2‹öLaaZC'­¡¯²"špP4a³ï[­Î§ÌZ1îlbòŸÏ\jUå_àma²[z®}¡_ü	  ÿÿ ã-‚
+        if (data.auditHistory) { state.auditHistory = data.auditHistory; storage.set('auditHistory', state.auditHistory); }
+        if (data.activityLog) { state.activityLog = data.activityLog; storage.set('activityLog', state.activityLog); }
+        if (data.dcName) { state.dcName = data.dcName; storage.set('dcName', state.dcName); }
+        showToast('Data berhasil diimpor');
+        logActivity('IMPORT', 'Backup', 'Restore dari file');
+        navigate(state.page);
+      } catch(err) { showToast('File tidak valid'); }
+    };
+    reader.readAsText(file);
+  });
+  $('#resetAllBtn').onclick = () => {
+    if (!confirm('HAPUS SEMUA DATA LOKAL? Tidak bisa dibatalkan!')) return;
+    if (!confirm('Yakin sekali lagi?')) return;
+    ['products','categories','racks','warehouses','cart','history','auditList','auditHistory','activityLog','dcName','session'].forEach(k => localStorage.removeItem('gp:'+k));
+    location.reload();
+  };
+}
+
+function enterApp() {
+  $('#authScreen').classList.add('hidden');
+  $('#appShell').style.display = 'flex';
+  if (state.user) state.user.role = normalizeRole(state.user.role);
+  // Kunci DC aktif ke penempatan (kecuali Admin / DC Induk)
+  if (state.user && !isAdmin() && !isIndukDc(state.user.assignedDc)) {
+    state.dcName = state.user.assignedDc || state.dcName;
+    cacheLocal('dcName', state.dcName);
+  }
+  // Keranjang & audit list: muat khusus DC aktif (pisah dari DC lain di perangkat sama)
+  loadLocalDraftsForDc();
+  $('#userName').textContent = state.user.name;
+  const roleLabel = currentRole() + (state.user.assignedDc ? ' Â· ' + state.user.assignedDc : '');
+  $('#userRole').textContent = roleLabel;
+  $('#userAvatar').textContent = (state.user.name||'U')[0].toUpperCase();
+  $('#dcBadge').textContent = effectiveDcName();
+  applyDcScopeToState();
+  applyMenuVisibility();
+  if (window.lucide) lucide.createIcons();
+  navigate('dashboard');
+  startCloudSync();
+  updateSyncBadge();
+  setTimeout(() => bootstrapServer(), 800);
+}
+
+async function restoreFirebaseUser(firebaseUser) {
+  if (!firebaseUser) {
+    stopCloudSync();
+    state.user = null;
+    storage.set('session', null);
+    $('#appShell').style.display = 'none';
+    $('#authScreen').classList.remove('hidden');
+    return;
+  }
+  try {
+    let profile = {};
+    try {
+      const snap = await Promise.race([
+        db.collection('users').doc(firebaseUser.uid).get(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+      ]);
+      if (snap && snap.exists) profile = snap.data() || {};
+    } catch (pe) {
+      console.warn('[security] profil restore gagal (lanjut):', pe.message || pe);
+      profile = {};
+    }
+
+    if (profile.locked) {
+      await auth.signOut().catch(() => {});
+      state.user = null;
+      showAuthCardForSecurity('pending');
+      const pm = $('#pendingMsg');
+      if (pm) pm.textContent = 'Akun dikunci admin. Hubungi Administrator.';
+      return;
+    }
+
+    const rawRole = profile.role;
+    let role;
+    if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '' ||
+        String(rawRole).toLowerCase() === 'pending') {
+      role = 'Administrator';
+      try {
+        await db.collection('users').doc(firebaseUser.uid).set({
+          role: (typeof toFirestoreRole === 'function' ? toFirestoreRole('Administrator') : 'admin'),
+          email: firebaseUser.email || profile.email || '',
+          name: profile.name || firebaseUser.email || 'User',
+          assignedDc: profile.assignedDc || 'DC INDUK',
+          locked: false,
+          updatedAt: (typeof tsNow === 'function' ? tsNow() : new Date().toISOString())
+        }, { merge: true });
+      } catch (_) {}
+    } else {
+      role = normalizeRole(rawRole);
+    }
+
+    state.user = {
+      uid: firebaseUser.uid,
+      name: profile.name || firebaseUser.email || 'User',
+      username: profile.username || firebaseUser.email || '',
+      email: firebaseUser.email || profile.email || '',
+      role,
+      locked: false,
+      assignedDc: profile.assignedDc || 'DC INDUK'
+    };
+    storage.set('session', null);
+    if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
+      state.dcName = state.user.assignedDc;
+      cacheLocal('dcName', state.dcName);
+    }
+    enterApp();
+  } catch (e) {
+    console.error('[security] restore auth', e);
+    // Jangan signOut otomatis agar tidak loop stuck â€” biarkan user coba lagi / refresh
+    try {
+      state.user = {
+        uid: firebaseUser.uid,
+        name: firebaseUser.email || 'User',
+        username: firebaseUser.email || '',
+        email: firebaseUser.email || '',
+        role: 'Administrator',
+        locked: false,
+        assignedDc: 'DC INDUK'
+      };
+      enterApp();
+    } catch (e2) {
+      console.error(e2);
+      showToast('Gagal memverifikasi akun. Refresh halaman.');
+    }
+  }
+}
+
+function showAuthCardForSecurity(mode) {
+  const login = $('#authLoginCard'), reg = $('#authRegisterCard'), pending = $('#authPendingCard');
+  if (login) login.style.display = mode === 'login' ? 'block' : 'none';
+  if (reg) reg.style.display = mode === 'register' ? 'block' : 'none';
+  if (pending) pending.style.display = mode === 'pending' ? 'block' : 'none';
+}
+
+function init() {
+  loadState();
+  bindEvents();
+  if (!firebaseReady || !auth || !db) {
+    showAuthCardForSecurity('login');
+    $('#loginError').style.display = 'block';
+    $('#loginError').textContent = 'Firebase Authentication wajib tersedia.';
+    return;
+  }
+  auth.onAuthStateChanged(restoreFirebaseUser);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+})();
+</script>
+</body>
+</html>
