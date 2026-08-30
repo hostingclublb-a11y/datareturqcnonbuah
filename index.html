@@ -10840,41 +10840,92 @@ function bindEvents() {
     showAuthCard('login');
   });
 
-  // Login â€” Auth DULU (tanpa Firestore). Firestore hanya setelah berhasil login.
+  // Login & Autentikasi
   $('#loginBtn').onclick = async () => {
     const u = ($('#loginUser').value || '').trim();
     const p = ($('#loginPass').value || '').trim();
-    $('#loginError').style.display = 'none';
+    const errEl = $('#loginError');
+    const offArea = $('#offlineFallbackArea');
+    if (errEl) errEl.style.display = 'none';
 
     if (!u || !p) {
-      $('#loginError').style.display = 'block';
-      $('#loginError').textContent = 'Isi username dan password';
-      return;
-    }
-    if (!firebaseReady || !auth) {
-      $('#loginError').style.display = 'block';
-      $('#loginError').innerHTML = 'Koneksi Firebase belum siap di domain ini. Silakan gunakan <b>Mode Offline</b> di bawah untuk langsung masuk.';
-      const offArea = $('#offlineFallbackArea');
-      if (offArea) offArea.style.display = 'block';
-      return;
-    }
-
-    const showLoginErr = (msg) => {
-      $('#loginError').style.display = 'block';
-      // Jangan tampilkan teks mentah Firestore ke user
-      if (/permission|insufficient|Missing or insufficient/i.test(String(msg || ''))) {
-        $('#loginError').textContent = 'Login ditolak server. Coba pakai EMAIL lengkap (contoh: nama@gmail.com), bukan NIK/username saja.';
-        return;
+      if (errEl) {
+        errEl.style.display = 'block';
+        errEl.textContent = 'Isi username / email dan password';
       }
-      $('#loginError').textContent = msg || 'Gagal login';
-    };
+      return;
+    }
 
     const btn = $('#loginBtn');
     const origText = btn ? btn.textContent : 'Masuk';
     if (btn) { btn.disabled = true; btn.textContent = 'Memeriksa...'; }
 
+    const showLoginErr = (msg, canQuickRegister = false) => {
+      if (errEl) {
+        errEl.style.display = 'block';
+        if (canQuickRegister && u.includes('@')) {
+          errEl.innerHTML = `<div style="margin-bottom:8px;">${msg}</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <button type="button" id="quickRegisterBtn" class="btn btn-sm btn-primary" style="width:100%;font-size:12px;padding:7px;">âœ¨ Daftarkan Akun Ini di Firebase & Masuk</button>
+              <button type="button" id="quickOfflineBtn" class="btn btn-sm btn-outline" style="width:100%;font-size:12px;padding:7px;background:#fff;">âš¡ Masuk Mode Offline (Lokal)</button>
+            </div>`;
+          $('#quickRegisterBtn')?.addEventListener('click', async () => {
+            const qBtn = $('#quickRegisterBtn');
+            if (qBtn) { qBtn.disabled = true; qBtn.textContent = 'Mendaftarkan akun...'; }
+            try {
+              const regCred = await auth.createUserWithEmailAndPassword(u, p);
+              if (db) {
+                await db.collection('users').doc(regCred.user.uid).set({
+                  name: u.split('@')[0] || 'Admin',
+                  username: u.split('@')[0] || 'admin',
+                  email: u,
+                  role: 'admin',
+                  locked: false,
+                  assignedDc: 'DC INDUK',
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+              }
+              state.user = {
+                uid: regCred.user.uid,
+                name: u.split('@')[0] || 'Admin',
+                username: u.split('@')[0] || 'admin',
+                email: u,
+                role: 'Administrator',
+                locked: false,
+                assignedDc: 'DC INDUK'
+              };
+              storage.set('session', state.user);
+              enterApp();
+              showToast('Akun berhasil didaftarkan & masuk sebagai Administrator!');
+            } catch (rErr) {
+              console.warn('[quickReg]', rErr);
+              if (rErr.code === 'auth/email-already-in-use') {
+                errEl.innerHTML = 'Email ini sudah terdaftar di Firebase namun password yang dimasukkan salah.<br><button type="button" id="quickOfflineBtn2" class="btn btn-sm btn-outline" style="margin-top:6px;width:100%;font-size:12px;padding:6px;background:#fff;">âš¡ Masuk Lewat Mode Offline (Lokal)</button>';
+                $('#quickOfflineBtn2')?.addEventListener('click', () => {
+                  loginLocalOffline(u, u, 'Administrator', 'DC INDUK');
+                });
+              } else {
+                errEl.textContent = rErr.message || 'Gagal mendaftar ke server. Coba masuk lewat Mode Offline.';
+              }
+            }
+          });
+          $('#quickOfflineBtn')?.addEventListener('click', () => {
+            loginLocalOffline(u, u, 'Administrator', 'DC INDUK');
+          });
+        } else {
+          errEl.innerHTML = msg;
+        }
+      }
+      if (offArea) offArea.style.display = 'block';
+    };
+
+    if (!firebaseReady || !auth) {
+      if (btn) { btn.disabled = false; btn.textContent = origText; }
+      showLoginErr('Koneksi Firebase belum siap di domain ini. Silakan gunakan <b>Mode Offline</b> di bawah untuk langsung masuk.');
+      return;
+    }
+
     try {
-      // 1) Kandidat email murni â€” TANPA query Firestore (ini penyebab permission-denied)
       const candidates = [];
       if (u.includes('@')) {
         candidates.push(u.trim());
@@ -10883,7 +10934,6 @@ function bindEvents() {
         candidates.push(raw + '@nik.retur.local');
         candidates.push(raw.toLowerCase() + '@nik.retur.local');
         candidates.push(raw.toUpperCase() + '@nik.retur.local');
-        // pola lain yang kadang dipakai
         candidates.push(raw + '@retur.local');
         candidates.push(raw.toLowerCase() + '@gmail.com');
       }
@@ -10891,185 +10941,171 @@ function bindEvents() {
       let cred = null;
       let lastAuthErr = null;
       const tried = new Set();
+
       for (const email of candidates) {
         const key = String(email || '').toLowerCase();
         if (!key || tried.has(key)) continue;
         tried.add(key);
         try {
-          cred = await auth.signInWithEmailAndPassword(email, p);
+          cred = await Promise.race([
+            auth.signInWithEmailAndPassword(email, p),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Waktu koneksi habis (timeout)')), 7000))
+          ]);
           break;
         } catch (ae) {
           lastAuthErr = ae;
           if (ae.code === 'auth/user-not-found' || ae.code === 'auth/invalid-email') continue;
           if (ae.code === 'auth/wrong-password' || ae.code === 'auth/invalid-credential') {
-            // Password salah untuk email ini â€” kalau input sudah email, stop
             if (u.includes('@')) break;
             continue;
           }
-          // error lain (network dll) â€” stop
           break;
         }
       }
 
       if (!cred) {
         const code = lastAuthErr && lastAuthErr.code;
-        console.warn('[login] gagal auth', code, lastAuthErr && lastAuthErr.message, 'tried:', Array.from(tried));
         const host = window.location.hostname || 'domain lokal';
-        const errEl = $('#loginError');
-        const offArea = $('#offlineFallbackArea');
-        if (offArea) offArea.style.display = 'block';
-        
+        console.warn('[login] gagal auth', code, lastAuthErr?.message);
+
         if (code === 'auth/unauthorized-domain') {
-          errEl.innerHTML = 'Domain "<b>' + esc(host) + '</b>" sedang dalam proses verifikasi Firebase atau belum terdaftar.<br>Gunakan tombol <b>Masuk Mode Offline</b> di bawah untuk langsung masuk.';
-          errEl.style.display = 'block';
+          showLoginErr('Domain "<b>' + esc(host) + '</b>" belum diizinkan oleh Firebase Console. Tambahkan domain di Firebase Auth Settings, atau gunakan Mode Offline di bawah.');
         } else if (code === 'auth/operation-not-allowed') {
-          errEl.innerHTML = 'Metode Email/Password belum aktif di <b>Firebase Console â†’ Authentication â†’ Sign-in method</b>. Aktifkan fitur tersebut atau gunakan Mode Offline di bawah.';
-          errEl.style.display = 'block';
+          showLoginErr('Metode Email/Password belum aktif di Firebase Console. Aktifkan di menu Sign-in method, atau gunakan Mode Offline di bawah.');
         } else if (code === 'auth/network-request-failed' || code === 'auth/internal-error') {
-          errEl.innerHTML = 'Koneksi jaringan ke Firebase terganggu. Anda dapat langsung masuk melalui Mode Offline di bawah.';
-          errEl.style.display = 'block';
-        } else if (u.includes('@') && (code === 'auth/user-not-found' || code === 'auth/invalid-credential')) {
-          errEl.innerHTML = 'Akun belum terdaftar atau password salah.<br><button type="button" id="quickRegisterBtn" class="btn btn-sm btn-primary" style="margin-top:8px;width:100%;font-size:12px;padding:6px 10px;">âœ¨ Daftarkan & Masuk Sekarang Sebagai Admin</button>';
-          errEl.style.display = 'block';
-          $('#quickRegisterBtn')?.addEventListener('click', async () => {
-            const qBtn = $('#quickRegisterBtn');
-            if (qBtn) { qBtn.disabled = true; qBtn.textContent = 'Mendaftarkan akun...'; }
-            try {
-              const newCred = await auth.createUserWithEmailAndPassword(u.trim(), p);
-              if (db) {
-                await db.collection('users').doc(newCred.user.uid).set({
-                  name: u.split('@')[0] || 'Admin',
-                  username: u.split('@')[0] || 'admin',
-                  email: u.trim(),
-                  role: 'admin',
-                  locked: false,
-                  assignedDc: 'DC INDUK',
-                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-              }
-              showToast('Akun berhasil didaftarkan & aktif sebagai Admin!');
-            } catch (regErr) {
-              errEl.textContent = regErr.message || 'Gagal mendaftarkan akun. Coba Mode Offline di bawah.';
-            }
-          });
+          showLoginErr('Gagal terhubung ke Firebase (' + (lastAuthErr ? lastAuthErr.message : 'jaringan') + '). Gunakan Mode Offline di bawah.');
+        } else if (u.includes('@') && (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password')) {
+          showLoginErr('Email atau password belum cocok di Firebase.', true);
         } else {
-          errEl.innerHTML = 'Username/password belum terdaftar di Firebase.<br>Silakan periksa input atau klik <b>Masuk Mode Offline</b> di bawah untuk langsung menggunakan aplikasi.';
-          errEl.style.display = 'block';
+          showLoginErr('Akun tidak ditemukan di Firebase. Silakan periksa input atau klik Mode Offline di bawah.', true);
         }
         return;
       }
 
-      // 2) Baca profil â€” gagal pun tetap boleh masuk
+      // Berhasil auth Firebase
       let profile = {};
       if (db) {
         try {
-          const uref = await db.collection('users').doc(cred.user.uid).get();
-          if (uref.exists) profile = uref.data() || {};
+          const uref = await Promise.race([
+            db.collection('users').doc(cred.user.uid).get(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+          ]);
+          if (uref && uref.exists) profile = uref.data() || {};
         } catch (pe) {
-          console.warn('[login] profil tidak terbaca (lanjut):', pe.code || pe.message);
+          console.warn('[login] profil Firestore belum terbaca, gunakan default:', pe);
           profile = {};
         }
       }
 
-      const rawRole = profile.role;
-      let role;
-      if (rawRole === undefined || rawRole === null || String(rawRole).trim() === '') {
-        role = 'Administrator';
-      } else if (String(rawRole).toLowerCase() === 'pending') {
-        // Approval dihapus â€” akun pending otomatis dijadikan admin
-        role = 'Administrator';
-      } else {
-        role = normalizeRole(rawRole);
-      }
       if (profile.locked) {
         await auth.signOut();
-        showLoginErr('Akun dikunci admin. Hubungi Administrator.');
+        showLoginErr('Akun ini telah dikunci oleh administrator.');
         return;
       }
 
-      // Tulis role default jika kosong/pending (abaikan error rules)
-      if (db && (rawRole === undefined || rawRole === null || String(rawRole).trim() === '' || String(rawRole).toLowerCase() === 'pending')) {
-        try {
-          await db.collection('users').doc(cred.user.uid).set({
-            role: toFirestoreRole('Administrator'),
-            email: cred.user.email || '',
-            username: profile.username || u,
-            name: profile.name || '',
-            assignedDc: profile.assignedDc || 'DC INDUK',
-            updatedAt: tsNow()
-          }, { merge: true });
-        } catch (_) {}
-      }
+      const role = normalizeRole(profile.role || 'Administrator');
 
       state.user = {
         uid: cred.user.uid,
-        name: profile.name || cred.user.email || u,
-        username: profile.username || u,
-        email: cred.user.email,
+        name: profile.name || cred.user.displayName || cred.user.email || u,
+        username: profile.username || (cred.user.email ? cred.user.email.split('@')[0] : u),
+        email: cred.user.email || '',
         role: role,
         assignedDc: profile.assignedDc || 'DC INDUK',
         locked: false
       };
-      storage.set('session', null);
+
+      storage.set('session', state.user);
       if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
         state.dcName = state.user.assignedDc;
         cacheLocal('dcName', state.dcName);
       }
       enterApp();
+      showToast('Selamat datang, ' + state.user.name + '!');
       try {
         logActivity('LOGIN', 'Sistem', state.user.name + ' masuk (Firebase) Â· ' + role);
       } catch (_) {}
     } catch (err) {
-      console.error('[login]', err);
-      showLoginErr(err.message || 'Gagal login');
+      console.error('[login error]', err);
+      showLoginErr(err.message || 'Gagal memproses login');
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = origText; }
     }
   };
 
-  // Register
+  // Register Baru
   $('#registerBtn')?.addEventListener('click', async () => {
     const name = $('#regName').value.trim();
-    const username = $('#regUsername').value.trim(); // diisi dengan NIK karyawan
+    const username = $('#regUsername').value.trim();
     const email = $('#regEmail').value.trim();
     const password = $('#regPassword').value;
-    $('#regError').style.display = 'none';
+    const regErrEl = $('#regError');
+    if (regErrEl) regErrEl.style.display = 'none';
+
     if (!name || !username || !email || !password) {
-      $('#regError').style.display = 'block';
-      $('#regError').textContent = 'Semua field wajib diisi';
+      if (regErrEl) {
+        regErrEl.style.display = 'block';
+        regErrEl.textContent = 'Semua field wajib diisi';
+      }
       return;
     }
-    // Username/NIK: huruf, angka, titik, underscore, strip (3â€“30 karakter)
     if (!/^[A-Za-z0-9._-]{3,30}$/.test(username)) {
-      $('#regError').style.display = 'block';
-      $('#regError').textContent = 'Username 3â€“30 karakter (huruf/angka/._-)';
+      if (regErrEl) {
+        regErrEl.style.display = 'block';
+        regErrEl.textContent = 'Username 3â€“30 karakter (huruf/angka/._-)';
+      }
       return;
     }
     if (password.length < 6) {
-      $('#regError').style.display = 'block';
-      $('#regError').textContent = 'Password minimal 6 karakter';
+      if (regErrEl) {
+        regErrEl.style.display = 'block';
+        regErrEl.textContent = 'Password minimal 6 karakter';
+      }
       return;
     }
-    // Firebase register
-    if (firebaseReady && auth && db) {
-      try {
-        const cred = await auth.createUserWithEmailAndPassword(email, password);
-        await db.collection('users').doc(cred.user.uid).set({
-          name, username, email,
-          role: 'admin',
-          locked: false,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showToast('Pendaftaran berhasil â€” akun langsung aktif sebagai admin');
-      } catch (err) {
-        $('#regError').style.display = 'block';
-        $('#regError').textContent = err.code === 'auth/email-already-in-use'
-          ? 'Email sudah terdaftar' : (err.message || 'Gagal daftar');
-        return;
-      }
-    }
 
-    // SECURITY: local registration is disabled; Firebase Authentication is required.
+    const regBtn = $('#registerBtn');
+    const origRegText = regBtn ? regBtn.textContent : 'Daftar';
+    if (regBtn) { regBtn.disabled = true; regBtn.textContent = 'Mendaftarkan...'; }
+
+    try {
+      if (firebaseReady && auth) {
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        if (db) {
+          try {
+            await db.collection('users').doc(cred.user.uid).set({
+              name, username, email,
+              role: 'admin',
+              locked: false,
+              assignedDc: 'DC INDUK',
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+          } catch (_) {}
+        }
+        state.user = {
+          uid: cred.user.uid,
+          name, username, email,
+          role: 'Administrator',
+          locked: false,
+          assignedDc: 'DC INDUK'
+        };
+        storage.set('session', state.user);
+        enterApp();
+        showToast('Pendaftaran berhasil â€” selamat datang, ' + name + '!');
+      } else {
+        loginLocalOffline(name, username, 'Administrator', 'DC INDUK');
+      }
+    } catch (err) {
+      console.warn('[register error]', err);
+      if (regErrEl) {
+        regErrEl.style.display = 'block';
+        regErrEl.textContent = err.code === 'auth/email-already-in-use'
+          ? 'Email sudah terdaftar. Silakan login atau gunakan mode offline.'
+          : (err.message || 'Gagal mendaftar akun');
+      }
+    } finally {
+      if (regBtn) { regBtn.disabled = false; regBtn.textContent = origRegText; }
+    }
   });
 
   // Mode offline ditiadakan â€” semua aktivitas lewat server Firebase
@@ -11521,38 +11557,18 @@ function bindEvents() {
     const name = prompt('Nama Gudang / DC:');
     if (!name) return;
     const code = prompt('Kode singkat:') || name.slice(0,3).toUpperCase();
-    const nw = { id:uid(), name, code, address:'' };
-    state.warehouses.push(nw);
-    cacheLocal('warehouses', state.warehouses);
-    cloudSaveWarehouse(nw);
-    renderGudang();
-    logActivity('CREATE', 'Master Gudang', name);
-    showToast('Gudang disimpan ke server â˜');
-  };
-
-  // User
-  $('#refreshUsersBtn')?.addEventListener('click', () => renderUsers());
-  $('#addUserBtn').onclick = () => {
-    if (!isAdmin()) return showToast('Hanya admin');
-    if (!requireServer()) return;
-    openAddUserModal();
-  };
-
-  // Laporan
-  ['lapFrom','lapTo','lapSearch'].forEach(id => {
-    const el = $('#'+id);
-    if (el) { el.addEventListener('change', renderLaporan); el.addEventListener('input', renderLaporan); }
-  });
-  $('#lapRefreshBtn')?.addEventListener('click', renderLaporan);
-
-  // Laporan Master DC
-  ['lmFrom','lmTo','lmSearch'].forEach(id => {
-    const el =xœ´ínÛÈñÿ=Å=É‹Ã‡¢(ì&©bÙ½4NlXö¡…\WäJdDqÙåÒêó¾Eß¤ÿû(}’Îì7)Ê±Ó6?íììÌì|Ï2äÛ8úUô´Ì“ƒoü)$fUBn	«RšçG×¬–'e+YÍDe­—,Ú#qB^¾"‚Õ9'´á‚Öï)`‰)•4N’ƒñóeİtòAÇï@œ;%JX­ÏÙB°¶x#ë(y=&YUf+Gù–ä¬b’™ÃÓì°`Ùª’4-“©`4ßŒ‰#÷€ó(erRUå­ùmŸ3Ñ7OÒG4+âL‹™¥î³œ¼$Rtì !oY+ãöÊYfm[ä‡Ìãˆf²¼f‘““ìÖäÁ@‡£bšı¿¯² UûÅ»¶æ×ì«®ÿ<NNø’´pŸ¬°÷ãË™Z_ÎzŸ!Ï—ŠŞ¼¬óC&éê¬¢+*Õ™Y.çåİPI&]^J²(+¦%O	ûâIÀ¹Š(nı|÷=9|®/x¸zÇë¼lËè£Sf™{Åg¼n%(ôqaÚ¿èÄrãb³+0]`ñÁ¨E¢ÅÑç|Èæ®s¤T¢œk€<ÍÇq§‚79¿1ğZöwßÙ£‰Ñ‡İJy­üHÆÌÄ;KAØæÈÑ%•%¯1ŒÍùÀç$_.+ğ¹¶à7Êã¼‹ïÌ;)y8üonÔ—È& ®É ¶Ë:‹µË†Â@,­ó;ãİN¾©Êm—Æ¹Å‡<ÆreÛk[PR‹¹ÖYªoÕb—A{ö,î1e`É¾!kÇG™q[¢ÿ½k@IfLÊ²^¶Æ-½f¤T¼-ƒö'‚ıµ+à‹k,Q	ªìD}$ŠF°ë)$cÒJ*Yšgèši„b—™ª5ğ½¦UÇR)Ê5ğıåMÉÛÓËwQx¼İ´ıó3ØAàÃé‡7—“‰ÔÎNxF«8Òr€{†b%Ûx†¡C4k‹Yñ.Ÿ:ŒÁdŠÔ~0œÖçö÷¸’©Ñİ“—}í%ÎE *ä¡b¹©³Ø¤8„ı°Š6t»w§=4˜goh¾DõIöYò‚W›¼ê‚S¬£g¬†¸è .¬ë~¬”Aôòïü=2| N°°–rG—gÓÉÅ(28«éá>‰n™áÎ6ºÆÙŞg‡ï£›ŠSLVe æàğCú"Ú3PMÒÜ'5¿9¡sVÅ‰İmÏ»L¶ÖVvm÷3 .¹(™Ãğ‹#(t)v[-ìÎ¬à]ëO{ˆÅßÂm«Eº¦MÜ½|ß¦iÚíÁMÛö†‹|?úşûï£»Ä	_è‚i›¥İ¥AMµ(!Ìá«AâĞ<ÈbzºõÕQ×Ş&ŒyÅç`¯šİ7ğ3¾úãìôä_ÑT.6±1é^İUÕŞÉÇ=r+7ÛhÓ€¨ôüüS™Õ†¦´I#á=ò—<{VózŞÑâÙÌĞ5Ï¾½•<§›™„v—âÑ¿Œ¹ëÑŸÎNÏ/ĞAß¨søë„ šA9­Ÿ±¡‘Éœ‰‚¶eÒÕyWD}Ÿ†˜¹Ï§{(Çe…ñ©0âd‹‚Ù¾§Ztu¦«X/X ‹Ä<*ÁERüİ^½øè“ÑexZ ÊµÉù¹Ä®mÆÜÈ"kœ÷ÛÒÃ¢xÊì-‹!‰S±TóQÛUÒå3-â»Äî³¤@ª‡q@Ğ±é\y,ØåsGéÀdÅØ“‡Y^2àæ7¿€â(G•+<3µ´|ÔbÀBÁu}z”°Ï2º‡Y2àã7³€â(G“{<;°¼ÌrÀÈ@—¢7X„¹Ëó	¡–Yp·[º=}yû„°ö@ÇÙƒ†ŒıçPeëš‚aCìøìèuÆ¨ÛöÆ‘÷W¸?`°³I
-X9çè0Cª\qŞKÄoßo'âs†üÈ$J•ÈÂÓ ÒE¹f¼“±N§×u
-f%¨ôä·/^¸wXÑ³ú!’ ?c³‰_–9]è6ËÜs½+›ÉøÏ¤½€¾*VÉ4x8ÀÙ}©­Q™òä¢ë8úqrv9#³£÷—½Ô„œœ¾›œ¼&J¢yÙRPæ”[­hı$4è}Z¦«²U­à¤¢Ëòõÿ*H–½LfsN/' †€qß‡¯+,GácƒÙ
-ß¹gÔê~5¬Î¡À6×¯ôÈÙz€êk-Ô?_¬¬Í«™qR=½•.¾lö£§«Ä•ük˜2ã’-›ª*“¦1õÓ¼(t²˜e‚1ÿ a½‡‡¦™¬²Ï'v<5¸cI@søÚV”yÎÂ
-C'q eÚTÛeÛT³^´¨ØçHyğ½dô•©àª	¨¹Xƒ#üÃ:îã05É×eò*u¬êqò(©$0iÑ•60€mLf‚xÅ²ıK&Ïï-tC«dK(œÏŸ”­B=ë•Âf¡< •rY³|š%6Tip¯°=Ò<l´“ó;Ë'è©Èwº&ècŸ¬;*ÉªèÚ®uŠø=‹æŠöTĞ…l¹˜ª‘Í¹F‡¬g Àzµ66û‰EĞ”î^‡šLkÔƒ»¯±5…D‹f¼„e”}ó+-­! uB å	y:4Ô¸Š_“ˆüëŸğ×ÓÀ4É÷î€àşz?±ˆƒû;yC•N®{'×à‡" ‰û‰F‹wß±VQi/J IN%¿l&)4«¡EÍ0íDpÃµåï;ƒ-L½Eë‡C‡Í4›e¼a|†²éT¥6Ş³ºû	ñyYaÅtìnÊ:ç7iÕeeîTN4,…d¤ŞfêîÀWÂŸûÎ<ûÕôº\"Ã(§m1çT˜º7öÑ5Ğ&0\«ëiàVAs.1•4ö)iüFdˆ5ÚÂa7³@ER•ş¸lúF¯…jêúZfb‚QFŞl½˜–†Ô3‡-­E
-Á>÷|9§?¸><<‘ÃüÊ¢àÈ—*†}‹	J»Jh~ƒò‰Of¼½óœòyrïèÖÖ´#ô†B2<|]¶jañ•Ã$$Ÿ§¯ğİgĞH=gàG0õ™ve¤0öù‡üƒS¦!Ç?ã·O@IyÑ–[é½	Áa–zZ›=òëàb‰#ıq0WªË`àÃ¿)ûŠlÃf:R(¹ú„iÁªÌ÷»{JT$.œ@Wh¿dI—T½+PÇı]9şYv5…~¿gUØ‚*£ïƒc"éAÿùMğ˜¨¥Ğà¬XîE°”³áïSô)¨1I•ÔF·wüˆéõÈ“UW“ISíÒJõpÓ‚Ğ°sH}Ëüà8ù¯ÜôzZ£ _ñ¶z«·{ÕL:ÉŸéú\å,g3gÅOå
-ª[ƒhWªÁ±¬êŞ#o?Ğ´‘B˜¾B¿­Õ3\Ï$—¦Sèíz…0‘ï5}âõ06%¸ÆïUİÄ ÒTx£Q„*šH(êmhß×_|Ãß|ìßzWRõJ=[Ò…µcz\²*ÿI}WĞÛ˜o Ö0øßƒzºfb	ÂáçsâÃf«:ì”µ˜o 	€XiµâCŸÙ2İW˜Õ›ÔR¶Ä¿ÚÎ‘Kâ÷Ø2±¸¶6şm!£fMl©õû~ox;£?°Ú«¦âëf’‡M%.>ğ»”ö ?ªbî
-Møº‹%†éxÕÂ& /üh{)•>‰ÚVed¬+z„K>ÎÍ¾èÌ&ô“óƒeÛ%FÛ{À:	¿8„îF¹™Ñi¼æ¶³Ö5¥âË2¬d'¸>T-3ö.Ë`ëœ-ñ­^Ø]ó¨`œiÈ¡ë¸Ñ#‡D3ÚêQòò%4j?Â¡lêˆ0(]#‰t@|ïYŞCC	ï#c¤N¬ø÷3ãÔBeƒI¥ylÁ):wğÿÉøÿCˆÌÏ˜(W-…†°…c±¨Êš‘Nêm—ÓÂÔ^m k¹ŠHÿËñ—3ÈùúWZ¶§š|ÆG#9ÔVŞZğ+Ê}ü‰ŠNüáÛï]Şg¬Ü< ®İ ª¶U+Î
-Ãg*µÜ:´…zHıQ5²C¶BÀÌç8ÓñÀİ‹nŞò’äbXY6%0í{ô£OÄ™C³S®–İŠ¬iÛ­Ò(Ì{úz`Ş	ô\æ‚ÆØÇ¦5Æğ¦9±§î¿eh¢c^ãÕ”ªÏiy<2êÁº±nZù7=}oÔvşÌrğ3ôql&ïôß=o3Q6òüšó|ƒÿr]½ú   ÿÿ ü}ùÎ
+    const nw = { id:uid(), name, code, adxœ¼ÛnÜ¸õİ_ÁE‘”8J°(ŠbÜ$øÒ¤qbÃco·0‚]Ä™aF#ª¤dgê‡şEÿ¤ïı”~IÏáE¤4²c»@Ä#‘çÆs?T.™R£("›½ÿTMk–^SÉ¢QL¥U£qy˜íŒfv,2ZÄ‘Šv·ğ|!š|B¯Ø_Ü§%Y™3ù§&§å<¶k…˜³š_ñzGûg‡ãóC }¤ªf’XX(éŠYµ×çöãÈl“œ+¾ªhI–Œ(&¯ ñ?ÿüG¤áá”ğ÷År;ğô}ıF²(a+êm]FÉ›”æùá+ëc|K&ã(+x¶ÎqB^½¶¢kŒ8Ñ„‘`á’¦‘ŠR£WåFKËg$ş«q¾â%`¡º‘exˆw´\SB ²GÔH’ı­á’Mô<ª+Ç†ûG‘ƒqº‡=¦•´„—Ë¨ Õ‘«hŸÎ…ù0*³Eô9	y&yîeÎD©jÂ
+8
+2zÆó@0V$äv‡t¶ s0PšQ—•"Ù†æeÕÔÀ<I«cöÌØë›¦êêê‚X—:Ø7ZY9¥¬ŒNVÿO•Y¤˜¥§Õ£´ã¨µT¿ÂzıS¡¾Ş'˜†îĞŠ£¯y‹æi>{4É
+q[K²rN!´c#yfÂêš—suWëå™µbõAö	2
+ \Ñ¢ai-ù
+~ı•Dûäı§ƒ‹Ñ^€ªÖÊãNÖêäO'ŸŞ^ŒßEavÍ57 gá²2„`¶Ó­ÁåÙ@2¶È˜‰×*ğÅnÚ¨eÃ u5ÙÙi-¾!†Í~5)ó‚ŞXªıŸgoi>Ç“×ìk½/J°dâ§ÜJÒŞjw&ê^)¸8=°¥ÀããÛÁşˆDÏB†.ó‹âÛşPÑu!(y«HqQ‡Ò—Ñ®]5$Y>®G¤×ÇtÊ ßºİJŠ¼Éj5²Zpïn?ƒÅ¹œµ~ÅÁHš-Ûmıâv|}mU\Ó`UrÛú%]Ñ*n^½oÒ4mvá¤J]™¢§OŸF›¤~Á(äÚ!ÛW·K›œ×ïº áZg­v,æ-˜_rPÎÏBÛ¹=ïwa`ïãpZˆ)Ø«d×ä-<Æ—œ|JD`9ç³ulMº[6E±ûCòy—ÜÔëŠ"ZUà´ë¾ø¢D9çÆ2V1Ş%¿äÙóR”Ó†.OÁMõüû›êëzRC	Ş¤ˆúË»ştzrvúVãáÓA‚rFÛŒ&S&Tñ¤)ófu}bæ.Ÿî€ñãSCÄÉ»}Gš5e†jŠ“N°Ì 8Öà")>«Ë—Ÿƒf—ºŠA“ŒBÑ±&Cægz!n;B|ƒÙ@d>F	©åº}ns8­)Ài³WTBw	ù—Ê9«S(‚MQ[ÂN0„oC‹t7H1%‡{›ÎÁ˜Ç-·ínKiÏfÅØ“_s¼üJ›ßhù9ê\á™éWÇG¿ôXèµ–ºÁ$ôõ-u¿æXø•ŸoL
+Cmîñìì‚ãe_{ŒìjËÅQdæ.Ï'\uÌÂµÇp«eÛ¡<ÌÛ'Ä€µ_l9û¥>c¿ãùTÙÚÙrôˆßíñiÛn‘¢nó´'ï;šp¿Ç è\B¤‹ G`ÈRç²(ˆóN"~ÿq;Ÿ1äÏ@&Éu"±A¤s¾b¢©c“Naê$ÌJPéÉï_¾l16XÑ³4ıR&A~
+$Æ<çÍsº$Ğ(òÜsİ„•Íæ@ü«sè«bL÷l›ßÎ¬ è7Ú‰!OÎ¸\Á\9>½˜ÉáÇ‹1^jLO>Œßs-Ñ”+
+Êœ‚r‹%-¿‹zf—Ö_é’ÃĞÊ–pRĞ9Ó‡¿’e'“¹œÓÉ	 !aÂñákÂ
+Ë‘{~ç·BÇ {4x‚8‡º?Y—Y0µ-‹‰u:ÉVâŠ½¯d^¢gË¤-á=SÛ²»ÙÙqe@•dr\U¶š2D›z1É$c¥ü‚±²«ªÉ‚njt¯5ìÑ’€&TohØPX¨1Éå¹#¬±,¤e -Ğº€Xåª*(f±hV°¯‘öÄğ½aô‰©º¨—B®À°ggğ÷÷q®Ñ× ¤µ‰=3} %q˜¨	]ÖÀºz°	ƒ¿†?^²¬AÑÈäÂ½‡îf™l	E<!ş’Ä¾iØƒ,”´Âç%Ë²v¦é¥µA`<Âöˆ28jmî¨/xÛôÄôÅ¤ }ŒÈª¡5Y.Õ¨Vö|ØyŠAÏÒl$ÕêHHèÕ+´‘õ±(Š+5(Ñ¡ó$< ™AOØıÄNhZ×oBÍ§x±æõ£—ØŠB¢E³ãõ7²O8èzÚY#%pÑÎ“g}Ã›ä‰È¿ÿİ LÃPj|çü¸œßì'°wşVŞP¥ã«Áñø­Hâ~bÀzäâÛÏ¨o*ö¢šä´UÅä>…f5´¨¦[ÚáÚñoÛ“ƒÍf³#3÷–~à|8÷¬²I&*v.&(æ–ïÀÄ­!¬l~„~ÊHÇÃtº0Î5/sqMÆsæ‚WwøÄ¬¥ú€ó{TNŒ½€«³?´¾ó‚ÿ%½âs”/Ê©ZL•yÔl!ë}}Ñ•aKÊîöÖA›
+:†[Zã[è½ı-ü©5æÉÊ\Àl³ï·=l7~§ÛÈ<Tá	ÚR$MsÄ%›‚7aLB¯à_ŒZí<Ö_vn§Ó^®S‚)sİ“¹ªJpt®“,8ø¸}L¹:™Í
+^jÚèèv½áypÓÄÇ+áº_QİJØHllZUÏH=š(§[›Ë¡ƒÜ£ß»²ß¿—¢dQ€ò­Zoú”n¹u£K‘ŠVãå“Ìo6S>Mî¢UI+@¡×ÊØ©+®ô0ÈâË’|šf¢(˜¹ˆôÅ´¹È:N§í®¨½UÂ8ï[Òqü3Ş>JÚã·BÀìÅˆr(¥qT›}h2wÉo_B8$-éÏ½	_S0ü¦ì+(R…m9	t¤Ap01·µNeŞënïîQqPBpŠ]\¢ı>“9S}ÃC[&›:HwÉ¼))tÖdF‹‡mô8&’îM;­í,¡ZÓ%Ë½Îƒk6|N±X€“TKmÕy³iÉß1ie¼lJ2.sJ ,—º£ƒ“.Ì)×ó¥~x¹wœüOnßO
+áÒP×êôvgËª;¹qS‹ç¦Ø¼ĞùµµYkÅ/|‰#gÑ¬@4ˆ+İš:V¦Òš1ÒƒBÓWè·¥¾íÀÙäòÉöl½^×Æ"ò f0Ş,¦À†ƒküQw0ØŠ5}šn ŠĞE“ 	ó…3Ü0>>ÂQ,Üğmà(ø Ó9’.ÃúJŞ‰ÎœÓ#ÎŠüGıqÆ|fÀ|±°‚šãC~z“s?“6[½Gë€rÖóõ4+NZ£øĞg¶L÷³z“:ÊnaãGÛ9j“øvL,n¬İÊ ™C;jİ‰ÍŞİ–ÜUíƒ	7¸ÀxÜLy¿©²Í‡÷š#]ªï6?¾Ü„Mf
+á¥‚!ZB'ıÙu:‰½­‹ÉPoô Ç|˜³}+Üï™lFè¦è{»Ë¶c<Ä/zèÜõ`U„ò°Ø‡¹Fğ‰Õ}¼nf1¨sÖ½c|ß×Ãv:ó`ëŒÍñ‹t»öÒ*€85+ûYFsH£­ÎÅ1ƒ…Şp˜¢Ú"á¶í4_ƒçxO7¿ƒ†´ŞEÆJ8ñï g!†©…ÊÓ×öRo?‚¹s
+³¢ş<¥Ìûıú/ùRQh'k¼‰QMN¶B?p¸yühsë`Ókz;rtqÁÖÈØtt†°îèD‰ş§u±¯¿ÈåñÀÔgsƒ qRİâ¹ÖC¼¯ÛˆHhúÀ¨ù;›o<8ùhïå A´PÓíÈšìé«ëup·‰UÓ	‹P…·BqÔ—¾Ûe‘\µGh/Ù$øğ‡*“¼ª_ÃÓTäkü]Ô«âõ  ÿÿ ßö=g
