@@ -331,6 +331,20 @@ table.data-table .actions { display: flex; gap: 4px; }
 .search-dropdown-btn:active {
   transform: scale(0.95);
 }
+/* Ruang untuk tombol âœ• dan â–¼ di input pencarian produk */
+.form-group[style*="position:relative"] > input[type="text"],
+.form-group[style*="position: relative"] > input[type="text"],
+div[style*="position:relative"] > input[type="text"]#returSearch,
+div[style*="position:relative"] > input[type="text"]#auditSearch,
+div[style*="position:relative"] > input[type="text"]#plkSearch,
+#returSearch, #auditSearch, #plkSearch, #bandingSearch, #editAuditSearch {
+  padding-right: 64px !important;
+}
+.suggest-list {
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 50;
+}
 
 .search-history-header,
 .suggest-section-title {
@@ -983,7 +997,7 @@ table.data-table .actions { display: flex; gap: 4px; }
   }
 }
 
-#authScreen.hidden { display: none; }
+#authScreen.hidden { display: none !important; }
 
 .auth-card {
   background: #fff; border-radius: 16px; padding: 28px 24px;
@@ -7505,8 +7519,8 @@ function attachSearch(inputId, suggestId, onSelect) {
       let header = '';
       if (brand && results.some(r => !r.isDirect)) {
         header = `<div class="suggest-section-title">
-          <span>ğŸ“¦ Varian Terkait (${esc(brand)})</span>
-          <span style="font-weight:normal;font-size:11px;">${results.length} item</span>
+          <span>ğŸ“¦ VARIAN TERKAIT (${esc(String(brand||'').toUpperCase())})</span>
+          <span style="font-weight:normal;font-size:11px;">${results.length} ITEM</span>
         </div>`;
       }
       suggest.innerHTML = header + results.map(({ product: p, isDirect, isSelected }) => `
@@ -11557,18 +11571,237 @@ function bindEvents() {
     const name = prompt('Nama Gudang / DC:');
     if (!name) return;
     const code = prompt('Kode singkat:') || name.slice(0,3).toUpperCase();
-    const nw = { id:uid(), name, code, adxœ¼ÛnÜ¸õİ_ÁE‘”8J°(ŠbÜ$øÒ¤qbÃco·0‚]Ä™aF#ª¤dgê‡şEÿ¤ïı”~IÏáE¤4²c»@Ä#‘çÆs?T.™R£("›½ÿTMk–^SÉ¢QL¥U£qy˜íŒfv,2ZÄ‘Šv·ğ|!š|B¯Ø_Ü§%Y™3ù§&§å<¶k…˜³š_ñzGûg‡ãóC }¤ªf’XX(éŠYµ×çöãÈl“œ+¾ªhI–Œ(&¯ ñ?ÿüG¤áá”ğ÷År;ğô}ıF²(a+êm]FÉ›”æùá+ëc|K&ã(+x¶ÎqB^½¶¢kŒ8Ñ„‘`á’¦‘ŠR£WåFKËg$ş«q¾â%`¡º‘exˆw´\SB ²GÔH’ı­á’Mô<ª+Ç†ûG‘ƒqº‡=¦•´„—Ë¨ Õ‘«hŸÎ…ù0*³Eô9	y&yîeÎD©jÂ
-8
-2zÆó@0V$äv‡t¶ s0PšQ—•"Ù†æeÕÔÀ<I«cöÌØë›¦êêê‚X—:Ø7ZY9¥¬ŒNVÿO•Y¤˜¥§Õ£´ã¨µT¿ÂzıS¡¾Ş'˜†îĞŠ£¯y‹æi>{4É
-q[K²rN!´c#yfÂêš—suWëå™µbõAö	2
- \Ñ¢ai-ù
-~ı•Dûäı§ƒ‹Ñ^€ªÖÊãNÖêäO'ŸŞ^ŒßEavÍ57 gá²2„`¶Ó­ÁåÙ@2¶È˜‰×*ğÅnÚ¨eÃ u5ÙÙi-¾!†Í~5)ó‚ŞXªıŸgoi>Ç“×ìk½/J°dâ§ÜJÒŞjw&ê^)¸8=°¥ÀããÛÁşˆDÏB†.ó‹âÛşPÑu!(y«HqQ‡Ò—Ñ®]5$Y>®G¤×ÇtÊ ßºİJŠ¼Éj5²Zpïn?ƒÅ¹œµ~ÅÁHš-Ûmıâv|}mU\Ó`UrÛú%]Ñ*n^½oÒ4mvá¤J]™¢§OŸF›¤~Á(äÚ!ÛW·K›œ×ïº áZg­v,æ-˜_rPÎÏBÛ¹=ïwa`ïãpZˆ)Ø«d×ä-<Æ—œ|JD`9ç³ulMº[6E±ûCòy—ÜÔëŠ"ZUà´ë¾ø¢D9çÆ2V1Ş%¿äÙóR”Ó†.OÁMõüû›êëzRC	Ş¤ˆúË»ştzrvúVãáÓA‚rFÛŒ&S&Tñ¤)ófu}bæ.Ÿî€ñãSCÄÉ»}Gš5e†jŠ“N°Ì 8Öà")>«Ë—Ÿƒf—ºŠA“ŒBÑ±&Cægz!n;B|ƒÙ@d>F	©åº}ns8­)Ài³WTBw	ù—Ê9«S(‚MQ[ÂN0„oC‹t7H1%‡{›ÎÁ˜Ç-·ínKiÏfÅØ“_s¼üJ›ßhù9ê\á™éWÇG¿ôXèµ–ºÁ$ôõ-u¿æXø•ŸoL
-Cmîñìì‚ãe_{ŒìjËÅQdæ.Ï'\uÌÂµÇp«eÛ¡<ÌÛ'Ä€µ_l9û¥>c¿ãùTÙÚÙrôˆßíñiÛn‘¢nó´'ï;šp¿Ç è\B¤‹ G`ÈRç²(ˆóN"~ÿq;Ÿ1äÏ@&Éu"±A¤s¾b¢©c“Naê$ÌJPéÉï_¾l16XÑ³4ıR&A~
-$Æ<çÍsº$Ğ(òÜsİ„•Íæ@ü«sè«bL÷l›ßÎ¬ è7Ú‰!OÎ¸\Á\9>½˜ÉáÇ‹1^jLO>Œßs-Ñ”+
-Êœ‚r‹%-¿‹zf—Ö_é’ÃĞÊ–pRĞ9Ó‡¿’e'“¹œÓÉ	 !aÂñákÂ
-Ë‘{~ç·BÇ {4x‚8‡º?Y—Y0µ-‹‰u:ÉVâŠ½¯d^¢gË¤-á=SÛ²»ÙÙqe@•dr\U¶š2D›z1É$c¥ü‚±²«ªÉ‚njt¯5ìÑ’€&TohØPX¨1Éå¹#¬±,¤e -Ğº€Xåª*(f±hV°¯‘öÄğ½aô‰©º¨—B®À°ggğ÷÷q®Ñ× ¤µ‰=3} %q˜¨	]ÖÀºz°	ƒ¿†?^²¬AÑÈäÂ½‡îf™l	E<!ş’Ä¾iØƒ,”´Âç%Ë²v¦é¥µA`<Âöˆ28jmî¨/xÛôÄôÅ¤ }ŒÈª¡5Y.Õ¨Vö|ØyŠAÏÒl$ÕêHHèÕ+´‘õ±(Š+5(Ñ¡ó$< ™AOØıÄNhZ×oBÍ§x±æõ£—ØŠB¢E³ãõ7²O8èzÚY#%pÑÎ“g}Ã›ä‰È¿ÿİ LÃPj|çü¸œßì'°wşVŞP¥ã«Áñø­Hâ~bÀzäâÛÏ¨o*ö¢šä´UÅä>…f5´¨¦[ÚáÚñoÛ“ƒÍf³#3÷–~à|8÷¬²I&*v.&(æ–ïÀÄ­!¬l~„~ÊHÇÃtº0Î5/sqMÆsæ‚WwøÄ¬¥ú€ó{TNŒ½€«³?´¾ó‚ÿ%½âs”/Ê©ZL•yÔl!ë}}Ñ•aKÊîöÖA›
-:†[Zã[è½ı-ü©5æÉÊ\Àl³ï·=l7~§ÛÈ<Tá	ÚR$MsÄ%›‚7aLB¯à_ŒZí<Ö_vn§Ó^®S‚)sİ“¹ªJpt®“,8ø¸}L¹:™Í
-^jÚèèv½áypÓÄÇ+áº_QİJØHllZUÏH=š(§[›Ë¡ƒÜ£ß»²ß¿—¢dQ€ò­Zoú”n¹u£K‘ŠVãå“Ìo6S>Mî¢UI+@¡×ÊØ©+®ô0ÈâË’|šf¢(˜¹ˆôÅ´¹È:N§í®¨½UÂ8ï[Òqü3Ş>JÚã·BÀìÅˆr(¥qT›}h2wÉo_B8$-éÏ½	_S0ü¦ì+(R…m9	t¤Ap01·µNeŞënïîQqPBpŠ]\¢ı>“9S}ÃC[&›:HwÉ¼))tÖdF‹‡mô8&’îM;­í,¡ZÓ%Ë½Îƒk6|N±X€“TKmÕy³iÉß1ie¼lJ2.sJ ,—º£ƒ“.Ì)×ó¥~x¹wœüOnßO
-áÒP×êôvgËª;¹qS‹ç¦Ø¼ĞùµµYkÅ/|‰#gÑ¬@4ˆ+İš:V¦Òš1ÒƒBÓWè·¥¾íÀÙäòÉöl½^×Æ"ò f0Ş,¦À†ƒküQw0ØŠ5}šn ŠĞE“ 	ó…3Ü0>>ÂQ,Üğmà(ø Ó9’.ÃúJŞ‰ÎœÓ#ÎŠüGıqÆ|fÀ|±°‚šãC~z“s?“6[½Gë€rÖóõ4+NZ£øĞg¶L÷³z“:ÊnaãGÛ9j“øvL,n¬İÊ ™C;jİ‰ÍŞİ–ÜUíƒ	7¸ÀxÜLy¿©²Í‡÷š#]ªï6?¾Ü„Mf
-á¥‚!ZB'ıÙu:‰½­‹ÉPoô Ç|˜³}+Üï™lFè¦è{»Ë¶c<Ä/zèÜõ`U„ò°Ø‡¹Fğ‰Õ}¼nf1¨sÖ½c|ß×Ãv:ó`ëŒÍñ‹t»öÒ*€85+ûYFsH£­ÎÅ1ƒ…Şp˜¢Ú"á¶í4_ƒçxO7¿ƒ†´ŞEÆJ8ñï g!†©…ÊÓ×öRo?‚¹s
-³¢ş<¥Ìûıú/ùRQh'k¼‰QMN¶B?p¸yühsë`Ókz;rtqÁÖÈØtt†°îèD‰ş§u±¯¿ÈåñÀÔgsƒ qRİâ¹ÖC¼¯ÛˆHhúÀ¨ù;›o<8ùhïå A´PÓíÈšìé«ëup·‰UÓ	‹P…·BqÔ—¾Ûe‘\µGh/Ù$øğ‡*“¼ª_ÃÓTäkü]Ô«âõ  ÿÿ ßö=g
+    const nw = { id:uid(), name, code, address:'' };
+    state.warehouses.push(nw);
+    cacheLocal('warehouses', state.warehouses);
+    cloudSaveWarehouse(nw);
+    renderGudang();
+    logActivity('CREATE', 'Master Gudang', name);
+    showToast('Gudang disimpan ke server â˜');
+  };
+
+  // User
+  $('#refreshUsersBtn')?.addEventListener('click', () => renderUsers());
+  $('#addUserBtn').onclick = () => {
+    if (!isAdmin()) return showToast('Hanya admin');
+    if (!requireServer()) return;
+    openAddUserModal();
+  };
+
+  // Laporan
+  ['lapFrom','lapTo','lapSearch'].forEach(id => {
+    const el = $('#'+id);
+    if (el) { el.addEventListener('change', renderLaporan); el.addEventListener('input', renderLaporan); }
+  });
+  $('#lapRefreshBtn')?.addEventListener('click', renderLaporan);
+
+  // Laporan Master DC
+  ['lmFrom','lmTo','lmSearch'].forEach(id => {
+    const el = $('#'+id);
+    if (el) { el.addEventListener('change', () => renderLaporanMasterData()); el.addEventListener('input', () => renderLaporanMasterData()); }
+  });
+  $('#lmRefreshBtn')?.addEventListener('click', () => { delete $('#lmDcChecks').dataset.ready; renderLaporanMaster(); });
+  $('#lmSelectAllBtn')?.addEventListener('click', () => {
+    $$('#lmDcChecks input').forEach(c => { c.checked = true; c.closest('.chip')?.classList.add('active'); });
+    renderLaporanMasterData();
+  });
+  $('#lmClearDcBtn')?.addEventListener('click', () => {
+    $$('#lmDcChecks input').forEach(c => { c.checked = false; c.closest('.chip')?.classList.remove('active'); });
+    renderLaporanMasterData();
+  });
+
+  // Log search
+  $('#logSearch')?.addEventListener('input', renderLog);
+  bindCetakPlakatEvents();
+
+
+  // Riwayat Audit filters + export
+  ['auditHistSearch','auditHistFrom','auditHistTo','auditHistKondisi'].forEach(id => {
+    const el = $('#'+id);
+    if (el) { el.addEventListener('input', renderAuditHistory); el.addEventListener('change', renderAuditHistory); }
+  });
+  const ahExpBtn = $('#auditHistExportBtn');
+  const ahExpDd = $('#auditHistExportDropdown');
+  if (ahExpBtn && ahExpDd) {
+    ahExpBtn.onclick = (e) => { e.stopPropagation(); ahExpDd.classList.toggle('show'); };
+    $$('#auditHistExportDropdown button').forEach(btn => {
+      btn.onclick = () => { doExport(btn.dataset.fmt); ahExpDd.classList.remove('show'); };
+    });
+  }
+  $('#auditHistDeleteSelBtn')?.addEventListener('click', () => deleteSelectedAuditSessions());
+  const hExpBtn = $('#histExportBtn');
+  const hExpDd = $('#histExportDropdown');
+  if (hExpBtn && hExpDd) {
+    hExpBtn.onclick = (e) => { e.stopPropagation(); hExpDd.classList.toggle('show'); };
+    $$('#histExportDropdown button').forEach(btn => {
+      btn.onclick = () => { doExport(btn.dataset.fmt); hExpDd.classList.remove('show'); };
+    });
+  }
+
+  // Settings
+  $('#saveSettingsBtn').onclick = () => {
+    if (!requireServer()) return;
+    const prevDc = state.dcName;
+    state.dcName = $('#setDcName').value.trim() || 'DC INDUK';
+    state.sysName = $('#setSysName').value.trim() || 'DC NONBUAH';
+    cacheLocal('dcName', state.dcName);
+    cacheLocal('sysName', state.sysName);
+    cloudSaveSettings({ dcName: state.dcName, sysName: state.sysName });
+    if (prevDc !== state.dcName) {
+      startCloudSync();
+      cloudSaveCart();
+      cloudSaveAuditList();
+    }
+    $('#dcBadge').textContent = state.dcName;
+    showToast('Pengaturan disimpan ke server â˜');
+    logActivity('UPDATE', 'Pengaturan', 'DC: '+state.dcName);
+  };
+  $('#exportAllBtn').onclick = () => {
+    const payload = {
+      version: '2.0',
+      exportedAt: nowLabel(),
+      products: state.products,
+      categories: state.categories,
+      racks: state.racks,
+      warehouses: state.warehouses,
+      users: state.users.map(u=>({...u, password:'***'})),
+      history: state.history,
+      auditHistory: state.auditHistory,
+      activityLog: state.activityLog,
+      dcName: state.dcName,
+      sysName: state.sysName
+    };
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+    saveAs(blob, `dc-nonbuah-backup-${todayStr()}.json`);
+    logActivity('EXPORT', 'Backup', 'Full backup JSON');
+    showToast('Backup berhasil diunduh');
+  };
+  $('#importAllBtn').onclick = () => $('#importAllFile').click();
+  $('#importAllFile').addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.products) { state.products = data.products; storage.set('products', state.products); }
+        if (data.categories) { state.categories = data.categories; storage.set('categories', state.categories); }
+        if (data.history) { state.history = data.history; storage.set('history', state.history); }
+        if (data.auditHistory) { state.auditHistory = data.auditHistory; storage.set('auditHistory', state.auditHistory); }
+        if (data.activityLog) { state.activityLog = data.activityLog; storage.set('activityLog', state.activityLog); }
+        if (data.dcName) { state.dcName = data.dcName; storage.set('dcName', state.dcName); }
+        showToast('Data berhasil diimpor');
+        logActivity('IMPORT', 'Backup', 'Restore dari file');
+        navigate(state.page);
+      } catch(err) { showToast('File tidak valid'); }
+    };
+    reader.readAsText(file);
+  });
+  $('#resetAllBtn').onclick = () => {
+    if (!confirm('HAPUS SEMUA DATA LOKAL? Tidak bisa dibatalkan!')) return;
+    if (!confirm('Yakin sekali lagi?')) return;
+    ['products','categories','racks','warehouses','cart','history','auditList','auditHistory','activityLog','dcName','session'].forEach(k => localStorage.removeItem('gp:'+k));
+    location.reload();
+  };
+}
+
+function enterApp() {
+  $('#authScreen').classList.add('hidden');
+  $('#appShell').style.display = 'flex';
+  if (state.user) state.user.role = normalizeRole(state.user.role);
+  // Kunci DC aktif ke penempatan (kecuali Admin / DC Induk)
+  if (state.user && !isAdmin() && !isIndukDc(state.user.assignedDc)) {
+    state.dcName = state.user.assignedDc || state.dcName;
+    cacheLocal('dcName', state.dcName);
+  }
+  // Keranjang & audit list: muat khusus DC aktif (pisah dari DC lain di perangkat sama)
+  loadLocalDraftsForDc();
+  $('#userName').textContent = state.user.name;
+  const roleLabel = currentRole() + (state.user.assignedDc ? ' Â· ' + state.user.assignedDc : '');
+  $('#userRole').textContent = roleLabel;
+  $('#userAvatar').textContent = (state.user.name||'U')[0].toUpperCase();
+  $('#dcBadge').textContent = effectiveDcName();
+  applyDcScopeToState();
+  applyMenuVisibility();
+  if (window.lucide) lucide.createIcons();
+  navigate('dashboard');
+  startCloudSync();
+  updateSyncBadge();
+  setTimeout(() => bootstrapServer(), 800);
+}
+
+async function restoreFirebaseUser(firebaseUser) {
+  if (!firebaseUser) {
+    stopCloudSync();
+    state.user = null;
+    storage.set('session', null);
+    $('#appShell').style.display = 'none';
+    $('#authScreen').classList.remove('hidden');
+    return;
+  }
+  try {
+    const snap = await db.collection('users').doc(firebaseUser.uid).get();
+    const profile = snap.exists ? snap.data() : {};
+    const role = normalizeRole(profile.role || 'admin');
+    if (!snap.exists) {
+      // Tidak ada profil tersimpan â€” buat otomatis sebagai admin (approval dihapus)
+      try {
+        await db.collection('users').doc(firebaseUser.uid).set({
+          name: firebaseUser.email || 'User',
+          username: firebaseUser.email || '',
+          email: firebaseUser.email || '',
+          role: 'admin',
+          locked: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (_) {}
+    }
+    state.user = {
+      uid: firebaseUser.uid,
+      name: profile.name || firebaseUser.email || 'User',
+      username: profile.username || firebaseUser.email || '',
+      email: firebaseUser.email || profile.email || '',
+      role, locked: !!profile.locked,
+      assignedDc: profile.assignedDc || 'DC INDUK'
+    };
+    // Do not persist credentials or an app-level session token in localStorage.
+    storage.set('session', null);
+    // Non-Induk: kunci DC aktif ke penempatan user
+    if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
+      state.dcName = state.user.assignedDc;
+      cacheLocal('dcName', state.dcName);
+    }
+    enterApp();
+  } catch (e) {
+    console.error('[security] restore auth', e);
+    await auth.signOut().catch(()=>{});
+    state.user = null;
+    showToast('Gagal memverifikasi akun dari server.');
+  }
+}
+
+function showAuthCardForSecurity(mode) {
+  const login = $('#authLoginCard'), reg = $('#authRegisterCard'), pending = $('#authPendingCard');
+  if (login) login.style.display = mode === 'login' ? 'block' : 'none';
+  if (reg) reg.style.display = mode === 'register' ? 'block' : 'none';
+  if (pending) pending.style.display = mode === 'pending' ? 'block' : 'none';
+}
+
+function init() {
+  loadState();
+  bindEvents();
+  if (!firebaseReady || !auth || !db) {
+    showAuthCardForSecurity('login');
+    $('#loginError').style.display = 'block';
+    $('#loginError').textContent = 'Firebase Authentication wajib tersedia.';
+    return;
+  }
+  auth.onAuthStateChanged(restoreFirebaseUser);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+})();
+</script>
+</body>
+</html>
