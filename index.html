@@ -1850,17 +1850,26 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
             </div>
             <div id="rakItemSelected"></div>
             <div id="rakItemDetailCard" style="display:none;margin-top:10px;padding:14px;background:#f8fafc;border:1px solid var(--border);border-radius:12px;">
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Kode Rak</label>
-                  <select id="rakItemRakSelect" style="width:100%;">
-                    <option value="">— Pilih dari master rak —</option>
-                  </select>
+              <div class="form-group">
+                <label>1. Pilih nomor rak</label>
+                <div class="chip-group" id="rakNumChips" style="gap:8px;">
+                  <button type="button" class="chip rak-num-chip" data-num="1">Rak 1</button>
+                  <button type="button" class="chip rak-num-chip" data-num="2">Rak 2</button>
+                  <button type="button" class="chip rak-num-chip" data-num="3">Rak 3</button>
+                  <button type="button" class="chip rak-num-chip" data-num="4">Rak 4</button>
+                  <button type="button" class="chip rak-num-chip" data-num="5">Rak 5</button>
+                  <button type="button" class="chip rak-num-chip" data-num="6">Rak 6</button>
+                  <button type="button" class="chip rak-num-chip" data-num="7">Rak 7</button>
                 </div>
-                <div class="form-group">
-                  <label>Atau ketik kode rak bebas</label>
-                  <input type="text" id="rakItemRakFree" placeholder="Contoh: A-01 / C-12" autocomplete="off">
-                </div>
+              </div>
+              <div class="form-group" id="rakColGroup" style="display:none;">
+                <label>2. Pilih kolom <span id="rakColHint" style="font-weight:500;color:var(--text-muted);"></span></label>
+                <div class="chip-group" id="rakColChips" style="gap:6px;max-height:160px;overflow-y:auto;"></div>
+              </div>
+              <div class="form-group" style="margin-top:8px;">
+                <label>Kode terpilih</label>
+                <input type="text" id="rakItemRakFree" placeholder="Pilih rak + kolom, atau ketik manual (contoh: 1A)" autocomplete="off" style="font-family:var(--mono);font-weight:700;font-size:16px;">
+                <select id="rakItemRakSelect" style="display:none;" aria-hidden="true"><option value=""></option></select>
               </div>
               <div class="btn-group">
                 <button type="button" class="btn btn-primary" id="rakItemSaveBtn"><i data-lucide="save"></i> Simpan Kode Rak</button>
@@ -6438,13 +6447,61 @@ function productsWithRak() {
 }
 
 function fillRakItemSelect(selected) {
-  const sel = $('#rakItemRakSelect');
-  if (!sel) return;
-  const cur = selected != null ? selected : sel.value;
-  const opts = state.racks.slice().sort((a,b)=>(a.code||'').localeCompare(b.code||'','id'));
-  sel.innerHTML = '<option value="">— Pilih dari master rak —</option>' +
-    opts.map(r => `<option value="${esc(r.code)}">${esc(r.code)}${r.zone ? ' · ' + esc(r.zone) : ''}</option>`).join('');
-  if (cur) sel.value = cur;
+  // kompatibilitas: set nilai kode penuh, lalu pecah ke UI 2 langkah
+  const code = (selected != null ? selected : ($('#rakItemRakFree')?.value || '')).trim();
+  if ($('#rakItemRakSelect')) $('#rakItemRakSelect').value = code;
+  if ($('#rakItemRakFree') && code) $('#rakItemRakFree').value = code;
+  if (code) setRakPickerFromCode(code);
+}
+
+/** Pecah kode "1A" / "7Z3" → nomor rak + label kolom */
+function parseRakCode(code) {
+  const m = String(code || '').trim().toUpperCase().match(/^(\d+)([A-Z]\d*)$/);
+  if (!m) return null;
+  return { num: parseInt(m[1], 10), col: m[2] };
+}
+
+function setRakPickerFromCode(code) {
+  const parsed = parseRakCode(code);
+  if (!parsed) return;
+  $$('.rak-num-chip').forEach(c => c.classList.toggle('active', c.dataset.num === String(parsed.num)));
+  renderRakColChips(parsed.num, parsed.col);
+}
+
+function renderRakColChips(rakNum, selectedCol) {
+  const group = $('#rakColGroup');
+  const box = $('#rakColChips');
+  const hint = $('#rakColHint');
+  if (!group || !box) return;
+  const n = parseInt(rakNum, 10);
+  if (!n) { group.style.display = 'none'; box.innerHTML = ''; return; }
+  group.style.display = 'block';
+  const cols = (typeof RAK_TEMPLATE_SPEC !== 'undefined' && RAK_TEMPLATE_SPEC[n]) ? RAK_TEMPLATE_SPEC[n] : 16;
+  if (hint) hint.textContent = '(Rak ' + n + ' · ' + cols + ' kolom)';
+  const labels = [];
+  for (let i = 0; i < cols; i++) labels.push(typeof rakColumnLabel === 'function' ? rakColumnLabel(i) : String.fromCharCode(65 + i));
+  const sel = (selectedCol || '').toUpperCase();
+  box.innerHTML = labels.map(lab => {
+    const code = String(n) + lab;
+    const active = sel && lab === sel;
+    return `<button type="button" class="chip rak-col-chip${active ? ' active' : ''}" data-code="${esc(code)}" data-col="${esc(lab)}" style="min-width:40px;justify-content:center;font-family:var(--mono);">${esc(lab)}</button>`;
+  }).join('');
+}
+
+function applyRakColSelection(code) {
+  code = String(code || '').trim().toUpperCase();
+  if ($('#rakItemRakFree')) $('#rakItemRakFree').value = code;
+  if ($('#rakItemRakSelect')) {
+    // pastikan option ada
+    const sel = $('#rakItemRakSelect');
+    if (![...sel.options].some(o => o.value === code)) {
+      const opt = document.createElement('option');
+      opt.value = code; opt.textContent = code;
+      sel.appendChild(opt);
+    }
+    sel.value = code;
+  }
+  $$('.rak-col-chip').forEach(c => c.classList.toggle('active', (c.dataset.code || '').toUpperCase() === code));
 }
 
 function fillRakItemFilterOptions() {
@@ -11914,6 +11971,22 @@ function bindEvents() {
   $('#rakItemFilterRak')?.addEventListener('change', renderRakItemList);
   $('#exportRakItemBtn')?.addEventListener('click', () => exportRakItems('xlsx'));
   // Sync select ↔ free text
+  // Pilih nomor rak → tampilkan kolom A,B,C…
+  $$('.rak-num-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.rak-num-chip').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      renderRakColChips(btn.dataset.num, null);
+      if ($('#rakItemRakFree')) $('#rakItemRakFree').value = '';
+    });
+  });
+  // Pilih kolom (event delegation — chip digenerate ulang)
+  document.addEventListener('click', (e) => {
+    const col = e.target.closest('.rak-col-chip');
+    if (!col) return;
+    if (!col.closest('#rakColChips')) return;
+    applyRakColSelection(col.dataset.code || '');
+  });
   $('#rakItemRakSelect')?.addEventListener('change', () => {
     const v = ($('#rakItemRakSelect')?.value || '').trim();
     if (v && $('#rakItemRakFree')) $('#rakItemRakFree').value = v;
