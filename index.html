@@ -337,7 +337,7 @@ table.data-table .actions { display: flex; gap: 4px; }
 div[style*="position:relative"] > input[type="text"]#returSearch,
 div[style*="position:relative"] > input[type="text"]#auditSearch,
 div[style*="position:relative"] > input[type="text"]#plkSearch,
-#returSearch, #auditSearch, #plkSearch, #bandingSearch, #editAuditSearch {
+#returSearch, #auditSearch, #plkSearch, #bandingSearch, #editAuditSearch, #rakItemSearch {
   padding-right: 64px !important;
 }
 .suggest-list {
@@ -1836,11 +1836,72 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 
       <!-- ==================== MASTER RAK ==================== -->
       <div class="page" id="page-master-rak">
+        <!-- ===== Penempatan Barang ke Rak (cari / barcode seperti Audit) ===== -->
+        <div class="card">
+          <div class="card-header"><h2>📦 Penempatan Barang ke Rak</h2></div>
+          <div class="card-body">
+            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">
+              Cari nama, kode, atau scan barcode — lalu isi kode rak. Sama seperti alur Audit Retur.
+            </p>
+            <div class="form-group" style="position:relative;">
+              <label>Cari Produk (nama / kode / barcode)</label>
+              <input type="text" id="rakItemSearch" placeholder="Ketik nama, kode, atau barcode..." autocomplete="off">
+              <div class="suggest-list" id="rakItemSuggest" style="display:none;"></div>
+            </div>
+            <div id="rakItemSelected"></div>
+            <div id="rakItemDetailCard" style="display:none;margin-top:10px;padding:14px;background:#f8fafc;border:1px solid var(--border);border-radius:12px;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Kode Rak</label>
+                  <select id="rakItemRakSelect" style="width:100%;">
+                    <option value="">— Pilih dari master rak —</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Atau ketik kode rak bebas</label>
+                  <input type="text" id="rakItemRakFree" placeholder="Contoh: A-01 / C-12" autocomplete="off">
+                </div>
+              </div>
+              <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="rakItemSaveBtn"><i data-lucide="save"></i> Simpan Kode Rak</button>
+                <button type="button" class="btn btn-outline" id="rakItemClearBtn">Batal</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Daftar barang yang sudah punya kode rak ===== -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Barang dengan Kode Rak</h2>
+            <div class="btn-group">
+              <span class="badge badge-muted" id="rakItemCount">0 item</span>
+              <button type="button" class="btn btn-outline btn-sm" id="exportRakItemBtn" title="Export barang yang sudah ada kode rak"><i data-lucide="download"></i> Export Barang+Rak</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="toolbar" style="margin-bottom:12px;">
+              <div class="search-box" style="flex:1;"><input type="text" id="rakItemListSearch" placeholder="Filter nama / kode / rak..."></div>
+              <select id="rakItemFilterRak" style="min-width:140px;">
+                <option value="">Semua rak</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>No</th><th>Kode</th><th>Nama</th><th>Barcode</th><th>Rak</th><th>Aksi</th></tr></thead>
+                <tbody id="rakItemTbody"></tbody>
+              </table>
+            </div>
+            <div id="rakItemEmpty" class="empty-state" style="display:none;"><p>Belum ada barang yang dipasangi kode rak.</p></div>
+          </div>
+        </div>
+
+        <!-- ===== Master lokasi rak (kode rak fisik) ===== -->
         <div class="toolbar">
           <div class="search-box"><input type="text" id="rakSearch" placeholder="Cari kode / zona rak..."></div>
           <button class="btn btn-primary btn-sm" id="addRakBtn">+ Tambah 1 Rak</button>
           <button class="btn btn-outline btn-sm" id="bulkRakBtn"><i data-lucide="list-plus"></i> Input Massal</button>
-          <button class="btn btn-outline btn-sm" id="exportRakBtn"><i data-lucide="download"></i> Export</button>
+          <button class="btn btn-outline btn-sm" id="exportRakBtn"><i data-lucide="download"></i> Export Lokasi Rak</button>
         </div>
         <div class="card" id="bulkRakCard" style="display:none;margin-bottom:14px;">
           <div class="card-header"><h2>Input Massal Rak</h2>
@@ -1871,7 +1932,7 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
         </div>
         <div class="card">
           <div class="card-header">
-            <h2>Master Rak</h2>
+            <h2>Lokasi Rak Gudang</h2>
             <span class="badge badge-muted" id="rakCount">0 rak</span>
           </div>
           <div class="card-body table-wrap">
@@ -2255,6 +2316,7 @@ function cloudSaveProduct(p) {
     kategori: p.kategori || '',
     vendor: p.vendor || '',
     pic: p.pic || '',
+    rak: p.rak || '',
     updatedAt: tsNow(),
     updatedBy: actorName()
   }, { merge: true }).catch(err => console.warn('[server] product', err));
@@ -4284,7 +4346,7 @@ const PAGE_META = {
   'master-produk': { title:'Master Produk', sub:'Kelola data produk & barcode' },
   'master-kategori': { title:'Master Kategori', sub:'Kelola kategori produk' },
   'master-vendor': { title:'Master Vendor', sub:'Daftar supplier / vendor' },
-  'master-rak': { title:'Master Rak', sub:'Kelola lokasi rak gudang' },
+  'master-rak': { title:'Master Rak', sub:'Penempatan barang ke rak + lokasi rak gudang' },
   'master-gudang': { title:'Master Gudang', sub:'Kelola DC / gudang' },
   'master-user': { title:'Master User & Role', sub:'Kelola pengguna dan hak akses' },
   'laporan': { title:'Laporan Analisa', sub:'Analisa total retur per produk' },
@@ -6341,6 +6403,163 @@ function handleImportPicVendorOverlay(file) {
   reader.readAsArrayBuffer(file);
 }
 
+
+/** Produk yang sudah punya field rak (non-kosong) */
+function productsWithRak() {
+  return (state.products || []).filter(p => String(p.rak || '').trim());
+}
+
+function fillRakItemSelect(selected) {
+  const sel = $('#rakItemRakSelect');
+  if (!sel) return;
+  const cur = selected != null ? selected : sel.value;
+  const opts = state.racks.slice().sort((a,b)=>(a.code||'').localeCompare(b.code||'','id'));
+  sel.innerHTML = '<option value="">— Pilih dari master rak —</option>' +
+    opts.map(r => `<option value="${esc(r.code)}">${esc(r.code)}${r.zone ? ' · ' + esc(r.zone) : ''}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function fillRakItemFilterOptions() {
+  const sel = $('#rakItemFilterRak');
+  if (!sel) return;
+  const cur = sel.value;
+  const codes = [...new Set(productsWithRak().map(p => String(p.rak).trim()).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b, 'id'));
+  sel.innerHTML = '<option value="">Semua rak</option>' +
+    codes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function renderRakItemList() {
+  const tbody = $('#rakItemTbody');
+  const empty = $('#rakItemEmpty');
+  const countEl = $('#rakItemCount');
+  if (!tbody) return;
+  let list = productsWithRak();
+  const term = ($('#rakItemListSearch')?.value || '').trim().toLowerCase();
+  const filterRak = ($('#rakItemFilterRak')?.value || '').trim();
+  if (filterRak) list = list.filter(p => String(p.rak || '').trim() === filterRak);
+  if (term) {
+    list = list.filter(p => {
+      const hay = ((p.nama||'') + ' ' + (p.kode||'') + ' ' + (p.barcode||'') + ' ' + (p.rak||'') + ' ' + (Array.isArray(p.barcodes)?p.barcodes.join(' '):'')).toLowerCase();
+      return hay.includes(term);
+    });
+  }
+  list = list.slice().sort((a,b) => String(a.rak||'').localeCompare(String(b.rak||''),'id') || String(a.nama||'').localeCompare(String(b.nama||''),'id'));
+  if (countEl) countEl.textContent = list.length + ' item';
+  fillRakItemFilterOptions();
+  if (!list.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  tbody.innerHTML = list.map((p, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td style="font-family:var(--mono);font-size:12px;">${esc(p.kode||'')}</td>
+      <td><div style="font-weight:600;">${esc(p.nama||'')}</div></td>
+      <td style="font-family:var(--mono);font-size:11.5px;">${esc(p.barcode||'-')}</td>
+      <td><span class="badge badge-info">${esc(p.rak||'')}</span></td>
+      <td class="actions">
+        <button type="button" class="btn btn-icon btn-outline btn-sm" data-edit-rak-item="${esc(p.kode)}" title="Ubah rak">✏️</button>
+        <button type="button" class="btn btn-icon btn-outline btn-sm" data-clear-rak-item="${esc(p.kode)}" title="Hapus kode rak" style="color:#b91c1c;">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function selectRakProduct(p) {
+  if (!p) return;
+  state.selectedRakProduct = p;
+  const box = $('#rakItemSelected');
+  if (box) {
+    box.innerHTML = `
+      <div style="background:#f0fdfa;border:1.5px dashed var(--primary);border-radius:10px;padding:12px;margin-top:8px;">
+        <div style="font-weight:700;">${esc(p.nama||'')}</div>
+        <div style="font-size:12px;color:var(--text-muted);">${esc(p.kode||'')} · ${esc(p.barcode||'-')} · ${esc(p.vendor||'-')}</div>
+        ${p.rak ? `<div style="margin-top:6px;font-size:12.5px;">Rak saat ini: <b>${esc(p.rak)}</b></div>` : ''}
+      </div>`;
+  }
+  fillRakItemSelect(p.rak || '');
+  const free = $('#rakItemRakFree');
+  if (free) free.value = p.rak || '';
+  const card = $('#rakItemDetailCard');
+  if (card) card.style.display = 'block';
+}
+
+function saveRakForSelectedProduct() {
+  if (!can('edit')) return showToast('Tidak punya hak edit');
+  const p = state.selectedRakProduct;
+  if (!p) return showToast('Pilih produk dulu (cari / scan)');
+  const fromSel = ($('#rakItemRakSelect')?.value || '').trim();
+  const fromFree = ($('#rakItemRakFree')?.value || '').trim();
+  const rak = fromFree || fromSel;
+  if (!rak) return showToast('Isi / pilih kode rak');
+  // pastikan ada di master lokal (opsional: auto-tambah lokasi)
+  const exists = state.racks.some(r => (r.code||'').toUpperCase() === rak.toUpperCase());
+  if (!exists) {
+    state.racks.push({ id: uid(), code: rak, zone: 'Zona Baru', capacity: 100 });
+    cacheLocal('racks', state.racks);
+    if (firebaseReady && db && typeof cloudSaveRacks === 'function') {
+      try { cloudSaveRacks(state.racks); } catch (_) {}
+    }
+  }
+  const target = state.products.find(x => x.kode === p.kode);
+  if (!target) return showToast('Produk tidak ditemukan di master');
+  target.rak = rak;
+  try { cacheLocal('products', state.products); } catch (_) {}
+  try { storage.set('products', state.products); } catch (_) {}
+  if (typeof cloudSaveProduct === 'function') {
+    try { cloudSaveProduct(target); } catch (_) {}
+  }
+  logActivity('UPDATE', 'Master Rak', (target.nama || target.kode) + ' → rak ' + rak);
+  showToast('Kode rak disimpan: ' + rak);
+  state.selectedRakProduct = target;
+  selectRakProduct(target);
+  renderRakItemList();
+  renderRak();
+  // kosongkan search untuk scan berikutnya
+  const inp = $('#rakItemSearch');
+  if (inp) { inp.value = ''; try { inp.focus(); } catch(_){} }
+}
+
+window.clearProductRak = function(kode) {
+  if (!can('edit') && !can('delete')) return showToast('Tidak punya hak');
+  const p = state.products.find(x => x.kode === kode);
+  if (!p) return;
+  if (!confirm('Hapus kode rak dari "' + (p.nama||kode) + '"?')) return;
+  p.rak = '';
+  try { cacheLocal('products', state.products); } catch (_) {}
+  try { storage.set('products', state.products); } catch (_) {}
+  if (typeof cloudSaveProduct === 'function') {
+    try { cloudSaveProduct(p); } catch (_) {}
+  }
+  logActivity('UPDATE', 'Master Rak', (p.nama||kode) + ' · rak dihapus');
+  showToast('Kode rak dihapus');
+  renderRakItemList();
+};
+
+function exportRakItems(fmt) {
+  let list = productsWithRak();
+  const filterRak = ($('#rakItemFilterRak')?.value || '').trim();
+  const term = ($('#rakItemListSearch')?.value || '').trim().toLowerCase();
+  if (filterRak) list = list.filter(p => String(p.rak||'').trim() === filterRak);
+  if (term) {
+    list = list.filter(p => ((p.nama||'')+' '+(p.kode||'')+' '+(p.barcode||'')+' '+(p.rak||'')).toLowerCase().includes(term));
+  }
+  list = list.slice().sort((a,b) => String(a.rak||'').localeCompare(String(b.rak||''),'id') || String(a.nama||'').localeCompare(String(b.nama||''),'id'));
+  if (!list.length) return showToast('Tidak ada barang dengan kode rak untuk diexport');
+  const meta = ExportEngine.getMeta('Barang per Kode Rak', list.length);
+  const headers = ['No','Kode Rak','Kode Produk','Nama','Barcode','Kategori','Vendor','PIC'];
+  const rows = list.map((p,i) => [i+1, p.rak||'', p.kode||'', p.nama||'', p.barcode||'', p.kategori||'', p.vendor||'', p.pic||'']);
+  if (fmt==='xlsx') ExportEngine.toExcel(headers, rows, 'Barang_Rak', meta);
+  else if (fmt==='csv') ExportEngine.toCSV(headers, rows, meta);
+  else if (fmt==='pdf') ExportEngine.toPDF('Barang dengan Kode Rak', headers, rows, meta);
+  else ExportEngine.toExcel(headers, rows, 'Barang_Rak', meta);
+  logActivity('EXPORT', 'Master Rak', 'Barang+Rak ' + list.length + ' item');
+}
+
 function renderRak() {
   let list = state.racks.slice();
   const term = ($('#rakSearch')?.value||'').toLowerCase().trim();
@@ -6379,6 +6598,8 @@ function renderRak() {
       ).join('');
     if (cur) sel.value = cur;
   }
+  fillRakItemSelect();
+  if (typeof renderRakItemList === 'function') renderRakItemList();
 }
 
 window.editRak = function(id) {
@@ -11563,6 +11784,43 @@ function bindEvents() {
   $('#exportRakBtn')?.addEventListener('click', () => {
     if (typeof exportRak === 'function') exportRak('xlsx');
     else doExport('xlsx');
+  });
+
+  // Penempatan barang → kode rak (cari / barcode seperti Audit Retur)
+  if (typeof attachSearch === 'function') {
+    attachSearch('#rakItemSearch', '#rakItemSuggest', (p) => selectRakProduct(p));
+  }
+  $('#rakItemSaveBtn')?.addEventListener('click', saveRakForSelectedProduct);
+  $('#rakItemClearBtn')?.addEventListener('click', () => {
+    state.selectedRakProduct = null;
+    if ($('#rakItemSelected')) $('#rakItemSelected').innerHTML = '';
+    if ($('#rakItemDetailCard')) $('#rakItemDetailCard').style.display = 'none';
+    if ($('#rakItemSearch')) $('#rakItemSearch').value = '';
+  });
+  $('#rakItemListSearch')?.addEventListener('input', renderRakItemList);
+  $('#rakItemFilterRak')?.addEventListener('change', renderRakItemList);
+  $('#exportRakItemBtn')?.addEventListener('click', () => exportRakItems('xlsx'));
+  // Sync select ↔ free text
+  $('#rakItemRakSelect')?.addEventListener('change', () => {
+    const v = ($('#rakItemRakSelect')?.value || '').trim();
+    if (v && $('#rakItemRakFree')) $('#rakItemRakFree').value = v;
+  });
+  // Edit / hapus dari tabel barang+rak
+  document.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('[data-edit-rak-item]');
+    if (editBtn) {
+      const kode = editBtn.getAttribute('data-edit-rak-item');
+      const p = state.products.find(x => x.kode === kode);
+      if (p) {
+        selectRakProduct(p);
+        try { $('#rakItemSearch')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+      }
+      return;
+    }
+    const clearBtn = e.target.closest('[data-clear-rak-item]');
+    if (clearBtn) {
+      clearProductRak(clearBtn.getAttribute('data-clear-rak-item'));
+    }
   });
 
   // Gudang
