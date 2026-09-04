@@ -1908,11 +1908,31 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
             <button class="btn btn-outline btn-sm" id="bulkRakCloseBtn">Tutup</button>
           </div>
           <div class="card-body">
+            <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;padding:12px 14px;margin-bottom:14px;">
+              <div style="font-size:13px;font-weight:700;color:#0f766e;margin-bottom:8px;">📋 Template Kode Rak (siap isi)</div>
+              <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">
+                Format kolom: <b>1A … 1Z</b>, jika lebih dari Z → <b>Z1, Z2, …</b><br>
+                Rak 1–6: <b>16 kolom</b> (A–P) · Rak 7: <b>32 kolom</b> (A–Z + Z1–Z6)
+              </p>
+              <div class="chip-group" id="rakTemplateChips" style="margin-bottom:10px;">
+                <button type="button" class="chip rak-tpl-btn" data-rak="1">Rak 1 · 16</button>
+                <button type="button" class="chip rak-tpl-btn" data-rak="2">Rak 2 · 16</button>
+                <button type="button" class="chip rak-tpl-btn" data-rak="3">Rak 3 · 16</button>
+                <button type="button" class="chip rak-tpl-btn" data-rak="4">Rak 4 · 16</button>
+                <button type="button" class="chip rak-tpl-btn" data-rak="5">Rak 5 · 16</button>
+                <button type="button" class="chip rak-tpl-btn" data-rak="6">Rak 6 · 16</button>
+                <button type="button" class="chip rak-tpl-btn" data-rak="7">Rak 7 · 32</button>
+              </div>
+              <div class="btn-group">
+                <button type="button" class="btn btn-primary btn-sm" id="rakTplAllBtn">+ Isi Semua Template (Rak 1–7)</button>
+                <button type="button" class="btn btn-outline btn-sm" id="rakTplAppendBtn" title="Tambahkan template terpilih ke textarea tanpa menimpa">Tambah ke isian</button>
+              </div>
+            </div>
             <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;">
               Satu baris = satu rak. Format: <b>KODE</b> atau <b>KODE,ZONA,KAPASITAS</b><br>
-              Contoh: <code>A-01,Zona A,100</code> · <code>B-01,Zona B,80</code> · <code>C-01</code>
+              Contoh: <code>1A,Rak 1,100</code> · <code>7Z6,Rak 7,100</code>
             </p>
-            <textarea id="bulkRakText" rows="6" placeholder="A-01,Zona A,100&#10;A-02,Zona A,100&#10;B-01,Zona B,80" style="font-family:var(--mono);font-size:13px;"></textarea>
+            <textarea id="bulkRakText" rows="8" placeholder="1A,Rak 1,100&#10;1B,Rak 1,100&#10;…" style="font-family:var(--mono);font-size:13px;"></textarea>
             <div class="btn-group" style="margin-top:10px;">
               <button class="btn btn-outline" id="bulkRakPreviewBtn"><i data-lucide="eye"></i> Preview & Pilih</button>
               <button class="btn btn-outline" id="bulkRakClearBtn">Bersihkan</button>
@@ -6642,6 +6662,57 @@ window.deleteRak = function(id) {
 };
 
 /** Parse teks bulk rak → array objek {code, zone, capacity, exists} */
+
+/** Template master rak: nomor rak → jumlah kolom */
+const RAK_TEMPLATE_SPEC = {
+  1: 16, 2: 16, 3: 16, 4: 16, 5: 16, 6: 16, 7: 32
+};
+
+/** Label kolom: A..Z lalu Z1, Z2, … */
+function rakColumnLabel(index0) {
+  if (index0 < 26) return String.fromCharCode(65 + index0); // A-Z
+  return 'Z' + (index0 - 25); // Z1, Z2, ...
+}
+
+/** Generate baris bulk untuk satu nomor rak */
+function generateRakTemplateLines(rakNum, cols, capacity) {
+  const n = parseInt(rakNum, 10);
+  const c = parseInt(cols, 10) || RAK_TEMPLATE_SPEC[n] || 16;
+  const cap = parseInt(capacity, 10) || 100;
+  const zone = 'Rak ' + n;
+  const lines = [];
+  for (let i = 0; i < c; i++) {
+    const code = String(n) + rakColumnLabel(i);
+    lines.push(code + ',' + zone + ',' + cap);
+  }
+  return lines;
+}
+
+/** Isi textarea dari template (replace atau append) */
+function applyRakTemplate(rakNums, append) {
+  const nums = (Array.isArray(rakNums) ? rakNums : [rakNums]).map(Number).filter(n => n >= 1 && n <= 7);
+  if (!nums.length) return showToast('Pilih nomor rak');
+  const lines = [];
+  nums.forEach(n => {
+    lines.push(...generateRakTemplateLines(n, RAK_TEMPLATE_SPEC[n], 100));
+  });
+  const ta = $('#bulkRakText');
+  if (!ta) return;
+  if (append && ta.value.trim()) {
+    ta.value = ta.value.trim() + '\n' + lines.join('\n');
+  } else {
+    ta.value = lines.join('\n');
+  }
+  const total = lines.length;
+  const range = nums.map(n => {
+    const c = RAK_TEMPLATE_SPEC[n];
+    return n + 'A–' + n + rakColumnLabel(c - 1);
+  }).join(', ');
+  showToast('Template: ' + range + ' (' + total + ' kode)');
+  // buka preview otomatis
+  if (typeof bulkRakPreview === 'function') bulkRakPreview();
+}
+
 function parseBulkRakLines(text) {
   const existing = new Set(state.racks.map(r => (r.code||'').toUpperCase()));
   const seen = new Set();
@@ -11779,6 +11850,20 @@ function bindEvents() {
   });
   $('#bulkRakSelectNone')?.addEventListener('click', () => {
     $$('#bulkRakCheckList .bulk-rak-cb').forEach(cb => { cb.checked = false; });
+  });
+  // Template Rak 1–7
+  $$('.rak-tpl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.rak-tpl-btn').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      applyRakTemplate([btn.dataset.rak], false);
+    });
+  });
+  $('#rakTplAllBtn')?.addEventListener('click', () => applyRakTemplate([1,2,3,4,5,6,7], false));
+  $('#rakTplAppendBtn')?.addEventListener('click', () => {
+    const active = document.querySelector('.rak-tpl-btn.active');
+    if (active) applyRakTemplate([active.dataset.rak], true);
+    else applyRakTemplate([1,2,3,4,5,6,7], true);
   });
   $('#rakSearch')?.addEventListener('input', renderRak);
   $('#exportRakBtn')?.addEventListener('click', () => {
