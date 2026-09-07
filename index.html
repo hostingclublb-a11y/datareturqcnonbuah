@@ -1358,8 +1358,42 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 
       <!-- ==================== AUDIT RETUR ==================== -->
       <div class="page" id="page-audit">
+        <!-- Target Karantina (Excel) + ringkasan selisih -->
+        <div class="card" style="border:1.5px solid #99f6e4;">
+          <div class="card-header" style="background:#f0fdfa;">
+            <h2>📋 Target Karantina (Excel)</h2>
+            <div class="btn-group">
+              <button type="button" class="btn btn-outline btn-sm" id="auditTargetSampleBtn">Contoh Excel</button>
+              <button type="button" class="btn btn-primary btn-sm" id="auditTargetUploadBtn"><i data-lucide="upload"></i> Upload Excel</button>
+              <input type="file" id="auditTargetFile" accept=".xlsx,.xls,.csv" style="display:none;">
+              <button type="button" class="btn btn-outline btn-sm" id="auditTargetClearBtn" style="color:#b91c1c;display:none;">Hapus Target</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">
+              Upload daftar karantina (kolom: <b>Kode / Barcode / Nama / Qty</b>). Lalu scan atau cari barang fisik —
+              sistem menampilkan <b>selisih live</b>: Sesuai · Kurang · Lebih · Belum · Anomali.
+            </p>
+            <div id="auditTargetMeta" style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px;"></div>
+            <div id="auditCompareStats" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
+            <div id="auditCompareWrap" style="display:none;">
+              <div class="table-wrap">
+                <table class="data-table" style="font-size:12.5px;">
+                  <thead>
+                    <tr>
+                      <th>Status</th><th>Kode</th><th>Nama</th>
+                      <th>Target</th><th>Fisik</th><th>Selisih</th><th>Bagus/Jelek</th>
+                    </tr>
+                  </thead>
+                  <tbody id="auditCompareTbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="card">
-          <div class="card-header"><h2>Cari Produk — Audit Retur</h2></div>
+          <div class="card-header"><h2>Scan / Cari Produk — Fisik</h2></div>
           <div class="card-body">
             <div class="form-group" style="position:relative;">
               <input type="text" id="auditSearch" placeholder="Ketik nama, kode, atau barcode..." autocomplete="off">
@@ -2246,6 +2280,7 @@ const state = {
   cart: [],
   history: [],
   auditList: [],
+  auditTargets: [],
   auditHistory: [],
   bandingRef: null,
   bandingList: [],
@@ -2524,6 +2559,10 @@ function loadLocalDraftsForDc() {
   try {
     state.auditList = storage.get(auditListLocalKey(), []) || [];
   } catch (_) { state.auditList = []; }
+  try {
+    state.auditTargets = storage.get('auditTargets', []) || [];
+    state.auditTargetFileName = storage.get('auditTargetFileName', '') || '';
+  } catch (_) { state.auditTargets = []; state.auditTargetFileName = ''; }
   // jaga kompatibilitas key lama
   try { storage.set('cart', state.cart); storage.set('auditList', state.auditList); } catch (_) {}
 }
@@ -4422,7 +4461,7 @@ function renderPage(page) {
     case 'dashboard': renderDashboard(); break;
     case 'retur': renderCart(); break;
     case 'riwayat-retur': renderHistory(); break;
-    case 'audit': renderAuditList(); break;
+    case 'audit': renderAuditList(); if (typeof renderAuditComparison==='function') renderAuditComparison(); break;
     case 'riwayat-audit': renderAuditHistory(); break;
     case 'cetak-plakat': renderCetakPlakat(); break;
     case 'banding': renderBanding(); break;
@@ -4754,13 +4793,233 @@ function renderHistory() {
   };
 }
 
+
+// ========== AUDIT KARANTINA: target Excel + selisih live ==========
+function auditFindCol(keys, cands) {
+  return keys.find(k => {
+    const lk = String(k).toLowerCase().trim();
+    return cands.some(c => lk === c || lk.includes(c));
+  });
+}
+
+function parseAuditTargetExcel(arrayBuffer) {
+  const wb = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  if (!json.length) throw new Error('File Excel kosong');
+  const keys = Object.keys(json[0] || {});
+  const colKode = auditFindCol(keys, ['kode produk', 'kode barang', 'kode item', 'kode', 'code', 'sku']);
+  const colBarcode = auditFindCol(keys, ['barcode', 'bar code', 'barcodes', 'upc', 'ean']);
+  const colNama = auditFindCol(keys, ['nama produk', 'nama barang', 'nama item', 'deskripsi', 'nama', 'name', 'product']);
+  const colQty = auditFindCol(keys, ['qty karantina', 'qty database', 'target qty', 'qty target', 'qty', 'jumlah', 'stok', 'quantity']);
+  const colSatuan = auditFindCol(keys, ['satuan', 'uom', 'unit']);
+  const colVendor = auditFindCol(keys, ['vendor', 'supplier']);
+  const colKet = auditFindCol(keys, ['keterangan', 'alasan', 'note', 'catatan']);
+  if (!colNama && !colKode && !colBarcode) throw new Error('Kolom Nama/Kode/Barcode tidak ditemukan');
+  const items = [];
+  json.forEach((row, idx) => {
+    const nama = colNama ? String(row[colNama] || '').trim() : '';
+    let kode = colKode ? String(row[colKode] || '').trim() : '';
+    const barcode = colBarcode ? String(row[colBarcode] || '').trim() : '';
+    const qty = colQty ? parseFloat(String(row[colQty])) : 0;
+    const satuan = (colSatuan ? String(row[colSatuan] || '').trim() : 'PCS') || 'PCS';
+    const vendor = colVendor ? String(row[colVendor] || '').trim() : '';
+    const ket = colKet ? String(row[colKet] || '').trim() : '';
+    if (!nama && !kode && !barcode) return;
+    if (!kode) kode = barcode ? ('BC-' + barcode) : ('ITM-' + (idx + 1));
+    items.push({
+      id: 'tgt-' + idx + '-' + Date.now(),
+      kode, barcode, nama: nama || kode,
+      qtyDatabase: isNaN(qty) ? 0 : Math.max(0, qty),
+      satuan: String(satuan).toUpperCase(),
+      vendor, keterangan: ket
+    });
+  });
+  return items;
+}
+
+function downloadSampleAuditTargetExcel() {
+  const rows = [
+    { 'KODE PRODUK': 'LB1868', 'BARCODE': '89686010947', 'NAMA PRODUK': 'MIE INDOMIE GORENG 85GR', 'QTY KARANTINA': 24, 'SATUAN': 'PCS', 'VENDOR': 'PT Indofood', 'KETERANGAN': 'Kemasan kempis' },
+    { 'KODE PRODUK': 'LB1863', 'BARCODE': '89686010343', 'NAMA PRODUK': 'MIE INDOMIE KUAH SOTO', 'QTY KARANTINA': 15, 'SATUAN': 'PCS', 'VENDOR': 'PT Indofood', 'KETERANGAN': 'Mendekati expired' },
+    { 'KODE PRODUK': 'LB0724', 'BARCODE': '8998866200301', 'NAMA PRODUK': 'MIE SEDAAP GORENG 90GR', 'QTY KARANTINA': 30, 'SATUAN': 'PCS', 'VENDOR': 'Wings Food', 'KETERANGAN': 'Bungkus bocor' }
+  ];
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Target Karantina');
+  XLSX.writeFile(wb, 'contoh_target_karantina_audit.xlsx');
+}
+
+function auditItemMatchKey(it) {
+  return String((it && it.kode) || '').trim().toLowerCase() + '|' + String((it && it.satuan) || 'PCS').trim().toUpperCase();
+}
+
+function buildAuditComparison() {
+  const targets = state.auditTargets || [];
+  const list = state.auditList || [];
+  if (!targets.length) return { rows: [], unlisted: [], stats: null };
+
+  const byKey = {};
+  list.forEach(it => {
+    const k = auditItemMatchKey(it);
+    if (!byKey[k]) byKey[k] = [];
+    byKey[k].push(it);
+  });
+
+  const matchedKeys = new Set();
+  const rows = targets.map(t => {
+    const key = auditItemMatchKey(t);
+    matchedKeys.add(key);
+    // also try match by kode only
+    let matching = byKey[key] || [];
+    if (!matching.length) {
+      const kodeOnly = String(t.kode || '').trim().toLowerCase();
+      matching = list.filter(it => String(it.kode || '').trim().toLowerCase() === kodeOnly);
+    }
+    const qtyFisik = matching.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+    const goodQty = matching.filter(x => (x.kondisi || 'Bad') === 'Good').reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+    const badQty = matching.filter(x => (x.kondisi || 'Bad') !== 'Good').reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+    const selisih = qtyFisik - (parseFloat(t.qtyDatabase) || 0);
+    let status = 'belum';
+    if (matching.length) {
+      if (selisih === 0) status = 'sesuai';
+      else if (selisih < 0) status = 'kurang';
+      else status = 'lebih';
+    }
+    return {
+      kode: t.kode, nama: t.nama, barcode: t.barcode || '-', satuan: t.satuan || 'PCS',
+      vendor: t.vendor || '', qtyDatabase: parseFloat(t.qtyDatabase) || 0,
+      qtyFisik, selisih, status, goodQty, badQty
+    };
+  });
+
+  const unlisted = list.filter(it => {
+    const k = auditItemMatchKey(it);
+    if (matchedKeys.has(k)) return false;
+    const kodeOnly = String(it.kode || '').trim().toLowerCase();
+    return !targets.some(t => String(t.kode || '').trim().toLowerCase() === kodeOnly);
+  });
+
+  const stats = {
+    targetCount: targets.length,
+    targetQty: targets.reduce((s, t) => s + (parseFloat(t.qtyDatabase) || 0), 0),
+    fisikQty: list.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0),
+    sesuai: rows.filter(r => r.status === 'sesuai').length,
+    kurang: rows.filter(r => r.status === 'kurang').length,
+    lebih: rows.filter(r => r.status === 'lebih').length,
+    belum: rows.filter(r => r.status === 'belum').length,
+    anomali: unlisted.length,
+    anomaliQty: unlisted.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0)
+  };
+  return { rows, unlisted, stats };
+}
+
+function auditStatusBadge(status) {
+  const map = {
+    sesuai: ['badge-success', '✓ Sesuai'],
+    kurang: ['badge-warning', '↓ Kurang'],
+    lebih: ['badge-info', '↑ Lebih'],
+    belum: ['badge-muted', '○ Belum'],
+    unlisted: ['badge-danger', '⚠ Anomali']
+  };
+  const m = map[status] || map.belum;
+  return `<span class="badge ${m[0]}">${m[1]}</span>`;
+}
+
+function renderAuditComparison() {
+  const wrap = $('#auditCompareWrap');
+  const tbody = $('#auditCompareTbody');
+  const statsEl = $('#auditCompareStats');
+  const meta = $('#auditTargetMeta');
+  const clearBtn = $('#auditTargetClearBtn');
+  const targets = state.auditTargets || [];
+  if (clearBtn) clearBtn.style.display = targets.length ? 'inline-flex' : 'none';
+  if (meta) {
+    meta.textContent = targets.length
+      ? `Target aktif: ${targets.length} item · file: ${state.auditTargetFileName || 'Excel'}`
+      : 'Belum ada target — upload Excel karantina untuk mode selisih live.';
+  }
+  if (!targets.length) {
+    if (wrap) wrap.style.display = 'none';
+    if (statsEl) { statsEl.style.display = 'none'; statsEl.innerHTML = ''; }
+    return;
+  }
+  const { rows, unlisted, stats } = buildAuditComparison();
+  if (statsEl && stats) {
+    statsEl.style.display = 'flex';
+    statsEl.innerHTML = `
+      <span class="badge badge-muted">Target: ${stats.targetCount} item / qty ${stats.targetQty}</span>
+      <span class="badge badge-muted">Fisik: qty ${stats.fisikQty}</span>
+      <span class="badge badge-success">Sesuai ${stats.sesuai}</span>
+      <span class="badge badge-warning">Kurang ${stats.kurang}</span>
+      <span class="badge badge-info">Lebih ${stats.lebih}</span>
+      <span class="badge badge-muted">Belum ${stats.belum}</span>
+      <span class="badge badge-danger">Anomali ${stats.anomali} (qty ${stats.anomaliQty})</span>`;
+  }
+  if (!wrap || !tbody) return;
+  wrap.style.display = 'block';
+  let html = rows.map(r => {
+    const selColor = r.selisih === 0 ? 'var(--success)' : (r.selisih < 0 ? 'var(--warning)' : 'var(--info)');
+    return `<tr>
+      <td>${auditStatusBadge(r.status)}</td>
+      <td style="font-family:var(--mono);font-size:11.5px;">${esc(r.kode)}</td>
+      <td><div style="font-weight:600;">${esc(r.nama)}</div>
+        <div class="meta" style="font-size:11px;">${esc(r.barcode)} · ${esc(r.vendor || '-')}</div></td>
+      <td><b>${r.qtyDatabase}</b> ${esc(r.satuan)}</td>
+      <td><b>${r.qtyFisik}</b></td>
+      <td style="font-weight:800;color:${selColor};">${r.selisih > 0 ? '+' : ''}${r.selisih}</td>
+      <td style="font-size:11.5px;">🟢${r.goodQty} / 🔴${r.badQty}</td>
+    </tr>`;
+  }).join('');
+  if (unlisted.length) {
+    html += unlisted.map(u => {
+      const q = parseFloat(u.qty) || 0;
+      return `<tr style="background:#fff1f2;">
+        <td>${auditStatusBadge('unlisted')}</td>
+        <td style="font-family:var(--mono);font-size:11.5px;">${esc(u.kode)}</td>
+        <td><div style="font-weight:600;">${esc(u.nama)}</div>
+          <div class="meta" style="font-size:11px;color:var(--danger);">Tidak ada di Excel target</div></td>
+        <td>—</td>
+        <td><b>${q}</b> ${esc(u.satuan || 'PCS')}</td>
+        <td style="font-weight:800;color:var(--danger);">+${q}</td>
+        <td>—</td>
+      </tr>`;
+    }).join('');
+  }
+  tbody.innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">Tidak ada baris</td></tr>';
+}
+
+function handleAuditTargetFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const items = parseAuditTargetExcel(e.target.result);
+      if (!items.length) return showToast('Tidak ada baris valid di Excel');
+      state.auditTargets = items;
+      state.auditTargetFileName = file.name || 'target.xlsx';
+      try { cacheLocal('auditTargets', state.auditTargets); } catch (_) {}
+      try { cacheLocal('auditTargetFileName', state.auditTargetFileName); } catch (_) {}
+      renderAuditComparison();
+      renderAuditList();
+      showToast('Target karantina: ' + items.length + ' item');
+      logActivity('IMPORT', 'Audit Retur', 'Target Excel ' + items.length + ' item');
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Gagal baca Excel');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 function renderAuditList() {
   const list = state.auditList || [];
   $('#auditCount').textContent = list.length;
   const saveBtn = $('#saveAuditSessionBtn');
   if (saveBtn) saveBtn.disabled = list.length === 0;
   if (!list.length) {
-    $('#auditList').innerHTML = '<div class="empty-state"><div class="ico">🛒</div><h3>Belum ada item</h3><p>Cari produk di atas lalu tambahkan. Item sama otomatis dijumlahkan.</p></div>';
+    $('#auditList').innerHTML = '<div class="empty-state"><div class="ico">🛒</div><h3>Belum ada item fisik</h3><p>Upload target Excel (opsional), lalu scan/cari produk. Item sama otomatis dijumlahkan. Selisih live muncul di atas jika ada target.</p></div>';
+    if (typeof renderAuditComparison === 'function') renderAuditComparison();
     return;
   }
   const goodItems = list.filter(x => (x.kondisi || 'Bad') === 'Good');
@@ -4797,6 +5056,7 @@ function renderAuditList() {
     </div>`;
   }).join('');
   $('#auditList').innerHTML = html;
+  if (typeof renderAuditComparison === 'function') renderAuditComparison();
 }
 
 function removeAuditItem(id) {
@@ -4830,12 +5090,23 @@ function saveAuditSession() {
   const nomor = 'AUD-' + todayStr().replace(/-/g, '') + '-' + String(Date.now()).slice(-6);
   const items = state.auditList.slice();
   const totalQty = items.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
+  const targets = (state.auditTargets || []).slice();
+  let comparison = null;
+  try {
+    if (targets.length && typeof buildAuditComparison === 'function') {
+      const c = buildAuditComparison();
+      comparison = { stats: c.stats, rows: (c.rows || []).slice(0, 500) };
+    }
+  } catch (_) {}
   const session = {
     id: nomor,
     nomor,
     tanggal: todayStr(),
     tanggalLabel: nowLabel(),
     items,
+    targets,
+    targetFileName: state.auditTargetFileName || '',
+    comparison,
     totalItem: items.length,
     totalQty,
     user: state.user ? state.user.name : 'Lokal',
@@ -4848,7 +5119,7 @@ function saveAuditSession() {
   cloudSaveAuditList();
   renderAuditList();
   cloudSaveAuditSession(session);
-  logActivity('CREATE', 'Audit Retur', `Sesi ${nomor} · ${items.length} item · qty ${totalQty}`);
+  logActivity('CREATE', 'Audit Retur', `Sesi ${nomor} · ${items.length} item · qty ${totalQty}` + (targets.length ? ' · target ' + targets.length : ''));
   showToast('Sesi audit retur tersimpan ☁ · ' + nomor);
 }
 
@@ -11749,6 +12020,26 @@ function bindEvents() {
   const _addAuditBot = $('#addAuditBtn');
   if (_addAuditBot) _addAuditBot.onclick = doAddAudit;
   $('#saveAuditSessionBtn')?.addEventListener('click', () => saveAuditSession());
+  // Target karantina Excel + selisih live
+  $('#auditTargetUploadBtn')?.addEventListener('click', () => $('#auditTargetFile')?.click());
+  $('#auditTargetFile')?.addEventListener('change', function() {
+    if (this.files && this.files[0]) handleAuditTargetFile(this.files[0]);
+    this.value = '';
+  });
+  $('#auditTargetSampleBtn')?.addEventListener('click', () => {
+    if (typeof downloadSampleAuditTargetExcel === 'function') downloadSampleAuditTargetExcel();
+  });
+  $('#auditTargetClearBtn')?.addEventListener('click', () => {
+    if (!(state.auditTargets || []).length) return;
+    if (!confirm('Hapus target karantina Excel? Data fisik tetap ada.')) return;
+    state.auditTargets = [];
+    state.auditTargetFileName = '';
+    try { cacheLocal('auditTargets', []); cacheLocal('auditTargetFileName', ''); } catch (_) {}
+    renderAuditComparison();
+    renderAuditList();
+    showToast('Target dihapus');
+  });
+
   $('#auditCurrentPlakatBtn')?.addEventListener('click', () => {
     if (!state.auditList.length) return showToast('List audit masih kosong');
     openAuditModal({
