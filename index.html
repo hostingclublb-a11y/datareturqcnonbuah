@@ -4854,28 +4854,71 @@ function auditItemMatchKey(it) {
   return String((it && it.kode) || '').trim().toLowerCase() + '|' + String((it && it.satuan) || 'PCS').trim().toUpperCase();
 }
 
+/** Normalisasi nama untuk matching longgar */
+function auditNormName(n) {
+  return String(n || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function auditBarcodeSet(it) {
+  const set = new Set();
+  const add = (v) => {
+    const t = String(v || '').trim();
+    if (t) set.add(t.toLowerCase());
+  };
+  add(it && it.barcode);
+  if (Array.isArray(it && it.barcodes)) it.barcodes.forEach(add);
+  // barcode kadang diisi di field kode jika format angka panjang
+  const k = String((it && it.kode) || '').trim();
+  if (/^\d{8,}$/.test(k)) add(k);
+  return set;
+}
+
+/**
+ * Cocokkan item fisik ke 1 target:
+ * 1) kode sama
+ * 2) barcode sama
+ * 3) nama dinormalisasi sama (penting: Excel ITM-xxx vs master LB…)
+ */
+function auditPhysicalMatchesTarget(it, t) {
+  const kodeIt = String(it.kode || '').trim().toLowerCase();
+  const kodeT = String(t.kode || '').trim().toLowerCase();
+  if (kodeIt && kodeT && kodeIt === kodeT) return true;
+
+  const bcIt = auditBarcodeSet(it);
+  const bcT = auditBarcodeSet(t);
+  for (const b of bcIt) {
+    if (b && bcT.has(b)) return true;
+  }
+
+  const nIt = auditNormName(it.nama);
+  const nT = auditNormName(t.nama);
+  if (nIt && nT && nIt === nT) return true;
+
+  // nama target mengandung / sama dengan nama fisik (min 8 char) untuk hindari false positive pendek
+  if (nIt.length >= 8 && nT.length >= 8) {
+    if (nIt === nT || nIt.includes(nT) || nT.includes(nIt)) return true;
+  }
+  return false;
+}
+
 function buildAuditComparison() {
   const targets = state.auditTargets || [];
   const list = state.auditList || [];
   if (!targets.length) return { rows: [], unlisted: [], stats: null };
 
-  const byKey = {};
-  list.forEach(it => {
-    const k = auditItemMatchKey(it);
-    if (!byKey[k]) byKey[k] = [];
-    byKey[k].push(it);
-  });
+  const usedPhysicalIds = new Set();
 
-  const matchedKeys = new Set();
   const rows = targets.map(t => {
-    const key = auditItemMatchKey(t);
-    matchedKeys.add(key);
-    // also try match by kode only
-    let matching = byKey[key] || [];
-    if (!matching.length) {
-      const kodeOnly = String(t.kode || '').trim().toLowerCase();
-      matching = list.filter(it => String(it.kode || '').trim().toLowerCase() === kodeOnly);
-    }
+    const matching = list.filter(it => {
+      if (usedPhysicalIds.has(it.id)) return false;
+      return auditPhysicalMatchesTarget(it, t);
+    });
+    matching.forEach(it => { if (it.id) usedPhysicalIds.add(it.id); });
+
     const qtyFisik = matching.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
     const goodQty = matching.filter(x => (x.kondisi || 'Bad') === 'Good').reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
     const badQty = matching.filter(x => (x.kondisi || 'Bad') !== 'Good').reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
@@ -4886,19 +4929,22 @@ function buildAuditComparison() {
       else if (selisih < 0) status = 'kurang';
       else status = 'lebih';
     }
+    // tampilkan kode master bila fisik sudah match (lebih jelas dari ITM-xxx)
+    const displayKode = matching.length && matching[0].kode ? matching[0].kode : t.kode;
     return {
-      kode: t.kode, nama: t.nama, barcode: t.barcode || '-', satuan: t.satuan || 'PCS',
-      vendor: t.vendor || '', qtyDatabase: parseFloat(t.qtyDatabase) || 0,
-      qtyFisik, selisih, status, goodQty, badQty
+      kode: displayKode,
+      kodeTarget: t.kode,
+      nama: t.nama,
+      barcode: (matching[0] && matching[0].barcode) || t.barcode || '-',
+      satuan: t.satuan || 'PCS',
+      vendor: (matching[0] && matching[0].vendor) || t.vendor || '',
+      qtyDatabase: parseFloat(t.qtyDatabase) || 0,
+      qtyFisik, selisih, status, goodQty, badQty,
+      matchedByName: matching.length > 0 && String(matching[0].kode || '').toLowerCase() !== String(t.kode || '').toLowerCase()
     };
   });
 
-  const unlisted = list.filter(it => {
-    const k = auditItemMatchKey(it);
-    if (matchedKeys.has(k)) return false;
-    const kodeOnly = String(it.kode || '').trim().toLowerCase();
-    return !targets.some(t => String(t.kode || '').trim().toLowerCase() === kodeOnly);
-  });
+  const unlisted = list.filter(it => !usedPhysicalIds.has(it.id));
 
   const stats = {
     targetCount: targets.length,
@@ -4927,66 +4973,156 @@ function auditStatusBadge(status) {
 }
 
 function renderAuditComparison() {
-  const wrap = $('#auditCompareWrap');
   const tbody = $('#auditCompareTbody');
   const statsEl = $('#auditCompareStats');
   const meta = $('#auditTargetMeta');
   const clearBtn = $('#auditTargetClearBtn');
+  const panel = $('#auditLivePanel');
+  const empty = $('#auditCompareEmpty');
   const targets = state.auditTargets || [];
   if (clearBtn) clearBtn.style.display = targets.length ? 'inline-flex' : 'none';
   if (meta) {
     meta.textContent = targets.length
-      ? `Target aktif: ${targets.length} item · file: ${state.auditTargetFileName || 'Excel'}`
-      : 'Belum ada target — upload Excel karantina untuk mode selisih live.';
+      ? ('Target: ' + targets.length + ' item · ' + (state.auditTargetFileName || 'Excel') + ' — tekan Live Selisih untuk detail')
+      : 'Belum ada target — upload Excel karantina (opsional). Input fisik tetap bisa tanpa target.';
   }
   if (!targets.length) {
-    if (wrap) wrap.style.display = 'none';
     if (statsEl) { statsEl.style.display = 'none'; statsEl.innerHTML = ''; }
+    if (panel && panel.dataset.forceOpen !== '1') panel.style.display = 'none';
+    if (tbody) tbody.innerHTML = '';
     return;
   }
   const { rows, unlisted, stats } = buildAuditComparison();
+  state._auditCompareCache = { rows, unlisted, stats };
+
   if (statsEl && stats) {
     statsEl.style.display = 'flex';
-    statsEl.innerHTML = `
-      <span class="badge badge-muted">Target: ${stats.targetCount} item / qty ${stats.targetQty}</span>
-      <span class="badge badge-muted">Fisik: qty ${stats.fisikQty}</span>
-      <span class="badge badge-success">Sesuai ${stats.sesuai}</span>
-      <span class="badge badge-warning">Kurang ${stats.kurang}</span>
-      <span class="badge badge-info">Lebih ${stats.lebih}</span>
-      <span class="badge badge-muted">Belum ${stats.belum}</span>
-      <span class="badge badge-danger">Anomali ${stats.anomali} (qty ${stats.anomaliQty})</span>`;
+    // chip klik = buka panel + set filter
+    statsEl.innerHTML = [
+      ['all', 'badge-muted', 'Target ' + stats.targetCount],
+      ['all', 'badge-muted', 'Fisik qty ' + stats.fisikQty],
+      ['sesuai', 'badge-success', 'Sesuai ' + stats.sesuai],
+      ['kurang', 'badge-warning', 'Kurang ' + stats.kurang],
+      ['lebih', 'badge-info', 'Lebih ' + stats.lebih],
+      ['belum', 'badge-muted', 'Belum ' + stats.belum],
+      ['unlisted', 'badge-danger', 'Anomali ' + stats.anomali]
+    ].map(([f, cls, label]) =>
+      '<button type="button" class="badge ' + cls + ' audit-stat-chip" data-filter="' + f + '" style="cursor:pointer;border:none;font:inherit;">' + label + '</button>'
+    ).join('');
   }
-  if (!wrap || !tbody) return;
-  wrap.style.display = 'block';
-  let html = rows.map(r => {
-    const selColor = r.selisih === 0 ? 'var(--success)' : (r.selisih < 0 ? 'var(--warning)' : 'var(--info)');
-    return `<tr>
-      <td>${auditStatusBadge(r.status)}</td>
-      <td style="font-family:var(--mono);font-size:11.5px;">${esc(r.kode)}</td>
-      <td><div style="font-weight:600;">${esc(r.nama)}</div>
-        <div class="meta" style="font-size:11px;">${esc(r.barcode)} · ${esc(r.vendor || '-')}</div></td>
-      <td><b>${r.qtyDatabase}</b> ${esc(r.satuan)}</td>
-      <td><b>${r.qtyFisik}</b></td>
-      <td style="font-weight:800;color:${selColor};">${r.selisih > 0 ? '+' : ''}${r.selisih}</td>
-      <td style="font-size:11.5px;">🟢${r.goodQty} / 🔴${r.badQty}</td>
-    </tr>`;
+
+  // filter chips di dalam panel
+  const chips = $('#auditCompareFilterChips');
+  if (chips && stats) {
+    const cur = ($('#auditCompareFilter')?.value) || 'all';
+    const defs = [
+      ['all', 'Semua'],
+      ['belum', 'Belum ' + stats.belum],
+      ['sesuai', 'Sesuai ' + stats.sesuai],
+      ['kurang', 'Kurang ' + stats.kurang],
+      ['lebih', 'Lebih ' + stats.lebih],
+      ['selisih', 'Ada selisih'],
+      ['unlisted', 'Anomali ' + stats.anomali],
+      ['sudah', 'Sudah diaudit']
+    ];
+    chips.innerHTML = defs.map(([v, lab]) =>
+      '<button type="button" class="chip audit-filter-chip' + (cur === v ? ' active' : '') + '" data-filter="' + v + '">' + lab + '</button>'
+    ).join('');
+  }
+
+  fillAuditCompareTable();
+}
+
+function fillAuditCompareTable() {
+  const tbody = $('#auditCompareTbody');
+  const empty = $('#auditCompareEmpty');
+  if (!tbody) return;
+  const cache = state._auditCompareCache || buildAuditComparison();
+  const rows = cache.rows || [];
+  const unlisted = cache.unlisted || [];
+  const filter = ($('#auditCompareFilter')?.value) || 'all';
+  const term = (($('#auditCompareSearch')?.value) || '').trim().toLowerCase();
+
+  const matchTerm = (r) => {
+    if (!term) return true;
+    const hay = ((r.nama || '') + ' ' + (r.kode || '') + ' ' + (r.barcode || '') + ' ' + (r.vendor || '')).toLowerCase();
+    return hay.includes(term);
+  };
+
+  let data = [];
+  rows.forEach(r => {
+    let ok = true;
+    if (filter === 'sesuai') ok = r.status === 'sesuai';
+    else if (filter === 'kurang') ok = r.status === 'kurang';
+    else if (filter === 'lebih') ok = r.status === 'lebih';
+    else if (filter === 'belum') ok = r.status === 'belum';
+    else if (filter === 'selisih') ok = r.status === 'kurang' || r.status === 'lebih';
+    else if (filter === 'sudah') ok = r.status !== 'belum';
+    else if (filter === 'unlisted') ok = false;
+    if (ok && matchTerm(r)) data.push({ ...r, _kind: 'target' });
+  });
+  if (filter === 'all' || filter === 'unlisted') {
+    unlisted.forEach(u => {
+      const row = {
+        status: 'unlisted',
+        kode: u.kode,
+        nama: u.nama,
+        barcode: u.barcode || '-',
+        satuan: u.satuan || 'PCS',
+        vendor: u.vendor || '',
+        qtyDatabase: null,
+        qtyFisik: parseFloat(u.qty) || 0,
+        selisih: parseFloat(u.qty) || 0,
+        goodQty: (u.kondisi || 'Bad') === 'Good' ? (parseFloat(u.qty) || 0) : 0,
+        badQty: (u.kondisi || 'Bad') !== 'Good' ? (parseFloat(u.qty) || 0) : 0,
+        _kind: 'unlisted'
+      };
+      if (matchTerm(row)) data.push(row);
+    });
+  }
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  tbody.innerHTML = data.map(r => {
+    if (r._kind === 'unlisted') {
+      return '<tr style="background:#fff1f2;">' +
+        '<td>' + auditStatusBadge('unlisted') + '</td>' +
+        '<td style="font-family:var(--mono);font-size:11.5px;">' + esc(r.kode) + '</td>' +
+        '<td><div style="font-weight:600;">' + esc(r.nama) + '</div>' +
+        '<div class="meta" style="font-size:11px;color:var(--danger);">Tidak ada di Excel target</div></td>' +
+        '<td>—</td><td><b>' + r.qtyFisik + '</b> ' + esc(r.satuan) + '</td>' +
+        '<td style="font-weight:800;color:var(--danger);">+' + r.selisih + '</td><td>—</td></tr>';
+    }
+    const selColor = r.selisih === 0 ? 'var(--success)' : (r.selisih < 0 ? '#b45309' : 'var(--info)');
+    return '<tr>' +
+      '<td>' + auditStatusBadge(r.status) + '</td>' +
+      '<td style="font-family:var(--mono);font-size:11.5px;">' + esc(r.kode) + '</td>' +
+      '<td><div style="font-weight:600;">' + esc(r.nama) + '</div>' +
+      '<div class="meta" style="font-size:11px;">' + esc(r.barcode) + ' · ' + esc(r.vendor || '-') + '</div></td>' +
+      '<td><b>' + r.qtyDatabase + '</b> ' + esc(r.satuan) + '</td>' +
+      '<td><b>' + r.qtyFisik + '</b></td>' +
+      '<td style="font-weight:800;color:' + selColor + ';">' + (r.selisih > 0 ? '+' : '') + r.selisih + '</td>' +
+      '<td style="font-size:11.5px;">🟢' + r.goodQty + ' / 🔴' + r.badQty + '</td></tr>';
   }).join('');
-  if (unlisted.length) {
-    html += unlisted.map(u => {
-      const q = parseFloat(u.qty) || 0;
-      return `<tr style="background:#fff1f2;">
-        <td>${auditStatusBadge('unlisted')}</td>
-        <td style="font-family:var(--mono);font-size:11.5px;">${esc(u.kode)}</td>
-        <td><div style="font-weight:600;">${esc(u.nama)}</div>
-          <div class="meta" style="font-size:11px;color:var(--danger);">Tidak ada di Excel target</div></td>
-        <td>—</td>
-        <td><b>${q}</b> ${esc(u.satuan || 'PCS')}</td>
-        <td style="font-weight:800;color:var(--danger);">+${q}</td>
-        <td>—</td>
-      </tr>`;
-    }).join('');
+}
+
+function openAuditLivePanel(filter) {
+  if (!(state.auditTargets || []).length) return showToast('Upload target Excel dulu');
+  const panel = $('#auditLivePanel');
+  if (panel) {
+    panel.style.display = 'block';
+    panel.dataset.forceOpen = '1';
   }
-  tbody.innerHTML = html || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">Tidak ada baris</td></tr>';
+  if (filter && $('#auditCompareFilter')) {
+    $('#auditCompareFilter').value = filter;
+  }
+  renderAuditComparison();
+  try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
 }
 
 function handleAuditTargetFile(file) {
@@ -12035,9 +12171,32 @@ function bindEvents() {
     state.auditTargets = [];
     state.auditTargetFileName = '';
     try { cacheLocal('auditTargets', []); cacheLocal('auditTargetFileName', ''); } catch (_) {}
+    const panel = $('#auditLivePanel');
+    if (panel) { panel.style.display = 'none'; panel.dataset.forceOpen = ''; }
     renderAuditComparison();
     renderAuditList();
     showToast('Target dihapus');
+  });
+  $('#auditLiveToggleBtn')?.addEventListener('click', () => {
+    const panel = $('#auditLivePanel');
+    if (panel && panel.style.display !== 'none' && panel.dataset.forceOpen === '1') {
+      panel.style.display = 'none';
+      panel.dataset.forceOpen = '';
+      return;
+    }
+    openAuditLivePanel('all');
+  });
+  $('#auditLiveCloseBtn')?.addEventListener('click', () => {
+    const panel = $('#auditLivePanel');
+    if (panel) { panel.style.display = 'none'; panel.dataset.forceOpen = ''; }
+  });
+  $('#auditCompareFilter')?.addEventListener('change', () => fillAuditCompareTable());
+  $('#auditCompareSearch')?.addEventListener('input', () => fillAuditCompareTable());
+  document.addEventListener('click', (e) => {
+    const chip = e.target.closest('.audit-stat-chip, .audit-filter-chip');
+    if (!chip) return;
+    const f = chip.dataset.filter || 'all';
+    openAuditLivePanel(f);
   });
 
   $('#auditCurrentPlakatBtn')?.addEventListener('click', () => {
