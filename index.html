@@ -1358,131 +1358,223 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 
       <!-- ==================== AUDIT RETUR ==================== -->
       <div class="page" id="page-audit">
-        <!-- Target Karantina (Excel) + ringkasan selisih -->
-        <div class="card" style="border:1.5px solid #99f6e4;">
-          <div class="card-header" style="background:#f0fdfa;">
-            <h2>📋 Target Karantina (Excel)</h2>
-            <div class="btn-group">
-              <button type="button" class="btn btn-outline btn-sm" id="auditTargetSampleBtn">Contoh Excel</button>
-              <button type="button" class="btn btn-primary btn-sm" id="auditTargetUploadBtn"><i data-lucide="upload"></i> Upload Excel</button>
+        <!-- Tab navigasi ala dashboard audit karantina -->
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-body" style="padding:10px 12px;">
+            <div class="chip-group" id="auditTabBar" style="gap:6px;flex-wrap:wrap;">
+              <button type="button" class="chip active audit-main-tab" data-tab="dashboard">Dashboard</button>
+              <button type="button" class="chip audit-main-tab" data-tab="input">Input Fisik</button>
+              <button type="button" class="chip audit-main-tab" data-tab="selisih">Selisih Live &amp; Revisi</button>
+              <button type="button" class="chip audit-main-tab" data-tab="anomali" style="color:#b91c1c;">Anomali <span id="auditAnomaliTabCount">(0)</span></button>
+            </div>
+            <div class="btn-group" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="btn btn-primary btn-sm" id="saveAuditSessionBtn">💾 Simpan Sesi per Tanggal</button>
+              <button type="button" class="btn btn-outline btn-sm" id="auditTargetUploadBtn"><i data-lucide="upload"></i> Upload Excel</button>
               <input type="file" id="auditTargetFile" accept=".xlsx,.xls,.csv" style="display:none;">
+              <button type="button" class="btn btn-outline btn-sm" id="auditTargetSampleBtn">Contoh Excel</button>
               <button type="button" class="btn btn-outline btn-sm" id="auditTargetClearBtn" style="color:#b91c1c;display:none;">Hapus Target</button>
+              <button type="button" class="btn btn-outline btn-sm" id="auditCurrentPlakatBtn">🟨 Cetak Plakat</button>
+              <button type="button" class="btn btn-outline btn-sm" id="clearAuditBtn">Kosongkan Fisik</button>
             </div>
           </div>
-          <div class="card-body">
-            <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.5;">
-              Upload daftar karantina (kolom: <b>Kode / Barcode / Nama / Qty</b>). Lalu scan atau cari barang fisik —
-              sistem menampilkan <b>selisih live</b>: Sesuai · Kurang · Lebih · Belum · Anomali.
-            </p>
-            <div id="auditTargetMeta" style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px;"></div>
-            <div id="auditCompareStats" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div>
-            <div id="auditCompareWrap" style="display:none;">
+        </div>
+
+        <!-- ===== TAB: DASHBOARD ===== -->
+        <div id="auditTab-dashboard">
+          <div class="card" style="background:linear-gradient(135deg,#0f172a 0%,#134e4a 100%);color:#fff;border:none;margin-bottom:12px;">
+            <div class="card-body">
+              <div style="font-size:12px;opacity:.85;margin-bottom:6px;" id="auditDashSessionLabel">Sesi Audit · DC</div>
+              <h2 style="color:#fff;margin:0 0 8px;font-size:1.25rem;" id="auditDashTitle">Audit Karantina</h2>
+              <p style="font-size:13px;opacity:.9;line-height:1.5;margin:0 0 14px;">
+                Verifikasi perbandingan live fisik terhadap Excel karantina, rekonsiliasi selisih, serta isolasi otomatis barang anomali di luar database.
+              </p>
+              <div class="btn-group" style="gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm" id="auditGoScanBtn" style="background:#2dd4bf;color:#0f172a;border:none;font-weight:700;">Mulai Scan Fisik</button>
+                <button type="button" class="btn btn-sm btn-outline" id="auditGoUploadBtn" style="border-color:rgba(255,255,255,.4);color:#fff;">Upload Excel Baru</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div class="card" style="margin:0;">
+              <div class="card-body" style="padding:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.03em;">TARGET DATABASE EXCEL</div>
+                <div style="font-size:1.6rem;font-weight:800;margin:4px 0;" id="auditDashTargetQty">0</div>
+                <div style="font-size:12px;color:var(--text-muted);"><span id="auditDashTargetItems">0</span> item terdaftar · <a href="#" id="auditDashKelolaLink" style="color:var(--primary);">Kelola</a></div>
+              </div>
+            </div>
+            <div class="card" style="margin:0;">
+              <div class="card-body" style="padding:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.03em;">FISIK TERHITUNG LIVE</div>
+                <div style="font-size:1.6rem;font-weight:800;margin:4px 0;color:#0f766e;" id="auditDashFisikQty">0</div>
+                <div style="font-size:12px;color:var(--text-muted);">Progres: <span id="auditDashProgress">0%</span> · <a href="#" id="auditDashScanLink" style="color:var(--primary);">+ Scan</a></div>
+              </div>
+            </div>
+            <div class="card" style="margin:0;background:#fff1f2;border-color:#fecdd3;">
+              <div class="card-body" style="padding:14px;">
+                <div style="font-size:11px;font-weight:700;color:#9f1239;letter-spacing:.03em;">SELISIH NET (KURANG)</div>
+                <div style="font-size:1.6rem;font-weight:800;margin:4px 0;color:#9f1239;" id="auditDashSelisihNet">0</div>
+                <div style="font-size:12px;color:#9f1239;"><span id="auditDashKurangLebih">0 kurang · 0 lebih</span> · <a href="#" id="auditDashVerifLink" style="color:#9f1239;font-weight:600;">Verifikasi</a></div>
+              </div>
+            </div>
+            <div class="card" style="margin:0;background:#fff7ed;border-color:#fed7aa;">
+              <div class="card-body" style="padding:14px;">
+                <div style="font-size:11px;font-weight:700;color:#c2410c;letter-spacing:.03em;">ANOMALI DI LUAR EXCEL</div>
+                <div style="font-size:1.6rem;font-weight:800;margin:4px 0;color:#c2410c;" id="auditDashAnomali">0</div>
+                <div style="font-size:12px;color:#c2410c;"><span id="auditDashAnomaliQty">0 unit fisik</span> · <a href="#" id="auditDashAnomaliLink" style="color:#c2410c;font-weight:600;">Buka Tab →</a></div>
+              </div>
+            </div>
+          </div>
+          <div id="auditTargetMeta" style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px;"></div>
+          <div id="auditCompareStats" style="display:none;"></div>
+        </div>
+
+        <!-- ===== TAB: INPUT FISIK ===== -->
+        <div id="auditTab-input" style="display:none;">
+          <div class="card">
+            <div class="card-header"><h2>Scan / Cari Produk — Fisik</h2></div>
+            <div class="card-body">
+              <div class="form-group" style="position:relative;">
+                <input type="text" id="auditSearch" placeholder="Ketik nama, kode, atau barcode..." autocomplete="off">
+                <div class="suggest-list" id="auditSuggest" style="display:none;"></div>
+              </div>
+              <div id="auditSelected"></div>
+            </div>
+          </div>
+          <div class="card" id="auditDetailCard" style="display:none;">
+            <div class="card-header">
+              <h2>Detail Audit Retur</h2>
+              <button class="btn btn-primary btn-sm" id="addAuditBtnTop">+ Tambah ke Daftar Audit</button>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Jumlah</label>
+                  <input type="number" id="auditQty" min="0" placeholder="0" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                  <label>Satuan (UOM)</label>
+                  <select id="auditSatuan" style="width:100%;">
+                    <option value="RENTENG">RENTENG</option>
+                    <option value="PCS" selected>PCS</option>
+                    <option value="BALL">BALL</option>
+                    <option value="DUS">DUS</option>
+                    <option value="BOX">BOX</option>
+                    <option value="PACK">PACK</option>
+                  </select>
+                </div>
+              </div>
+              <div class="chip-group" id="auditSatuanChips" style="margin-bottom:12px;">
+                <span class="chip" data-val="RENTENG">RENTENG</span>
+                <span class="chip active" data-val="PCS">PCS</span>
+                <span class="chip" data-val="BALL">BALL</span>
+                <span class="chip" data-val="DUS">DUS</span>
+                <span class="chip" data-val="BOX">BOX</span>
+                <span class="chip" data-val="PACK">PACK</span>
+              </div>
+              <div class="form-group">
+                <label>Kondisi Barang</label>
+                <div class="chip-group" id="auditKondisiChips">
+                  <span class="chip active" data-val="Bad">🔴 Jelek / Rusak (Bad)</span>
+                  <span class="chip" data-val="Good">🟢 Bagus / Layak (Good)</span>
+                </div>
+                <input type="hidden" id="auditKondisi" value="Bad">
+              </div>
+              <div class="form-group">
+                <label>Alasan Audit Retur</label>
+                <select id="auditAlasan">
+                  <option value="">— Pilih alasan —</option>
+                  <option>Barang Rusak / Pecah</option>
+                  <option>Kadaluarsa / Expired</option>
+                  <option>Mendekati Expired</option>
+                  <option>Kemasan Rusak / Bocor</option>
+                  <option>Salah Kirim</option>
+                  <option>Kualitas Tidak Sesuai</option>
+                  <option>Kelebihan Kirim</option>
+                  <option value="__other__">Lainnya…</option>
+                </select>
+                <input type="text" id="auditAlasanOther" placeholder="Tulis alasan lain" style="display:none;margin-top:8px;">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Tanggal Expired <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
+                  <input type="date" id="auditExpDate">
+                </div>
+                <div class="form-group">
+                  <label>Lokasi Rak <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
+                  <select id="auditRak"><option value="">— Pilih rak —</option></select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Catatan (opsional)</label>
+                <textarea id="auditCatatan" placeholder="Catatan untuk purchasing..."></textarea>
+              </div>
+              <div class="btn-group">
+                <button type="button" class="btn btn-primary" id="addAuditBtn">+ Tambah ke Daftar Audit</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2>Daftar Audit Retur (<span id="auditCount">0</span>)</h2>
+            </div>
+            <div class="card-body" id="auditList">
+              <div class="empty-state"><div class="ico">🛒</div><h3>Belum ada item</h3><p>Scan atau cari produk, isi qty, lalu tambahkan.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== TAB: SELISIH LIVE ===== -->
+        <div id="auditTab-selisih" style="display:none;">
+          <div class="card" id="auditLivePanel">
+            <div class="card-header">
+              <h2>Verifikasi Selisih Live &amp; Revisi</h2>
+            </div>
+            <div class="card-body">
+              <div class="chip-group" id="auditCompareFilterChips" style="margin-bottom:12px;gap:6px;flex-wrap:wrap;"></div>
+              <div class="toolbar" style="margin-bottom:10px;">
+                <div class="search-box" style="flex:1;">
+                  <input type="text" id="auditCompareSearch" placeholder="Filter nama / kode / vendor...">
+                </div>
+                <select id="auditCompareFilter" style="display:none;">
+                  <option value="all">Semua</option>
+                  <option value="kurang">Kurang</option>
+                  <option value="lebih">Lebih</option>
+                  <option value="sesuai">Sesuai</option>
+                  <option value="belum">Belum</option>
+                  <option value="selisih">Ada selisih</option>
+                  <option value="unlisted">Anomali</option>
+                  <option value="sudah">Sudah</option>
+                </select>
+              </div>
               <div class="table-wrap">
                 <table class="data-table" style="font-size:12.5px;">
                   <thead>
                     <tr>
-                      <th>Status</th><th>Kode</th><th>Nama</th>
-                      <th>Target</th><th>Fisik</th><th>Selisih</th><th>Bagus/Jelek</th>
+                      <th>No</th>
+                      <th>Status</th>
+                      <th>Kode &amp; Barcode</th>
+                      <th>Nama &amp; Vendor</th>
+                      <th>Satuan</th>
+                      <th>Target</th>
+                      <th>Fisik</th>
+                      <th>Selisih</th>
                     </tr>
                   </thead>
                   <tbody id="auditCompareTbody"></tbody>
                 </table>
               </div>
+              <div id="auditCompareEmpty" class="empty-state" style="display:none;padding:20px;"><p>Tidak ada baris untuk filter ini.</p></div>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header"><h2>Scan / Cari Produk — Fisik</h2></div>
-          <div class="card-body">
-            <div class="form-group" style="position:relative;">
-              <input type="text" id="auditSearch" placeholder="Ketik nama, kode, atau barcode..." autocomplete="off">
-              <div class="suggest-list" id="auditSuggest" style="display:none;"></div>
+        <!-- ===== TAB: ANOMALI ===== -->
+        <div id="auditTab-anomali" style="display:none;">
+          <div class="card">
+            <div class="card-header"><h2>Anomali — tidak ada di Excel target</h2></div>
+            <div class="card-body" id="auditAnomaliList">
+              <div class="empty-state"><p>Tidak ada anomali.</p></div>
             </div>
-            <div id="auditSelected"></div>
-          </div>
-        </div>
-        <div class="card" id="auditDetailCard" style="display:none;">
-          <div class="card-header">
-            <h2>Detail Audit Retur</h2>
-            <button class="btn btn-primary btn-sm" id="addAuditBtnTop">+ Tambah ke Daftar Audit</button>
-          </div>
-          <div class="card-body">
-            <div class="form-row">
-              <div class="form-group">
-                <label>Jumlah</label>
-                <input type="number" id="auditQty" min="0" placeholder="0" inputmode="numeric">
-              </div>
-              <div class="form-group">
-                <label>Satuan (UOM)</label>
-                <select id="auditSatuan" style="width:100%;">
-                  <option value="RENTENG">RENTENG</option>
-                  <option value="PCS" selected>PCS</option>
-                  <option value="BALL">BALL</option>
-                  <option value="DUS">DUS</option>
-                  <option value="BOX">BOX</option>
-                  <option value="PACK">PACK</option>
-                </select>
-              </div>
-            </div>
-            <div class="chip-group" id="auditSatuanChips" style="margin-bottom:12px;">
-              <span class="chip" data-val="RENTENG">RENTENG</span>
-              <span class="chip active" data-val="PCS">PCS</span>
-              <span class="chip" data-val="BALL">BALL</span>
-              <span class="chip" data-val="DUS">DUS</span>
-              <span class="chip" data-val="BOX">BOX</span>
-              <span class="chip" data-val="PACK">PACK</span>
-            </div>
-            <div class="form-group">
-              <label>Kondisi Barang</label>
-              <div class="chip-group" id="auditKondisiChips">
-                <span class="chip active" data-val="Bad">🔴 Jelek / Rusak (Bad)</span>
-                <span class="chip" data-val="Good">🟢 Bagus / Layak (Good)</span>
-              </div>
-              <input type="hidden" id="auditKondisi" value="Bad">
-            </div>
-            <div class="form-group">
-              <label>Alasan Audit Retur</label>
-              <select id="auditAlasan">
-                <option value="">— Pilih alasan —</option>
-                <option>Barang Rusak / Pecah</option>
-                <option>Kadaluarsa / Expired</option>
-                <option>Mendekati Expired</option>
-                <option>Kemasan Rusak / Bocor</option>
-                <option>Salah Kirim</option>
-                <option>Kualitas Tidak Sesuai</option>
-                <option>Kelebihan Kirim</option>
-                <option value="__other__">Lainnya…</option>
-              </select>
-              <input type="text" id="auditAlasanOther" placeholder="Tulis alasan lain" style="display:none;margin-top:8px;">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Tanggal Expired <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
-                <input type="date" id="auditExpDate">
-              </div>
-              <div class="form-group">
-                <label>Lokasi Rak <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
-                <select id="auditRak"><option value="">— Pilih rak —</option></select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Catatan (opsional)</label>
-              <textarea id="auditCatatan" placeholder="Catatan untuk purchasing..."></textarea>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h2>Daftar Audit Retur (<span id="auditCount">0</span>)</h2>
-            <div class="btn-group">
-              <button class="btn btn-outline btn-sm" id="auditCurrentPlakatBtn">🟨 Cetak Plakat</button>
-              <button class="btn btn-outline btn-sm" id="clearAuditBtn">Kosongkan</button>
-              <button class="btn btn-primary btn-sm" id="saveAuditSessionBtn">💾 Simpan Sesi Audit</button>
-            </div>
-          </div>
-          <div class="card-body" id="auditList">
-            <div class="empty-state"><div class="ico">🛒</div><h3>Belum ada item</h3><p>Cari produk di atas lalu tambahkan. Item sama otomatis dijumlahkan.</p></div>
           </div>
         </div>
       </div>
@@ -4461,7 +4553,7 @@ function renderPage(page) {
     case 'dashboard': renderDashboard(); break;
     case 'retur': renderCart(); break;
     case 'riwayat-retur': renderHistory(); break;
-    case 'audit': renderAuditList(); if (typeof renderAuditComparison==='function') renderAuditComparison(); break;
+    case 'audit': if (typeof switchAuditTab==='function') switchAuditTab(state.auditUiTab||'dashboard'); else { renderAuditList(); renderAuditComparison(); } break;
     case 'riwayat-audit': renderAuditHistory(); break;
     case 'cetak-plakat': renderCetakPlakat(); break;
     case 'banding': renderBanding(); break;
@@ -4972,72 +5064,127 @@ function auditStatusBadge(status) {
   return `<span class="badge ${m[0]}">${m[1]}</span>`;
 }
 
+function switchAuditTab(tab) {
+  const tabs = ['dashboard', 'input', 'selisih', 'anomali'];
+  tabs.forEach(t => {
+    const el = $('#auditTab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  $$('.audit-main-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  state.auditUiTab = tab;
+  if (tab === 'selisih' || tab === 'dashboard' || tab === 'anomali') {
+    if (typeof renderAuditComparison === 'function') renderAuditComparison();
+  }
+  if (tab === 'input' && typeof renderAuditList === 'function') renderAuditList();
+  if (tab === 'selisih') fillAuditCompareTable();
+  if (tab === 'anomali') renderAuditAnomaliList();
+}
+
+function updateAuditDashboard(stats, unlisted) {
+  const dc = (typeof effectiveDcName === 'function' ? effectiveDcName() : '') || 'DC';
+  const tgl = (typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10));
+  const lab = $('#auditDashSessionLabel');
+  if (lab) lab.textContent = 'Sesi Audit Tanggal: ' + tgl + ' · ' + dc;
+  const title = $('#auditDashTitle');
+  if (title) title.textContent = 'Audit Karantina ' + tgl;
+
+  const st = stats || {
+    targetCount: (state.auditTargets || []).length,
+    targetQty: (state.auditTargets || []).reduce((s, t) => s + (parseFloat(t.qtyDatabase) || 0), 0),
+    fisikQty: (state.auditList || []).reduce((s, x) => s + (parseFloat(x.qty) || 0), 0),
+    sesuai: 0, kurang: 0, lebih: 0, belum: 0, anomali: 0, anomaliQty: 0
+  };
+  const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  set('#auditDashTargetQty', st.targetQty);
+  set('#auditDashTargetItems', st.targetCount);
+  set('#auditDashFisikQty', st.fisikQty);
+  const prog = st.targetQty > 0 ? Math.min(100, Math.round((st.fisikQty / st.targetQty) * 100)) : 0;
+  set('#auditDashProgress', prog + '%');
+  // net kurang = sum of negative selisih approx as target - fisik when fisik < target overall
+  const net = (st.targetQty || 0) - (st.fisikQty || 0);
+  set('#auditDashSelisihNet', (net > 0 ? '-' : (net < 0 ? '+' : '')) + Math.abs(net));
+  set('#auditDashKurangLebih', (st.kurang || 0) + ' item kurang · ' + (st.lebih || 0) + ' lebih');
+  set('#auditDashAnomali', st.anomali || 0);
+  set('#auditDashAnomaliQty', (st.anomaliQty || 0) + ' unit fisik');
+  const ac = $('#auditAnomaliTabCount');
+  if (ac) ac.textContent = '(' + (st.anomali || 0) + ')';
+}
+
+function renderAuditAnomaliList() {
+  const box = $('#auditAnomaliList');
+  if (!box) return;
+  const cache = state._auditCompareCache || (typeof buildAuditComparison === 'function' ? buildAuditComparison() : { unlisted: [] });
+  const list = cache.unlisted || [];
+  if (!list.length) {
+    box.innerHTML = '<div class="empty-state"><p>Tidak ada anomali. Semua item fisik ada di Excel target (atau belum ada target).</p></div>';
+    return;
+  }
+  box.innerHTML = list.map((u, i) => {
+    const q = parseFloat(u.qty) || 0;
+    const kond = (u.kondisi || 'Bad') === 'Good' ? '🟢 Bagus' : '🔴 Jelek';
+    return '<div class="list-item"><div class="idx">' + (i + 1) + '</div><div class="info">' +
+      '<div class="nm">' + esc(u.nama) + ' <span class="badge badge-danger">Anomali</span></div>' +
+      '<div class="meta">' + esc(u.kode) + ' · ' + esc(u.vendor || '-') + '</div>' +
+      '<div class="meta"><b>' + q + ' ' + esc(u.satuan || 'PCS') + '</b> · ' + kond + '</div></div></div>';
+  }).join('');
+}
+
 function renderAuditComparison() {
-  const tbody = $('#auditCompareTbody');
-  const statsEl = $('#auditCompareStats');
   const meta = $('#auditTargetMeta');
   const clearBtn = $('#auditTargetClearBtn');
-  const panel = $('#auditLivePanel');
-  const empty = $('#auditCompareEmpty');
   const targets = state.auditTargets || [];
   if (clearBtn) clearBtn.style.display = targets.length ? 'inline-flex' : 'none';
   if (meta) {
     meta.textContent = targets.length
-      ? ('Target: ' + targets.length + ' item · ' + (state.auditTargetFileName || 'Excel') + ' — tekan Live Selisih untuk detail')
-      : 'Belum ada target — upload Excel karantina (opsional). Input fisik tetap bisa tanpa target.';
+      ? ('Target aktif: ' + targets.length + ' item · ' + (state.auditTargetFileName || 'Excel'))
+      : 'Belum ada target Excel — upload di toolbar atau dari Dashboard.';
   }
-  if (!targets.length) {
-    if (statsEl) { statsEl.style.display = 'none'; statsEl.innerHTML = ''; }
-    if (panel && panel.dataset.forceOpen !== '1') panel.style.display = 'none';
-    if (tbody) tbody.innerHTML = '';
-    return;
+
+  let rows = [], unlisted = [], stats = null;
+  if (targets.length && typeof buildAuditComparison === 'function') {
+    const c = buildAuditComparison();
+    rows = c.rows || []; unlisted = c.unlisted || []; stats = c.stats;
+  } else {
+    stats = {
+      targetCount: 0, targetQty: 0,
+      fisikQty: (state.auditList || []).reduce((s, x) => s + (parseFloat(x.qty) || 0), 0),
+      sesuai: 0, kurang: 0, lebih: 0, belum: 0,
+      anomali: 0, anomaliQty: 0
+    };
   }
-  const { rows, unlisted, stats } = buildAuditComparison();
   state._auditCompareCache = { rows, unlisted, stats };
+  updateAuditDashboard(stats, unlisted);
 
-  if (statsEl && stats) {
-    statsEl.style.display = 'flex';
-    // chip klik = buka panel + set filter
-    statsEl.innerHTML = [
-      ['all', 'badge-muted', 'Target ' + stats.targetCount],
-      ['all', 'badge-muted', 'Fisik qty ' + stats.fisikQty],
-      ['sesuai', 'badge-success', 'Sesuai ' + stats.sesuai],
-      ['kurang', 'badge-warning', 'Kurang ' + stats.kurang],
-      ['lebih', 'badge-info', 'Lebih ' + stats.lebih],
-      ['belum', 'badge-muted', 'Belum ' + stats.belum],
-      ['unlisted', 'badge-danger', 'Anomali ' + stats.anomali]
-    ].map(([f, cls, label]) =>
-      '<button type="button" class="badge ' + cls + ' audit-stat-chip" data-filter="' + f + '" style="cursor:pointer;border:none;font:inherit;">' + label + '</button>'
-    ).join('');
-  }
-
-  // filter chips di dalam panel
+  // chips filter di tab selisih
   const chips = $('#auditCompareFilterChips');
   if (chips && stats) {
     const cur = ($('#auditCompareFilter')?.value) || 'all';
     const defs = [
-      ['all', 'Semua'],
-      ['belum', 'Belum ' + stats.belum],
-      ['sesuai', 'Sesuai ' + stats.sesuai],
-      ['kurang', 'Kurang ' + stats.kurang],
-      ['lebih', 'Lebih ' + stats.lebih],
-      ['selisih', 'Ada selisih'],
-      ['unlisted', 'Anomali ' + stats.anomali],
-      ['sudah', 'Sudah diaudit']
+      ['all', 'Semua (' + (rows.length + unlisted.length) + ')'],
+      ['kurang', 'Kurang (' + stats.kurang + ')'],
+      ['lebih', 'Lebih (' + stats.lebih + ')'],
+      ['sesuai', 'Sesuai (' + stats.sesuai + ')'],
+      ['belum', 'Belum Input (' + stats.belum + ')'],
+      ['unlisted', 'Anomali (' + stats.anomali + ')'],
+      ['selisih', 'Ada Selisih'],
+      ['sudah', 'Sudah Input']
     ];
     chips.innerHTML = defs.map(([v, lab]) =>
       '<button type="button" class="chip audit-filter-chip' + (cur === v ? ' active' : '') + '" data-filter="' + v + '">' + lab + '</button>'
     ).join('');
   }
 
-  fillAuditCompareTable();
+  if (state.auditUiTab === 'selisih' || $('#auditTab-selisih')?.style.display === 'block') {
+    fillAuditCompareTable();
+  }
+  if (state.auditUiTab === 'anomali') renderAuditAnomaliList();
 }
 
 function fillAuditCompareTable() {
   const tbody = $('#auditCompareTbody');
   const empty = $('#auditCompareEmpty');
   if (!tbody) return;
-  const cache = state._auditCompareCache || buildAuditComparison();
+  const cache = state._auditCompareCache || { rows: [], unlisted: [] };
   const rows = cache.rows || [];
   const unlisted = cache.unlisted || [];
   const filter = ($('#auditCompareFilter')?.value) || 'all';
@@ -5059,22 +5206,14 @@ function fillAuditCompareTable() {
     else if (filter === 'selisih') ok = r.status === 'kurang' || r.status === 'lebih';
     else if (filter === 'sudah') ok = r.status !== 'belum';
     else if (filter === 'unlisted') ok = false;
-    if (ok && matchTerm(r)) data.push({ ...r, _kind: 'target' });
+    if (ok && matchTerm(r)) data.push(Object.assign({}, r, { _kind: 'target' }));
   });
   if (filter === 'all' || filter === 'unlisted') {
     unlisted.forEach(u => {
       const row = {
-        status: 'unlisted',
-        kode: u.kode,
-        nama: u.nama,
-        barcode: u.barcode || '-',
-        satuan: u.satuan || 'PCS',
-        vendor: u.vendor || '',
-        qtyDatabase: null,
-        qtyFisik: parseFloat(u.qty) || 0,
-        selisih: parseFloat(u.qty) || 0,
-        goodQty: (u.kondisi || 'Bad') === 'Good' ? (parseFloat(u.qty) || 0) : 0,
-        badQty: (u.kondisi || 'Bad') !== 'Good' ? (parseFloat(u.qty) || 0) : 0,
+        status: 'unlisted', kode: u.kode, nama: u.nama, barcode: u.barcode || '-',
+        satuan: u.satuan || 'PCS', vendor: u.vendor || '',
+        qtyDatabase: null, qtyFisik: parseFloat(u.qty) || 0, selisih: parseFloat(u.qty) || 0,
         _kind: 'unlisted'
       };
       if (matchTerm(row)) data.push(row);
@@ -5088,41 +5227,27 @@ function fillAuditCompareTable() {
   }
   if (empty) empty.style.display = 'none';
 
-  tbody.innerHTML = data.map(r => {
+  tbody.innerHTML = data.map((r, i) => {
     if (r._kind === 'unlisted') {
-      return '<tr style="background:#fff1f2;">' +
-        '<td>' + auditStatusBadge('unlisted') + '</td>' +
-        '<td style="font-family:var(--mono);font-size:11.5px;">' + esc(r.kode) + '</td>' +
-        '<td><div style="font-weight:600;">' + esc(r.nama) + '</div>' +
-        '<div class="meta" style="font-size:11px;color:var(--danger);">Tidak ada di Excel target</div></td>' +
-        '<td>—</td><td><b>' + r.qtyFisik + '</b> ' + esc(r.satuan) + '</td>' +
-        '<td style="font-weight:800;color:var(--danger);">+' + r.selisih + '</td><td>—</td></tr>';
+      return '<tr style="background:#fff1f2;"><td>' + (i + 1) + '</td><td>' + auditStatusBadge('unlisted') + '</td>' +
+        '<td style="font-family:var(--mono);font-size:11.5px;"><b>' + esc(r.kode) + '</b><div style="font-size:11px;color:var(--text-muted);">' + esc(r.barcode) + '</div></td>' +
+        '<td><div style="font-weight:600;">' + esc(r.nama) + '</div><div class="meta" style="color:var(--danger);">Tidak di Excel</div></td>' +
+        '<td>' + esc(r.satuan) + '</td><td>—</td><td><b>' + r.qtyFisik + '</b></td>' +
+        '<td style="font-weight:800;color:var(--danger);">+' + r.selisih + '</td></tr>';
     }
     const selColor = r.selisih === 0 ? 'var(--success)' : (r.selisih < 0 ? '#b45309' : 'var(--info)');
-    return '<tr>' +
-      '<td>' + auditStatusBadge(r.status) + '</td>' +
-      '<td style="font-family:var(--mono);font-size:11.5px;">' + esc(r.kode) + '</td>' +
-      '<td><div style="font-weight:600;">' + esc(r.nama) + '</div>' +
-      '<div class="meta" style="font-size:11px;">' + esc(r.barcode) + ' · ' + esc(r.vendor || '-') + '</div></td>' +
-      '<td><b>' + r.qtyDatabase + '</b> ' + esc(r.satuan) + '</td>' +
-      '<td><b>' + r.qtyFisik + '</b></td>' +
-      '<td style="font-weight:800;color:' + selColor + ';">' + (r.selisih > 0 ? '+' : '') + r.selisih + '</td>' +
-      '<td style="font-size:11.5px;">🟢' + r.goodQty + ' / 🔴' + r.badQty + '</td></tr>';
+    return '<tr><td>' + (i + 1) + '</td><td>' + auditStatusBadge(r.status) + '</td>' +
+      '<td style="font-family:var(--mono);font-size:11.5px;"><b>' + esc(r.kode) + '</b><div style="font-size:11px;color:var(--text-muted);">' + esc(r.barcode || '-') + '</div></td>' +
+      '<td><div style="font-weight:600;">' + esc(r.nama) + '</div><div class="meta" style="font-size:11px;">' + esc(r.vendor || '-') + '</div></td>' +
+      '<td><span class="badge badge-muted">' + esc(r.satuan) + '</span></td>' +
+      '<td><b>' + r.qtyDatabase + '</b></td><td><b>' + r.qtyFisik + '</b></td>' +
+      '<td style="font-weight:800;color:' + selColor + ';">' + (r.selisih > 0 ? '+' : '') + r.selisih + '</td></tr>';
   }).join('');
 }
 
 function openAuditLivePanel(filter) {
-  if (!(state.auditTargets || []).length) return showToast('Upload target Excel dulu');
-  const panel = $('#auditLivePanel');
-  if (panel) {
-    panel.style.display = 'block';
-    panel.dataset.forceOpen = '1';
-  }
-  if (filter && $('#auditCompareFilter')) {
-    $('#auditCompareFilter').value = filter;
-  }
-  renderAuditComparison();
-  try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+  if (filter && $('#auditCompareFilter')) $('#auditCompareFilter').value = filter;
+  switchAuditTab('selisih');
 }
 
 function handleAuditTargetFile(file) {
@@ -12171,32 +12296,29 @@ function bindEvents() {
     state.auditTargets = [];
     state.auditTargetFileName = '';
     try { cacheLocal('auditTargets', []); cacheLocal('auditTargetFileName', ''); } catch (_) {}
-    const panel = $('#auditLivePanel');
-    if (panel) { panel.style.display = 'none'; panel.dataset.forceOpen = ''; }
     renderAuditComparison();
     renderAuditList();
     showToast('Target dihapus');
   });
-  $('#auditLiveToggleBtn')?.addEventListener('click', () => {
-    const panel = $('#auditLivePanel');
-    if (panel && panel.style.display !== 'none' && panel.dataset.forceOpen === '1') {
-      panel.style.display = 'none';
-      panel.dataset.forceOpen = '';
-      return;
-    }
-    openAuditLivePanel('all');
+  // Tab Dashboard / Input / Selisih / Anomali
+  $$('.audit-main-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchAuditTab(btn.dataset.tab || 'dashboard'));
   });
-  $('#auditLiveCloseBtn')?.addEventListener('click', () => {
-    const panel = $('#auditLivePanel');
-    if (panel) { panel.style.display = 'none'; panel.dataset.forceOpen = ''; }
-  });
+  $('#auditGoScanBtn')?.addEventListener('click', () => switchAuditTab('input'));
+  $('#auditDashScanLink')?.addEventListener('click', (e) => { e.preventDefault(); switchAuditTab('input'); });
+  $('#auditGoUploadBtn')?.addEventListener('click', () => $('#auditTargetFile')?.click());
+  $('#auditDashKelolaLink')?.addEventListener('click', (e) => { e.preventDefault(); switchAuditTab('selisih'); });
+  $('#auditDashVerifLink')?.addEventListener('click', (e) => { e.preventDefault(); openAuditLivePanel('selisih'); });
+  $('#auditDashAnomaliLink')?.addEventListener('click', (e) => { e.preventDefault(); switchAuditTab('anomali'); });
   $('#auditCompareFilter')?.addEventListener('change', () => fillAuditCompareTable());
   $('#auditCompareSearch')?.addEventListener('input', () => fillAuditCompareTable());
   document.addEventListener('click', (e) => {
-    const chip = e.target.closest('.audit-stat-chip, .audit-filter-chip');
+    const chip = e.target.closest('.audit-filter-chip');
     if (!chip) return;
     const f = chip.dataset.filter || 'all';
-    openAuditLivePanel(f);
+    if ($('#auditCompareFilter')) $('#auditCompareFilter').value = f;
+    $$('.audit-filter-chip').forEach(c => c.classList.toggle('active', c === chip));
+    fillAuditCompareTable();
   });
 
   $('#auditCurrentPlakatBtn')?.addEventListener('click', () => {
