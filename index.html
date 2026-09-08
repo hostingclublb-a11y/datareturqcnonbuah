@@ -1394,36 +1394,55 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
               </div>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-            <div class="card" style="margin:0;">
+          <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">Geser kartu ke samping →</p>
+          <div id="auditDashCards" style="display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding-bottom:10px;margin-bottom:12px;">
+            <div class="card" style="margin:0;min-width:72%;max-width:280px;flex:0 0 auto;scroll-snap-align:start;">
               <div class="card-body" style="padding:14px;">
-                <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.03em;">TARGET DATABASE EXCEL</div>
-                <div style="font-size:1.6rem;font-weight:800;margin:4px 0;" id="auditDashTargetQty">0</div>
-                <div style="font-size:12px;color:var(--text-muted);"><span id="auditDashTargetItems">0</span> item terdaftar · <a href="#" id="auditDashKelolaLink" style="color:var(--primary);">Kelola</a></div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);">TARGET EXCEL</div>
+                <div style="font-size:1.5rem;font-weight:800;margin:4px 0;" id="auditDashTargetQty">0</div>
+                <div style="font-size:12px;color:var(--text-muted);"><span id="auditDashTargetItems">0</span> item · <a href="#" id="auditDashKelolaLink" style="color:var(--primary);">Kelola</a></div>
               </div>
             </div>
-            <div class="card" style="margin:0;">
+            <div class="card" style="margin:0;min-width:72%;max-width:280px;flex:0 0 auto;scroll-snap-align:start;">
               <div class="card-body" style="padding:14px;">
-                <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.03em;">FISIK TERHITUNG LIVE</div>
-                <div style="font-size:1.6rem;font-weight:800;margin:4px 0;color:#0f766e;" id="auditDashFisikQty">0</div>
-                <div style="font-size:12px;color:var(--text-muted);">Progres: <span id="auditDashProgress">0%</span> · <a href="#" id="auditDashScanLink" style="color:var(--primary);">+ Scan</a></div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);">SUDAH DIINPUT</div>
+                <div style="font-size:1.5rem;font-weight:800;margin:4px 0;color:#0f766e;" id="auditDashFisikQty">0</div>
+                <div style="font-size:12px;color:var(--text-muted);"><span id="auditDashInputItems">0</span> produk · progres <span id="auditDashProgress">0%</span></div>
+                <div style="font-size:12px;margin-top:4px;"><a href="#" id="auditDashScanLink" style="color:var(--primary);">+ Scan fisik</a></div>
               </div>
             </div>
-            <div class="card" style="margin:0;background:#fff1f2;border-color:#fecdd3;">
+            <div class="card" style="margin:0;min-width:72%;max-width:280px;flex:0 0 auto;scroll-snap-align:start;background:#ecfdf5;border-color:#a7f3d0;">
               <div class="card-body" style="padding:14px;">
-                <div style="font-size:11px;font-weight:700;color:#9f1239;letter-spacing:.03em;">SELISIH NET (KURANG)</div>
-                <div style="font-size:1.6rem;font-weight:800;margin:4px 0;color:#9f1239;" id="auditDashSelisihNet">0</div>
-                <div style="font-size:12px;color:#9f1239;"><span id="auditDashKurangLebih">0 kurang · 0 lebih</span> · <a href="#" id="auditDashVerifLink" style="color:#9f1239;font-weight:600;">Verifikasi</a></div>
+                <div style="font-size:11px;font-weight:700;color:#047857;">SESUAI</div>
+                <div style="font-size:1.5rem;font-weight:800;margin:4px 0;color:#047857;" id="auditDashSesuai">0</div>
+                <div style="font-size:12px;color:#047857;">produk cocok target</div>
               </div>
             </div>
-            <div class="card" style="margin:0;background:#fff7ed;border-color:#fed7aa;">
+            <div class="card" style="margin:0;min-width:72%;max-width:280px;flex:0 0 auto;scroll-snap-align:start;background:#fff1f2;border-color:#fecdd3;">
               <div class="card-body" style="padding:14px;">
-                <div style="font-size:11px;font-weight:700;color:#c2410c;letter-spacing:.03em;">ANOMALI DI LUAR EXCEL</div>
-                <div style="font-size:1.6rem;font-weight:800;margin:4px 0;color:#c2410c;" id="auditDashAnomali">0</div>
-                <div style="font-size:12px;color:#c2410c;"><span id="auditDashAnomaliQty">0 unit fisik</span> · <a href="#" id="auditDashAnomaliLink" style="color:#c2410c;font-weight:600;">Buka Tab →</a></div>
+                <div style="font-size:11px;font-weight:700;color:#9f1239;">ADA SELISIH</div>
+                <div style="font-size:1.5rem;font-weight:800;margin:4px 0;color:#9f1239;" id="auditDashSelisihCount">0</div>
+                <div style="font-size:12px;color:#9f1239;"><span id="auditDashKurangLebih">0 kurang · 0 lebih</span></div>
+                <div style="font-size:12px;margin-top:4px;"><a href="#" id="auditDashVerifLink" style="color:#9f1239;font-weight:600;">Verifikasi →</a></div>
+              </div>
+            </div>
+            <div class="card" style="margin:0;min-width:72%;max-width:280px;flex:0 0 auto;scroll-snap-align:start;background:#f8fafc;border-color:#e2e8f0;">
+              <div class="card-body" style="padding:14px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted);">BELUM INPUT</div>
+                <div style="font-size:1.5rem;font-weight:800;margin:4px 0;" id="auditDashBelum">0</div>
+                <div style="font-size:12px;color:var(--text-muted);">masih menunggu scan</div>
+              </div>
+            </div>
+            <div class="card" style="margin:0;min-width:72%;max-width:280px;flex:0 0 auto;scroll-snap-align:start;background:#fff7ed;border-color:#fed7aa;">
+              <div class="card-body" style="padding:14px;">
+                <div style="font-size:11px;font-weight:700;color:#c2410c;">ANOMALI</div>
+                <div style="font-size:1.5rem;font-weight:800;margin:4px 0;color:#c2410c;" id="auditDashAnomali">0</div>
+                <div style="font-size:12px;color:#c2410c;"><span id="auditDashAnomaliQty">0 unit</span> · <a href="#" id="auditDashAnomaliLink" style="color:#c2410c;font-weight:600;">Buka →</a></div>
               </div>
             </div>
           </div>
+          <div style="display:none;"><span id="auditDashSelisihNet">0</span></div>
+
           <div id="auditTargetMeta" style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px;"></div>
           <div id="auditCompareStats" style="display:none;"></div>
         </div>
@@ -1441,9 +1460,12 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
             </div>
           </div>
                     <div class="card" id="auditDetailCard" style="display:none;border:2px solid var(--primary);">
-            <div class="card-header" style="background:#f0fdfa;">
-              <h2>Input Cepat</h2>
-              <span style="font-size:12px;color:var(--text-muted);">Enter = tambah</span>
+            <div class="card-header" style="background:#f0fdfa;align-items:center;gap:8px;">
+              <h2 style="margin:0;flex:1;">Input Cepat</h2>
+              <button type="button" class="btn btn-primary" id="addAuditBtnTop"
+                style="padding:12px 16px;font-size:15px;font-weight:800;min-height:48px;border-radius:12px;white-space:nowrap;">
+                + Tambah
+              </button>
             </div>
             <div class="card-body">
               <div class="form-group" style="margin-bottom:14px;">
@@ -1478,11 +1500,11 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                 </div>
                 <input type="hidden" id="auditKondisi" value="Bad">
               </div>
+              <p style="font-size:12px;color:var(--text-muted);text-align:center;margin:4px 0 8px;">Atau tekan <b>Enter</b> di kolom qty</p>
               <button type="button" class="btn btn-primary" id="addAuditBtn"
-                style="width:100%;padding:16px 18px;font-size:17px;font-weight:800;min-height:56px;border-radius:12px;">
+                style="width:100%;padding:14px 16px;font-size:16px;font-weight:800;min-height:52px;border-radius:12px;">
                 + Tambah ke Daftar Audit
               </button>
-              <button type="button" class="btn btn-primary btn-sm" id="addAuditBtnTop" style="display:none;">+ Tambah</button>
               <button type="button" class="btn btn-outline" id="auditDetailToggle"
                 style="width:100%;margin-top:10px;font-size:13px;">Detail lain ▾ (alasan, exp, rak, catatan)</button>
               <div id="auditDetailExtra" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);">
@@ -1565,7 +1587,6 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                       <th>Fisik</th>
                       <th>Revisi</th>
                       <th>Selisih</th>
-                      <th>Salin BC</th>
                     </tr>
                   </thead>
                   <tbody id="auditCompareTbody"></tbody>
@@ -4936,7 +4957,7 @@ function parseAuditTargetExcel(arrayBuffer) {
     items.push({
       id: 'tgt-' + idx + '-' + Date.now(),
       kode, barcode, nama: nama || kode,
-      qtyDatabase: isNaN(qty) ? 0 : Math.max(0, qty),
+      qtyDatabase: isNaN(qty) ? 0 : Math.round(Math.max(0, qty) * 1000) / 1000,
       satuan: String(satuan).toUpperCase(),
       vendor, keterangan: ket
     });
@@ -5192,6 +5213,15 @@ function switchAuditTab(tab) {
   if (tab === 'anomali') renderAuditAnomaliList();
 }
 
+function auditNiceNum(n) {
+  const x = Number(n);
+  if (!isFinite(x)) return 0;
+  // hilangkan floating error 5349.025000000001
+  const r = Math.round(x * 1000) / 1000;
+  if (Math.abs(r - Math.round(r)) < 1e-9) return Math.round(r);
+  return Math.round(r * 100) / 100;
+}
+
 function updateAuditDashboard(stats, unlisted) {
   const dc = (typeof effectiveDcName === 'function' ? effectiveDcName() : '') || 'DC';
   const tgl = (typeof todayStr === 'function' ? todayStr() : new Date().toISOString().slice(0, 10));
@@ -5204,20 +5234,29 @@ function updateAuditDashboard(stats, unlisted) {
     targetCount: (state.auditTargets || []).length,
     targetQty: (state.auditTargets || []).reduce((s, t) => s + (parseFloat(t.qtyDatabase) || 0), 0),
     fisikQty: (state.auditList || []).reduce((s, x) => s + (parseFloat(x.qty) || 0), 0),
-    sesuai: 0, kurang: 0, lebih: 0, belum: 0, anomali: 0, anomaliQty: 0
+    sesuai: 0, kurang: 0, lebih: 0, belum: 0, direvisi: 0, anomali: 0, anomaliQty: 0
   };
   const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-  set('#auditDashTargetQty', st.targetQty);
-  set('#auditDashTargetItems', st.targetCount);
-  set('#auditDashFisikQty', st.fisikQty);
-  const prog = st.targetQty > 0 ? Math.min(100, Math.round((st.fisikQty / st.targetQty) * 100)) : 0;
+  const inputItems = (state.auditList || []).length;
+  const sudahRows = (st.sesuai || 0) + (st.kurang || 0) + (st.lebih || 0);
+  const selisihItems = (st.kurang || 0) + (st.lebih || 0);
+
+  set('#auditDashTargetQty', auditNiceNum(st.targetQty));
+  set('#auditDashTargetItems', st.targetCount || 0);
+  set('#auditDashFisikQty', auditNiceNum(st.fisikQty));
+  set('#auditDashInputItems', inputItems);
+  const prog = st.targetCount > 0
+    ? Math.min(100, Math.round((sudahRows / st.targetCount) * 100))
+    : 0;
   set('#auditDashProgress', prog + '%');
-  // net kurang = sum of negative selisih approx as target - fisik when fisik < target overall
-  const net = (st.targetQty || 0) - (st.fisikQty || 0);
+  set('#auditDashSesuai', st.sesuai || 0);
+  set('#auditDashSelisihCount', selisihItems);
+  set('#auditDashKurangLebih', (st.kurang || 0) + ' kurang · ' + (st.lebih || 0) + ' lebih');
+  set('#auditDashBelum', st.belum || 0);
+  const net = auditNiceNum((st.targetQty || 0) - (st.fisikQty || 0));
   set('#auditDashSelisihNet', (net > 0 ? '-' : (net < 0 ? '+' : '')) + Math.abs(net));
-  set('#auditDashKurangLebih', (st.kurang || 0) + ' item kurang · ' + (st.lebih || 0) + ' lebih');
   set('#auditDashAnomali', st.anomali || 0);
-  set('#auditDashAnomaliQty', (st.anomaliQty || 0) + ' unit fisik');
+  set('#auditDashAnomaliQty', auditNiceNum(st.anomaliQty || 0) + ' unit');
   const ac = $('#auditAnomaliTabCount');
   if (ac) ac.textContent = '(' + (st.anomali || 0) + ')';
 }
@@ -5349,23 +5388,27 @@ function fillAuditCompareTable() {
   tbody.innerHTML = data.map((r, idx) => {
     const bc = (r.barcode && r.barcode !== '-') ? String(r.barcode) : '';
     const isCopied = !!(bc && copied[bc]) || !!(r.key && copied['key:' + r.key]);
+    // barcode + tombol salin di sebelahnya (bukan kolom terpisah)
     const bcBlock = bc
-      ? ('<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px;">' +
-         '<span style="font-family:var(--mono);font-size:11px;">' + esc(bc) + '</span></div>')
-      : '';
-    const salinCell = bc
-      ? ('<div style="display:flex;align-items:center;gap:6px;justify-content:center;">' +
-         '<button type="button" class="btn btn-outline btn-sm audit-copy-bc" data-bc="' + esc(bc) + '" data-key="' + esc(r.key || '') + '" title="Salin barcode">📋</button>' +
-         '<input type="checkbox" class="audit-copied-cb" data-bc="' + esc(bc) + '" ' + (isCopied ? 'checked' : '') + ' title="Sudah disalin">' +
+      ? ('<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;">' +
+         '<span style="font-family:var(--mono);font-size:11px;">' + esc(bc) + '</span>' +
+         '<button type="button" class="btn btn-outline btn-sm audit-copy-bc" data-bc="' + esc(bc) + '" data-key="' + esc(r.key || '') +
+         '" title="Salin barcode" style="padding:2px 8px;font-size:12px;min-height:28px;">📋</button>' +
+         '<input type="checkbox" class="audit-copied-cb" data-bc="' + esc(bc) + '" ' + (isCopied ? 'checked' : '') +
+         ' title="Sudah disalin" style="width:16px;height:16px;">' +
          '</div>')
-      : '—';
+      : '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">—</div>';
+
+    const qF = (typeof auditNiceNum === 'function' ? auditNiceNum(r.qtyFisik) : r.qtyFisik);
+    const qT = r.qtyDatabase == null ? null : (typeof auditNiceNum === 'function' ? auditNiceNum(r.qtyDatabase) : r.qtyDatabase);
+    const qS = (typeof auditNiceNum === 'function' ? auditNiceNum(r.selisih) : r.selisih);
 
     if (r._kind === 'unlisted') {
       return '<tr style="background:#fff1f2;"><td>' + (idx + 1) + '</td><td>' + auditStatusBadge('unlisted') + '</td>' +
         '<td style="font-size:11.5px;"><b style="font-family:var(--mono);">' + esc(r.kode) + '</b>' + bcBlock + '</td>' +
         '<td><div style="font-weight:600;">' + esc(r.nama) + '</div><div class="meta" style="color:var(--danger);">Tidak di Excel</div></td>' +
-        '<td>' + esc(r.satuan) + '</td><td>—</td><td><b>' + r.qtyFisik + '</b></td><td>—</td>' +
-        '<td style="font-weight:800;color:var(--danger);">+' + r.selisih + '</td><td>' + salinCell + '</td></tr>';
+        '<td>' + esc(r.satuan) + '</td><td>—</td><td><b>' + qF + '</b></td><td>—</td>' +
+        '<td style="font-weight:800;color:var(--danger);">+' + qS + '</td></tr>';
     }
 
     const selColor = r.selisih === 0 ? 'var(--success)' : (r.selisih < 0 ? '#b45309' : 'var(--info)');
@@ -5374,7 +5417,7 @@ function fillAuditCompareTable() {
     const revInput =
       '<div style="display:flex;flex-direction:column;gap:4px;min-width:78px;">' +
       '<input type="number" class="audit-rev-qty" data-key="' + esc(r.key || '') + '" value="' + (revVal !== '' && revVal != null ? revVal : '') +
-      '" placeholder="fisik ' + r.qtyFisik + '" inputmode="numeric" style="width:78px;padding:4px 6px;font-size:12.5px;font-weight:700;">' +
+      '" placeholder="fisik ' + qF + '" inputmode="numeric" style="width:78px;padding:4px 6px;font-size:12.5px;font-weight:700;">' +
       '<button type="button" class="btn btn-outline btn-sm audit-rev-save" data-key="' + esc(r.key || '') +
       '" style="padding:2px 6px;font-size:11px;">Simpan</button></div>';
 
@@ -5383,10 +5426,9 @@ function fillAuditCompareTable() {
       '<td style="font-size:11.5px;"><b style="font-family:var(--mono);">' + esc(r.kode) + '</b>' + bcBlock + '</td>' +
       '<td><div style="font-weight:600;">' + esc(r.nama) + '</div><div class="meta" style="font-size:11px;">' + esc(r.vendor || '-') + '</div></td>' +
       '<td><span class="badge badge-muted">' + esc(r.satuan) + '</span></td>' +
-      '<td><b>' + r.qtyDatabase + '</b></td><td><b>' + r.qtyFisik + '</b></td>' +
+      '<td><b>' + qT + '</b></td><td><b>' + qF + '</b></td>' +
       '<td>' + revInput + '</td>' +
-      '<td style="font-weight:800;color:' + selColor + ';">' + (r.selisih > 0 ? '+' : '') + r.selisih + '</td>' +
-      '<td>' + salinCell + '</td></tr>';
+      '<td style="font-weight:800;color:' + selColor + ';">' + (qS > 0 ? '+' : '') + qS + '</td></tr>';
   }).join('');
 }
 
