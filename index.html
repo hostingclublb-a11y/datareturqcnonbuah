@@ -1361,7 +1361,7 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
         <!-- Tab navigasi ala dashboard audit karantina -->
         <div class="card" style="margin-bottom:12px;">
           <div class="card-body" style="padding:10px 12px;">
-            <div class="chip-group" id="auditTabBar" style="gap:6px;flex-wrap:wrap;">
+            <div class="chip-group" id="auditTabBar" style="gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
               <button type="button" class="chip active audit-main-tab" data-tab="dashboard">Dashboard</button>
               <button type="button" class="chip audit-main-tab" data-tab="input">Input Fisik</button>
               <button type="button" class="chip audit-main-tab" data-tab="selisih">Selisih Live &amp; Revisi</button>
@@ -1557,7 +1557,8 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
               <h2>Verifikasi Selisih Live &amp; Revisi</h2>
             </div>
             <div class="card-body">
-              <div class="chip-group" id="auditCompareFilterChips" style="margin-bottom:12px;gap:6px;flex-wrap:wrap;"></div>
+              <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser filter ← →</p>
+              <div class="chip-group" id="auditCompareFilterChips" style="margin-bottom:12px;gap:8px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding-bottom:8px;max-width:100%;"></div>
               <div class="toolbar" style="margin-bottom:10px;">
                 <div class="search-box" style="flex:1;">
                   <input type="text" id="auditCompareSearch" placeholder="Filter nama / kode / vendor...">
@@ -5322,8 +5323,14 @@ function renderAuditComparison() {
       ['sudah', 'Sudah Input']
     ];
     chips.innerHTML = defs.map(([v, lab]) =>
-      '<button type="button" class="chip audit-filter-chip' + (cur === v ? ' active' : '') + '" data-filter="' + v + '">' + lab + '</button>'
+      '<button type="button" class="chip audit-filter-chip' + (cur === v ? ' active' : '') +
+      '" data-filter="' + v + '" style="flex:0 0 auto;white-space:nowrap;scroll-snap-align:start;">' + lab + '</button>'
     ).join('');
+    // biar chip aktif terlihat di HP
+    try {
+      const act = chips.querySelector('.audit-filter-chip.active');
+      if (act && act.scrollIntoView) act.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    } catch (_) {}
   }
 
   if (state.auditUiTab === 'selisih' || $('#auditTab-selisih')?.style.display === 'block') {
