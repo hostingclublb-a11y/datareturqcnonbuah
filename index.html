@@ -1542,6 +1542,7 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                   <option value="sesuai">Sesuai</option>
                   <option value="belum">Belum</option>
                   <option value="selisih">Ada selisih</option>
+                  <option value="direvisi">Direvisi</option>
                   <option value="unlisted">Anomali</option>
                   <option value="sudah">Sudah</option>
                 </select>
@@ -1557,7 +1558,9 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                       <th>Satuan</th>
                       <th>Target</th>
                       <th>Fisik</th>
+                      <th>Revisi</th>
                       <th>Selisih</th>
+                      <th>Salin BC</th>
                     </tr>
                   </thead>
                   <tbody id="auditCompareTbody"></tbody>
@@ -2373,6 +2376,8 @@ const state = {
   history: [],
   auditList: [],
   auditTargets: [],
+  auditRevisions: {},
+  auditCopiedBc: {},
   auditHistory: [],
   bandingRef: null,
   bandingList: [],
@@ -2655,6 +2660,10 @@ function loadLocalDraftsForDc() {
     state.auditTargets = storage.get('auditTargets', []) || [];
     state.auditTargetFileName = storage.get('auditTargetFileName', '') || '';
   } catch (_) { state.auditTargets = []; state.auditTargetFileName = ''; }
+  try {
+    state.auditRevisions = storage.get('auditRevisions', {}) || {};
+    state.auditCopiedBc = storage.get('auditCopiedBc', {}) || {};
+  } catch (_) { state.auditRevisions = {}; state.auditCopiedBc = {}; }
   // jaga kompatibilitas key lama
   try { storage.set('cart', state.cart); storage.set('auditList', state.auditList); } catch (_) {}
 }
@@ -4997,6 +5006,93 @@ function auditPhysicalMatchesTarget(it, t) {
   return false;
 }
 
+/** Ambil barcode scan-able dari master produk (bukan kode LB…) */
+function resolveAuditBarcode(kode, fallbackBarcode) {
+  const products = state.products || [];
+  const k = String(kode || '').trim().toLowerCase();
+  const fb = String(fallbackBarcode || '').trim();
+  let p = null;
+  if (k) {
+    p = products.find(x => String(x.kode || '').trim().toLowerCase() === k);
+  }
+  // cocok barcode fallback ke master
+  if (!p && fb) {
+    const fbl = fb.toLowerCase();
+    p = products.find(x => {
+      if (String(x.barcode || '').trim().toLowerCase() === fbl) return true;
+      if (Array.isArray(x.barcodes) && x.barcodes.some(b => String(b).trim().toLowerCase() === fbl)) return true;
+      return false;
+    });
+  }
+  if (p) {
+    // prioritaskan barcodes[] lalu barcode tunggal
+    if (Array.isArray(p.barcodes)) {
+      const list = p.barcodes.map(b => String(b || '').trim()).filter(Boolean);
+      // pilih yang paling mirip barcode (digit panjang), bukan kode produk
+      const digit = list.find(b => /^\d{8,}$/.test(b));
+      if (digit) return digit;
+      if (list.length) return list[0];
+    }
+    const single = String(p.barcode || '').trim();
+    if (single) return single;
+  }
+  // fallback: hanya pakai jika terlihat barcode (angka), jangan pakai kode produk
+  if (fb && /^\d{6,}$/.test(fb)) return fb;
+  if (fb && fb.toLowerCase() !== k && !/^lb\d/i.test(fb) && !/^itm-/i.test(fb)) return fb;
+  return '';
+}
+
+function auditRevisionKey(kode, kodeTarget, satuan) {
+  const k = String(kode || kodeTarget || '').trim().toLowerCase();
+  const sat = String(satuan || 'PCS').trim().toUpperCase().split(/[:\s]/)[0] || 'PCS';
+  return k + '|' + sat;
+}
+
+function setAuditRevision(rowKey, qty, catatan) {
+  if (!state.auditRevisions) state.auditRevisions = {};
+  const q = parseFloat(qty);
+  if (qty === '' || qty == null || isNaN(q)) {
+    delete state.auditRevisions[rowKey];
+  } else {
+    state.auditRevisions[rowKey] = {
+      qty: q,
+      catatan: (catatan || '').trim(),
+      at: (typeof nowLabel === 'function' ? nowLabel() : new Date().toLocaleString('id-ID'))
+    };
+  }
+  try { cacheLocal('auditRevisions', state.auditRevisions); } catch (_) {}
+  if (typeof renderAuditComparison === 'function') renderAuditComparison();
+  showToast('Revisi disimpan');
+}
+
+function copyAuditBarcode(bc, rowKey) {
+  bc = String(bc || '').trim();
+  if (!bc || bc === '-') return showToast('Barcode kosong');
+  const done = () => {
+    if (!state.auditCopiedBc) state.auditCopiedBc = {};
+    state.auditCopiedBc[bc] = true;
+    if (rowKey) state.auditCopiedBc['key:' + rowKey] = true;
+    try { cacheLocal('auditCopiedBc', state.auditCopiedBc); } catch (_) {}
+    if (typeof fillAuditCompareTable === 'function') fillAuditCompareTable();
+    showToast('Barcode disalin: ' + bc);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(bc).then(done).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = bc; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta);
+      done();
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = bc; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(ta);
+    done();
+  }
+}
+
 function buildAuditComparison() {
   const targets = state.auditTargets || [];
   const list = state.auditList || [];
@@ -5014,24 +5110,34 @@ function buildAuditComparison() {
     const qtyFisik = matching.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
     const goodQty = matching.filter(x => (x.kondisi || 'Bad') === 'Good').reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
     const badQty = matching.filter(x => (x.kondisi || 'Bad') !== 'Good').reduce((s, x) => s + (parseFloat(x.qty) || 0), 0);
-    const selisih = qtyFisik - (parseFloat(t.qtyDatabase) || 0);
+    const displayKode = matching.length && matching[0].kode ? matching[0].kode : t.kode;
+    // barcode produk (scan), bukan kode item — ambil dari master / fisik / target
+    const rawBc = (matching[0] && (matching[0].barcode || (Array.isArray(matching[0].barcodes) && matching[0].barcodes[0]))) || t.barcode || '';
+    const barcode = resolveAuditBarcode(displayKode, rawBc) || resolveAuditBarcode(t.kode, t.barcode || '');
+    const rowKey = auditRevisionKey(displayKode, t.kode, t.satuan || 'PCS');
+    const rev = (state.auditRevisions || {})[rowKey];
+    const qtyRevisi = rev && rev.qty != null && rev.qty !== '' ? parseFloat(rev.qty) : null;
+    const hasRevisi = qtyRevisi != null && !isNaN(qtyRevisi);
+    const effectiveQty = hasRevisi ? qtyRevisi : qtyFisik;
+    const selisih = effectiveQty - (parseFloat(t.qtyDatabase) || 0);
     let status = 'belum';
-    if (matching.length) {
+    if (matching.length || hasRevisi) {
       if (selisih === 0) status = 'sesuai';
       else if (selisih < 0) status = 'kurang';
       else status = 'lebih';
     }
-    // tampilkan kode master bila fisik sudah match (lebih jelas dari ITM-xxx)
-    const displayKode = matching.length && matching[0].kode ? matching[0].kode : t.kode;
     return {
+      key: rowKey,
       kode: displayKode,
       kodeTarget: t.kode,
       nama: t.nama,
-      barcode: (matching[0] && matching[0].barcode) || t.barcode || '-',
-      satuan: t.satuan || 'PCS',
+      barcode: barcode || '-',
+      satuan: String(t.satuan || 'PCS').toUpperCase().split(/[:\s]/)[0] || 'PCS',
       vendor: (matching[0] && matching[0].vendor) || t.vendor || '',
       qtyDatabase: parseFloat(t.qtyDatabase) || 0,
-      qtyFisik, selisih, status, goodQty, badQty,
+      qtyFisik, qtyRevisi: hasRevisi ? qtyRevisi : undefined,
+      hasRevisi, selisih, status, goodQty, badQty,
+      catatanRevisi: rev && rev.catatan ? rev.catatan : '',
       matchedByName: matching.length > 0 && String(matching[0].kode || '').toLowerCase() !== String(t.kode || '').toLowerCase()
     };
   });
@@ -5045,7 +5151,8 @@ function buildAuditComparison() {
     sesuai: rows.filter(r => r.status === 'sesuai').length,
     kurang: rows.filter(r => r.status === 'kurang').length,
     lebih: rows.filter(r => r.status === 'lebih').length,
-    belum: rows.filter(r => r.status === 'belum').length,
+    belum: rows.filter(r => r.status === 'belum' && !r.hasRevisi).length,
+    direvisi: rows.filter(r => r.hasRevisi).length,
     anomali: unlisted.length,
     anomaliQty: unlisted.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0)
   };
@@ -5165,6 +5272,7 @@ function renderAuditComparison() {
       ['lebih', 'Lebih (' + stats.lebih + ')'],
       ['sesuai', 'Sesuai (' + stats.sesuai + ')'],
       ['belum', 'Belum Input (' + stats.belum + ')'],
+      ['direvisi', 'Direvisi (' + (stats.direvisi || 0) + ')'],
       ['unlisted', 'Anomali (' + stats.anomali + ')'],
       ['selisih', 'Ada Selisih'],
       ['sudah', 'Sudah Input']
@@ -5189,6 +5297,7 @@ function fillAuditCompareTable() {
   const unlisted = cache.unlisted || [];
   const filter = ($('#auditCompareFilter')?.value) || 'all';
   const term = (($('#auditCompareSearch')?.value) || '').trim().toLowerCase();
+  const copied = state.auditCopiedBc || {};
 
   const matchTerm = (r) => {
     if (!term) return true;
@@ -5202,18 +5311,23 @@ function fillAuditCompareTable() {
     if (filter === 'sesuai') ok = r.status === 'sesuai';
     else if (filter === 'kurang') ok = r.status === 'kurang';
     else if (filter === 'lebih') ok = r.status === 'lebih';
-    else if (filter === 'belum') ok = r.status === 'belum';
-    else if (filter === 'selisih') ok = r.status === 'kurang' || r.status === 'lebih';
-    else if (filter === 'sudah') ok = r.status !== 'belum';
+    else if (filter === 'belum') ok = r.status === 'belum' && !r.hasRevisi;
+    else if (filter === 'selisih') ok = (r.status === 'kurang' || r.status === 'lebih');
+    else if (filter === 'sudah') ok = r.status !== 'belum' || r.hasRevisi;
+    else if (filter === 'direvisi') ok = !!r.hasRevisi;
     else if (filter === 'unlisted') ok = false;
     if (ok && matchTerm(r)) data.push(Object.assign({}, r, { _kind: 'target' }));
   });
   if (filter === 'all' || filter === 'unlisted') {
     unlisted.forEach(u => {
+      const ubc = (typeof resolveAuditBarcode === 'function')
+        ? (resolveAuditBarcode(u.kode, u.barcode || '') || '')
+        : (u.barcode || '');
       const row = {
-        status: 'unlisted', kode: u.kode, nama: u.nama, barcode: u.barcode || '-',
+        status: 'unlisted', kode: u.kode, nama: u.nama, barcode: ubc || '-',
         satuan: u.satuan || 'PCS', vendor: u.vendor || '',
         qtyDatabase: null, qtyFisik: parseFloat(u.qty) || 0, selisih: parseFloat(u.qty) || 0,
+        key: (typeof auditRevisionKey === 'function' ? auditRevisionKey(u.kode, u.kode, u.satuan) : u.kode),
         _kind: 'unlisted'
       };
       if (matchTerm(row)) data.push(row);
@@ -5227,21 +5341,47 @@ function fillAuditCompareTable() {
   }
   if (empty) empty.style.display = 'none';
 
-  tbody.innerHTML = data.map((r, i) => {
+  tbody.innerHTML = data.map((r, idx) => {
+    const bc = (r.barcode && r.barcode !== '-') ? String(r.barcode) : '';
+    const isCopied = !!(bc && copied[bc]) || !!(r.key && copied['key:' + r.key]);
+    const bcBlock = bc
+      ? ('<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px;">' +
+         '<span style="font-family:var(--mono);font-size:11px;">' + esc(bc) + '</span></div>')
+      : '';
+    const salinCell = bc
+      ? ('<div style="display:flex;align-items:center;gap:6px;justify-content:center;">' +
+         '<button type="button" class="btn btn-outline btn-sm audit-copy-bc" data-bc="' + esc(bc) + '" data-key="' + esc(r.key || '') + '" title="Salin barcode">📋</button>' +
+         '<input type="checkbox" class="audit-copied-cb" data-bc="' + esc(bc) + '" ' + (isCopied ? 'checked' : '') + ' title="Sudah disalin">' +
+         '</div>')
+      : '—';
+
     if (r._kind === 'unlisted') {
-      return '<tr style="background:#fff1f2;"><td>' + (i + 1) + '</td><td>' + auditStatusBadge('unlisted') + '</td>' +
-        '<td style="font-family:var(--mono);font-size:11.5px;"><b>' + esc(r.kode) + '</b><div style="font-size:11px;color:var(--text-muted);">' + esc(r.barcode) + '</div></td>' +
+      return '<tr style="background:#fff1f2;"><td>' + (idx + 1) + '</td><td>' + auditStatusBadge('unlisted') + '</td>' +
+        '<td style="font-size:11.5px;"><b style="font-family:var(--mono);">' + esc(r.kode) + '</b>' + bcBlock + '</td>' +
         '<td><div style="font-weight:600;">' + esc(r.nama) + '</div><div class="meta" style="color:var(--danger);">Tidak di Excel</div></td>' +
-        '<td>' + esc(r.satuan) + '</td><td>—</td><td><b>' + r.qtyFisik + '</b></td>' +
-        '<td style="font-weight:800;color:var(--danger);">+' + r.selisih + '</td></tr>';
+        '<td>' + esc(r.satuan) + '</td><td>—</td><td><b>' + r.qtyFisik + '</b></td><td>—</td>' +
+        '<td style="font-weight:800;color:var(--danger);">+' + r.selisih + '</td><td>' + salinCell + '</td></tr>';
     }
+
     const selColor = r.selisih === 0 ? 'var(--success)' : (r.selisih < 0 ? '#b45309' : 'var(--info)');
-    return '<tr><td>' + (i + 1) + '</td><td>' + auditStatusBadge(r.status) + '</td>' +
-      '<td style="font-family:var(--mono);font-size:11.5px;"><b>' + esc(r.kode) + '</b><div style="font-size:11px;color:var(--text-muted);">' + esc(r.barcode || '-') + '</div></td>' +
+    const statusExtra = r.hasRevisi ? ' <span class="badge" style="background:#ede9fe;color:#6d28d9;font-size:10px;">Direvisi</span>' : '';
+    const revVal = r.hasRevisi ? r.qtyRevisi : '';
+    const revInput =
+      '<div style="display:flex;flex-direction:column;gap:4px;min-width:78px;">' +
+      '<input type="number" class="audit-rev-qty" data-key="' + esc(r.key || '') + '" value="' + (revVal !== '' && revVal != null ? revVal : '') +
+      '" placeholder="fisik ' + r.qtyFisik + '" inputmode="numeric" style="width:78px;padding:4px 6px;font-size:12.5px;font-weight:700;">' +
+      '<button type="button" class="btn btn-outline btn-sm audit-rev-save" data-key="' + esc(r.key || '') +
+      '" style="padding:2px 6px;font-size:11px;">Simpan</button></div>';
+
+    return '<tr' + (r.hasRevisi ? ' style="background:#f5f3ff;"' : '') + '>' +
+      '<td>' + (idx + 1) + '</td><td>' + auditStatusBadge(r.status) + statusExtra + '</td>' +
+      '<td style="font-size:11.5px;"><b style="font-family:var(--mono);">' + esc(r.kode) + '</b>' + bcBlock + '</td>' +
       '<td><div style="font-weight:600;">' + esc(r.nama) + '</div><div class="meta" style="font-size:11px;">' + esc(r.vendor || '-') + '</div></td>' +
       '<td><span class="badge badge-muted">' + esc(r.satuan) + '</span></td>' +
       '<td><b>' + r.qtyDatabase + '</b></td><td><b>' + r.qtyFisik + '</b></td>' +
-      '<td style="font-weight:800;color:' + selColor + ';">' + (r.selisih > 0 ? '+' : '') + r.selisih + '</td></tr>';
+      '<td>' + revInput + '</td>' +
+      '<td style="font-weight:800;color:' + selColor + ';">' + (r.selisih > 0 ? '+' : '') + r.selisih + '</td>' +
+      '<td>' + salinCell + '</td></tr>';
   }).join('');
 }
 
@@ -5257,6 +5397,26 @@ function handleAuditTargetFile(file) {
     try {
       const items = parseAuditTargetExcel(e.target.result);
       if (!items.length) return showToast('Tidak ada baris valid di Excel');
+      // lengkapi barcode dari master produk (bukan kode LB)
+      items.forEach(it => {
+        const bc = resolveAuditBarcode(it.kode, it.barcode || '');
+        if (bc) it.barcode = bc;
+        else {
+          // coba match nama
+          const n = String(it.nama || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+          if (n.length >= 8) {
+            const hit = (state.products || []).find(x => {
+              const xn = String(x.nama || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+              return xn === n || xn.includes(n) || n.includes(xn);
+            });
+            if (hit) {
+              if (!it.kode || /^itm-/i.test(it.kode)) it.kode = hit.kode || it.kode;
+              const b2 = resolveAuditBarcode(hit.kode, hit.barcode || '');
+              if (b2) it.barcode = b2;
+            }
+          }
+        }
+      });
       state.auditTargets = items;
       state.auditTargetFileName = file.name || 'target.xlsx';
       try { cacheLocal('auditTargets', state.auditTargets); } catch (_) {}
@@ -5367,6 +5527,7 @@ function saveAuditSession() {
     items,
     targets,
     targetFileName: state.auditTargetFileName || '',
+    revisions: Object.assign({}, state.auditRevisions || {}),
     comparison,
     totalItem: items.length,
     totalQty,
@@ -12242,6 +12403,9 @@ function bindEvents() {
       (it.kondisi || 'Bad') === kondisi &&
       String(it.alasan || '') === String(alasan || '');
     const existing = (state.auditList || []).find(matchKey);
+    const productBc = (typeof resolveAuditBarcode === 'function'
+      ? resolveAuditBarcode(p.kode, p.barcode || (Array.isArray(p.barcodes) && p.barcodes[0]) || '')
+      : '') || String(p.barcode || '').trim() || '';
     if (existing) {
       existing.qty = (parseFloat(existing.qty) || 0) + qty;
       if (expDate) existing.expDate = expDate;
@@ -12249,13 +12413,16 @@ function bindEvents() {
       if (catatan) existing.catatan = [existing.catatan, catatan].filter(Boolean).join(' | ');
       if (!existing.vendor && p.vendor) existing.vendor = p.vendor;
       if (!existing.pic) existing.pic = resolveItemPic(p) || p.pic || '';
+      if (!existing.barcode && productBc) existing.barcode = productBc;
+      if (Array.isArray(p.barcodes) && p.barcodes.length) existing.barcodes = p.barcodes.slice();
       showToast('Qty digabung (auto-sum): ' + existing.qty + ' ' + satuan);
     } else {
       state.auditList.push({
         id: uid(),
         nama: p.nama,
         kode: p.kode,
-        barcode: p.barcode || '',
+        barcode: productBc,
+        barcodes: Array.isArray(p.barcodes) ? p.barcodes.slice() : (productBc ? [productBc] : []),
         kategori: p.kategori || '',
         vendor: p.vendor || '',
         pic: resolveItemPic(p) || p.pic || '',
@@ -12314,11 +12481,37 @@ function bindEvents() {
   $('#auditCompareSearch')?.addEventListener('input', () => fillAuditCompareTable());
   document.addEventListener('click', (e) => {
     const chip = e.target.closest('.audit-filter-chip');
-    if (!chip) return;
-    const f = chip.dataset.filter || 'all';
-    if ($('#auditCompareFilter')) $('#auditCompareFilter').value = f;
-    $$('.audit-filter-chip').forEach(c => c.classList.toggle('active', c === chip));
-    fillAuditCompareTable();
+    if (chip) {
+      const f = chip.dataset.filter || 'all';
+      if ($('#auditCompareFilter')) $('#auditCompareFilter').value = f;
+      $$('.audit-filter-chip').forEach(c => c.classList.toggle('active', c === chip));
+      fillAuditCompareTable();
+      return;
+    }
+    const copyBtn = e.target.closest('.audit-copy-bc');
+    if (copyBtn) {
+      copyAuditBarcode(copyBtn.dataset.bc || '', copyBtn.dataset.key || '');
+      return;
+    }
+    const saveBtn = e.target.closest('.audit-rev-save');
+    if (saveBtn) {
+      const key = saveBtn.dataset.key || '';
+      const input = document.querySelector('.audit-rev-qty[data-key="' + key.replace(/"/g, '\"') + '"]');
+      // safer query
+      const rowInput = saveBtn.parentElement && saveBtn.parentElement.querySelector('.audit-rev-qty');
+      const val = rowInput ? rowInput.value : (input ? input.value : '');
+      setAuditRevision(key, val);
+      return;
+    }
+  });
+  document.addEventListener('change', (e) => {
+    const cb = e.target.closest('.audit-copied-cb');
+    if (!cb) return;
+    const bc = cb.dataset.bc || '';
+    if (!state.auditCopiedBc) state.auditCopiedBc = {};
+    if (cb.checked) state.auditCopiedBc[bc] = true;
+    else delete state.auditCopiedBc[bc];
+    try { cacheLocal('auditCopiedBc', state.auditCopiedBc); } catch (_) {}
   });
 
   $('#auditCurrentPlakatBtn')?.addEventListener('click', () => {
