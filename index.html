@@ -1440,76 +1440,81 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
               <div id="auditSelected"></div>
             </div>
           </div>
-          <div class="card" id="auditDetailCard" style="display:none;">
-            <div class="card-header">
-              <h2>Detail Audit Retur</h2>
-              <button class="btn btn-primary btn-sm" id="addAuditBtnTop">+ Tambah ke Daftar Audit</button>
+                    <div class="card" id="auditDetailCard" style="display:none;border:2px solid var(--primary);">
+            <div class="card-header" style="background:#f0fdfa;">
+              <h2>Input Cepat</h2>
+              <span style="font-size:12px;color:var(--text-muted);">Enter = tambah</span>
             </div>
             <div class="card-body">
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Jumlah</label>
-                  <input type="number" id="auditQty" min="0" placeholder="0" inputmode="numeric">
-                </div>
-                <div class="form-group">
-                  <label>Satuan (UOM)</label>
-                  <select id="auditSatuan" style="width:100%;">
-                    <option value="RENTENG">RENTENG</option>
-                    <option value="PCS" selected>PCS</option>
-                    <option value="BALL">BALL</option>
-                    <option value="DUS">DUS</option>
-                    <option value="BOX">BOX</option>
-                    <option value="PACK">PACK</option>
-                  </select>
+              <div class="form-group" style="margin-bottom:14px;">
+                <label style="font-size:14px;font-weight:700;">Jumlah (Qty)</label>
+                <input type="number" id="auditQty" min="1" step="any" placeholder="1" inputmode="numeric" value="1"
+                  style="font-size:28px;font-weight:800;padding:16px 14px;height:auto;text-align:center;letter-spacing:0.02em;">
+              </div>
+              <div class="form-group" style="margin-bottom:12px;">
+                <label>Satuan (UOM)</label>
+                <select id="auditSatuan" style="display:none;">
+                  <option value="RENTENG">RENTENG</option>
+                  <option value="PCS" selected>PCS</option>
+                  <option value="BALL">BALL</option>
+                  <option value="DUS">DUS</option>
+                  <option value="BOX">BOX</option>
+                  <option value="PACK">PACK</option>
+                </select>
+                <div class="chip-group" id="auditSatuanChips" style="gap:8px;">
+                  <span class="chip" data-val="RENTENG" style="padding:10px 14px;font-size:13px;">RENTENG</span>
+                  <span class="chip active" data-val="PCS" style="padding:10px 14px;font-size:13px;">PCS</span>
+                  <span class="chip" data-val="BALL" style="padding:10px 14px;font-size:13px;">BALL</span>
+                  <span class="chip" data-val="DUS" style="padding:10px 14px;font-size:13px;">DUS</span>
+                  <span class="chip" data-val="BOX" style="padding:10px 14px;font-size:13px;">BOX</span>
+                  <span class="chip" data-val="PACK" style="padding:10px 14px;font-size:13px;">PACK</span>
                 </div>
               </div>
-              <div class="chip-group" id="auditSatuanChips" style="margin-bottom:12px;">
-                <span class="chip" data-val="RENTENG">RENTENG</span>
-                <span class="chip active" data-val="PCS">PCS</span>
-                <span class="chip" data-val="BALL">BALL</span>
-                <span class="chip" data-val="DUS">DUS</span>
-                <span class="chip" data-val="BOX">BOX</span>
-                <span class="chip" data-val="PACK">PACK</span>
-              </div>
-              <div class="form-group">
-                <label>Kondisi Barang</label>
-                <div class="chip-group" id="auditKondisiChips">
-                  <span class="chip active" data-val="Bad">🔴 Jelek / Rusak (Bad)</span>
-                  <span class="chip" data-val="Good">🟢 Bagus / Layak (Good)</span>
+              <div class="form-group" style="margin-bottom:16px;">
+                <label>Kondisi</label>
+                <div class="chip-group" id="auditKondisiChips" style="gap:10px;">
+                  <span class="chip active" data-val="Bad" style="padding:12px 16px;font-size:14px;flex:1;justify-content:center;">🔴 Jelek</span>
+                  <span class="chip" data-val="Good" style="padding:12px 16px;font-size:14px;flex:1;justify-content:center;">🟢 Bagus</span>
                 </div>
                 <input type="hidden" id="auditKondisi" value="Bad">
               </div>
-              <div class="form-group">
-                <label>Alasan Audit Retur</label>
-                <select id="auditAlasan">
-                  <option value="">— Pilih alasan —</option>
-                  <option>Barang Rusak / Pecah</option>
-                  <option>Kadaluarsa / Expired</option>
-                  <option>Mendekati Expired</option>
-                  <option>Kemasan Rusak / Bocor</option>
-                  <option>Salah Kirim</option>
-                  <option>Kualitas Tidak Sesuai</option>
-                  <option>Kelebihan Kirim</option>
-                  <option value="__other__">Lainnya…</option>
-                </select>
-                <input type="text" id="auditAlasanOther" placeholder="Tulis alasan lain" style="display:none;margin-top:8px;">
-              </div>
-              <div class="form-row">
+              <button type="button" class="btn btn-primary" id="addAuditBtn"
+                style="width:100%;padding:16px 18px;font-size:17px;font-weight:800;min-height:56px;border-radius:12px;">
+                + Tambah ke Daftar Audit
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" id="addAuditBtnTop" style="display:none;">+ Tambah</button>
+              <button type="button" class="btn btn-outline" id="auditDetailToggle"
+                style="width:100%;margin-top:10px;font-size:13px;">Detail lain ▾ (alasan, exp, rak, catatan)</button>
+              <div id="auditDetailExtra" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border);">
                 <div class="form-group">
-                  <label>Tanggal Expired <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
-                  <input type="date" id="auditExpDate">
+                  <label>Alasan Audit Retur</label>
+                  <select id="auditAlasan">
+                    <option value="">— Pilih alasan —</option>
+                    <option>Barang Rusak / Pecah</option>
+                    <option>Kadaluarsa / Expired</option>
+                    <option>Mendekati Expired</option>
+                    <option>Kemasan Rusak / Bocor</option>
+                    <option>Salah Kirim</option>
+                    <option>Kualitas Tidak Sesuai</option>
+                    <option>Kelebihan Kirim</option>
+                    <option value="__other__">Lainnya…</option>
+                  </select>
+                  <input type="text" id="auditAlasanOther" placeholder="Tulis alasan lain" style="display:none;margin-top:8px;">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Tanggal Expired <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
+                    <input type="date" id="auditExpDate">
+                  </div>
+                  <div class="form-group">
+                    <label>Lokasi Rak <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
+                    <select id="auditRak"><option value="">— Pilih rak —</option></select>
+                  </div>
                 </div>
                 <div class="form-group">
-                  <label>Lokasi Rak <span style="font-weight:400;color:var(--text-muted)">(opsional)</span></label>
-                  <select id="auditRak"><option value="">— Pilih rak —</option></select>
+                  <label>Catatan (opsional)</label>
+                  <textarea id="auditCatatan" placeholder="Catatan untuk purchasing..."></textarea>
                 </div>
-              </div>
-              <div class="form-group">
-                <label>Catatan (opsional)</label>
-                <textarea id="auditCatatan" placeholder="Catatan untuk purchasing..."></textarea>
-              </div>
-              <div class="btn-group">
-                <button type="button" class="btn btn-primary" id="addAuditBtn">+ Tambah ke Daftar Audit</button>
               </div>
             </div>
           </div>
@@ -12386,8 +12391,11 @@ function bindEvents() {
   });
   const doAddAudit = () => {
     if (!state.selectedAudit) return showToast('Pilih produk dulu');
-    const qty = parseFloat($('#auditQty').value);
-    if (!qty || qty <= 0) return showToast('Isi jumlah');
+    let qty = parseFloat($('#auditQty').value);
+    if (!qty || qty <= 0) {
+      qty = 1;
+      if ($('#auditQty')) $('#auditQty').value = '1';
+    }
     const satuan = normalizeUom($('#auditSatuan').value || 'PCS');
     let alasan = $('#auditAlasan')?.value || '';
     if (alasan === '__other__') alasan = ($('#auditAlasanOther')?.value || '').trim();
@@ -12447,6 +12455,23 @@ function bindEvents() {
   if (_addAuditTop) _addAuditTop.onclick = doAddAudit;
   const _addAuditBot = $('#addAuditBtn');
   if (_addAuditBot) _addAuditBot.onclick = doAddAudit;
+  // Mode D: Enter di qty = tambah
+  $('#auditQty')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      doAddAudit();
+    }
+  });
+  $('#auditDetailToggle')?.addEventListener('click', () => {
+    const box = $('#auditDetailExtra');
+    if (!box) return;
+    const open = box.style.display !== 'none';
+    box.style.display = open ? 'none' : 'block';
+    const t = $('#auditDetailToggle');
+    if (t) t.textContent = open
+      ? 'Detail lain ▾ (alasan, exp, rak, catatan)'
+      : 'Detail lain ▴ (sembunyikan)';
+  });
   $('#saveAuditSessionBtn')?.addEventListener('click', () => saveAuditSession());
   // Target karantina Excel + selisih live
   $('#auditTargetUploadBtn')?.addEventListener('click', () => $('#auditTargetFile')?.click());
