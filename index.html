@@ -1113,6 +1113,33 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
   }
 }
 
+
+#auditCompareScroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+}
+#auditCompareTable th, #auditCompareTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+#auditCompareTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+@media (max-width: 768px) {
+  #auditCompareScroll {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  #auditCompareTable td, #auditCompareTable th {
+    font-size: 12px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1695,21 +1722,40 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                 </div>
                 <select id="auditCompareFilter" style="display:none;">
                   <option value="all">Semua</option>
+                  <option value="sesuai">Sesuai</option>
+                  <option value="selisih">Ada selisih</option>
                   <option value="kurang">Kurang</option>
                   <option value="lebih">Lebih</option>
-                  <option value="sesuai">Sesuai</option>
-                  <option value="belum">Belum</option>
-                  <option value="selisih">Ada selisih</option>
+                  <option value="notcopied">Belum salin</option>
+                  <option value="copied">Sudah salin</option>
+                  <option value="belum">Belum input</option>
+                  <option value="sudah">Sudah input</option>
                   <option value="direvisi">Direvisi</option>
                   <option value="unlisted">Anomali</option>
-                  <option value="sudah">Sudah</option>
                 </select>
               </div>
-                            <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser tabel ← → untuk semua kolom</p>
-                            <div id="auditCompareList" style="display:flex;flex-direction:column;gap:10px;"></div>
-              <tbody id="auditCompareTbody" style="display:none;"></tbody>
-
-              <div id="auditCompareEmpty" class="empty-state" style="display:none;padding:20px;"><p>Tidak ada baris untuk filter ini.</p></div>
+                                          <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser tabel ← → seperti spreadsheet</p>
+              <div id="auditCompareScroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;border:1px solid var(--border);border-radius:10px;background:#fff;">
+                <table class="data-table" id="auditCompareTable" style="font-size:12.5px;min-width:900px;width:max-content;border-collapse:collapse;">
+                  <thead>
+                    <tr style="background:#0f172a;">
+                      <th style="color:#fff;position:sticky;left:0;background:#0f172a;z-index:2;">No</th>
+                      <th style="color:#fff;white-space:nowrap;">Status</th>
+                      <th style="color:#fff;white-space:nowrap;">Kode SKU</th>
+                      <th style="color:#fff;white-space:nowrap;">Barcode</th>
+                      <th style="color:#fff;white-space:nowrap;">Nama Produk</th>
+                      <th style="color:#fff;white-space:nowrap;">Kategori</th>
+                      <th style="color:#fff;white-space:nowrap;">QTY DB</th>
+                      <th style="color:#fff;white-space:nowrap;">QTY Audit</th>
+                      <th style="color:#fff;white-space:nowrap;">QTY Revisi</th>
+                      <th style="color:#fff;white-space:nowrap;">Selisih</th>
+                    </tr>
+                  </thead>
+                  <tbody id="auditCompareTbody"></tbody>
+                </table>
+              </div>
+              <div id="auditCompareList" style="display:none;"></div>
+<div id="auditCompareEmpty" class="empty-state" style="display:none;padding:20px;"><p>Tidak ada baris untuk filter ini.</p></div>
             </div>
           </div>
         </div>
@@ -5216,7 +5262,8 @@ function copyAuditBarcode(bc, rowKey) {
     state.auditCopiedBc[bc] = true;
     if (rowKey) state.auditCopiedBc['key:' + rowKey] = true;
     try { cacheLocal('auditCopiedBc', state.auditCopiedBc); } catch (_) {}
-    if (typeof fillAuditCompareTable === 'function') fillAuditCompareTable();
+    if (typeof renderAuditComparison === 'function') renderAuditComparison();
+    else if (typeof fillAuditCompareTable === 'function') fillAuditCompareTable();
     showToast('Barcode disalin: ' + bc);
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -5288,19 +5335,35 @@ function buildAuditComparison() {
 
   const unlisted = list.filter(it => !usedPhysicalIds.has(it.id));
 
+  const sesuaiN = rows.filter(r => r.status === 'sesuai').length;
+  const kurangN = rows.filter(r => r.status === 'kurang').length;
+  const lebihN = rows.filter(r => r.status === 'lebih').length;
+  const belumN = rows.filter(r => r.status === 'belum' && !r.hasRevisi).length;
+  const sudahN = rows.filter(r => r.status !== 'belum' || r.hasRevisi).length;
   const stats = {
     targetCount: targets.length,
     targetQty: targets.reduce((s, t) => s + (parseFloat(t.qtyDatabase) || 0), 0),
     fisikQty: list.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0),
-    sesuai: rows.filter(r => r.status === 'sesuai').length,
-    kurang: rows.filter(r => r.status === 'kurang').length,
-    lebih: rows.filter(r => r.status === 'lebih').length,
-    belum: rows.filter(r => r.status === 'belum' && !r.hasRevisi).length,
+    sesuai: sesuaiN,
+    kurang: kurangN,
+    lebih: lebihN,
+    belum: belumN,
+    sudah: sudahN,
+    selisih: kurangN + lebihN,
     direvisi: rows.filter(r => r.hasRevisi).length,
     anomali: unlisted.length,
     anomaliQty: unlisted.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0)
   };
   return { rows, unlisted, stats };
+}
+
+
+function isAuditBarcodeCopied(r) {
+  const copied = state.auditCopiedBc || {};
+  const bc = (r && r.barcode && r.barcode !== '-') ? String(r.barcode) : '';
+  if (bc && copied[bc]) return true;
+  if (r && r.key && copied['key:' + r.key]) return true;
+  return false;
 }
 
 function auditStatusBadge(status) {
@@ -5430,20 +5493,30 @@ function renderAuditComparison() {
   const chips = $('#auditCompareFilterChips');
   if (chips && stats) {
     const cur = ($('#auditCompareFilter')?.value) || 'all';
+    const allRowsForCopy = rows.concat((unlisted || []).map(u => ({
+      barcode: (typeof resolveAuditBarcode === 'function' ? resolveAuditBarcode(u.kode, u.barcode || '') : u.barcode) || '-',
+      key: (typeof auditRevisionKey === 'function' ? auditRevisionKey(u.kode, u.kode, u.satuan) : u.kode)
+    })));
+    const copiedN = allRowsForCopy.filter(r => isAuditBarcodeCopied(r)).length;
+    const notCopiedN = allRowsForCopy.filter(r => !isAuditBarcodeCopied(r) && r.barcode && r.barcode !== '-').length;
+    const selisihN = stats.selisih || ((stats.kurang || 0) + (stats.lebih || 0));
     const defs = [
-      ['all', 'Semua (' + (rows.length + unlisted.length) + ')'],
-      ['kurang', 'Kurang (' + stats.kurang + ')'],
-      ['lebih', 'Lebih (' + stats.lebih + ')'],
-      ['sesuai', 'Sesuai (' + stats.sesuai + ')'],
-      ['belum', 'Belum Input (' + stats.belum + ')'],
-      ['direvisi', 'Direvisi (' + (stats.direvisi || 0) + ')'],
-      ['unlisted', 'Anomali (' + stats.anomali + ')'],
-      ['selisih', 'Ada Selisih'],
-      ['sudah', 'Sudah Input']
+      ['all', 'Semua (' + (rows.length + unlisted.length) + ')', ''],
+      ['sesuai', '✓ Sesuai (' + (stats.sesuai || 0) + ')', 'color:#047857;border-color:#a7f3d0;background:#ecfdf5;'],
+      ['selisih', '⚠ Selisih (' + selisihN + ')', 'color:#b45309;border-color:#fde68a;background:#fffbeb;'],
+      ['kurang', '↓ Kurang (' + (stats.kurang || 0) + ')', 'color:#9f1239;border-color:#fecdd3;background:#fff1f2;'],
+      ['lebih', '↑ Lebih (' + (stats.lebih || 0) + ')', 'color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff;'],
+      ['notcopied', '📋 Belum Salin (' + notCopiedN + ')', ''],
+      ['copied', '✓ Sudah Salin (' + copiedN + ')', ''],
+      ['belum', 'Belum Input (' + (stats.belum || 0) + ')', ''],
+      ['sudah', 'Sudah Input (' + (stats.sudah || 0) + ')', ''],
+      ['direvisi', 'Direvisi (' + (stats.direvisi || 0) + ')', ''],
+      ['unlisted', 'Anomali (' + (stats.anomali || 0) + ')', 'color:#6d28d9;']
     ];
-    chips.innerHTML = defs.map(([v, lab]) =>
+    chips.innerHTML = defs.map(([v, lab, sty]) =>
       '<button type="button" class="chip audit-filter-chip' + (cur === v ? ' active' : '') +
-      '" data-filter="' + v + '" style="flex:0 0 auto;white-space:nowrap;scroll-snap-align:start;">' + lab + '</button>'
+      '" data-filter="' + v + '" style="flex:0 0 auto;white-space:nowrap;scroll-snap-align:start;min-height:40px;padding:8px 12px;' +
+      (cur === v ? '' : sty) + '">' + lab + '</button>'
     ).join('');
     // biar chip aktif terlihat di HP
     try {
@@ -5459,9 +5532,9 @@ function renderAuditComparison() {
 }
 
 function fillAuditCompareTable() {
-  const listEl = $('#auditCompareList');
+  const tbody = $('#auditCompareTbody');
   const empty = $('#auditCompareEmpty');
-  if (!listEl) return;
+  if (!tbody) return;
   const cache = state._auditCompareCache || { rows: [], unlisted: [] };
   const rows = cache.rows || [];
   const unlisted = cache.unlisted || [];
@@ -5485,10 +5558,12 @@ function fillAuditCompareTable() {
     else if (filter === 'selisih') ok = (r.status === 'kurang' || r.status === 'lebih');
     else if (filter === 'sudah') ok = r.status !== 'belum' || r.hasRevisi;
     else if (filter === 'direvisi') ok = !!r.hasRevisi;
+    else if (filter === 'copied') ok = isAuditBarcodeCopied(r);
+    else if (filter === 'notcopied') ok = !isAuditBarcodeCopied(r) && !!(r.barcode && r.barcode !== '-');
     else if (filter === 'unlisted') ok = false;
     if (ok && matchTerm(r)) data.push(Object.assign({}, r, { _kind: 'target' }));
   });
-  if (filter === 'all' || filter === 'unlisted') {
+  if (filter === 'all' || filter === 'unlisted' || filter === 'copied' || filter === 'notcopied') {
     unlisted.forEach(u => {
       const ubc = (typeof resolveAuditBarcode === 'function')
         ? (resolveAuditBarcode(u.kode, u.barcode || '') || '')
@@ -5500,12 +5575,17 @@ function fillAuditCompareTable() {
         key: (typeof auditRevisionKey === 'function' ? auditRevisionKey(u.kode, u.kode, u.satuan) : u.kode),
         _kind: 'unlisted'
       };
-      if (matchTerm(row)) data.push(row);
+      let okU = true;
+      if (filter === 'unlisted') okU = true;
+      else if (filter === 'copied') okU = isAuditBarcodeCopied(row);
+      else if (filter === 'notcopied') okU = !isAuditBarcodeCopied(row) && !!(row.barcode && row.barcode !== '-');
+      else if (filter !== 'all') okU = false;
+      if (okU && matchTerm(row)) data.push(row);
     });
   }
 
   if (!data.length) {
-    listEl.innerHTML = '';
+    tbody.innerHTML = '';
     if (empty) empty.style.display = 'block';
     return;
   }
@@ -5513,72 +5593,50 @@ function fillAuditCompareTable() {
 
   const nice = (n) => (typeof auditNiceNum === 'function' ? auditNiceNum(n) : n);
 
-  listEl.innerHTML = data.map((r, idx) => {
+  tbody.innerHTML = data.map((r, idx) => {
     const bc = (r.barcode && r.barcode !== '-') ? String(r.barcode) : '';
     const isCopied = !!(bc && copied[bc]) || !!(r.key && copied['key:' + r.key]);
     const qF = nice(r.qtyFisik);
     const qT = r.qtyDatabase == null ? '—' : nice(r.qtyDatabase);
     const qS = nice(r.selisih);
-    const selColor = r.selisih === 0 ? '#16a34a' : (r.selisih < 0 ? '#b45309' : '#2563eb');
-    const borderCol = r.status === 'sesuai' ? '#a7f3d0'
-      : (r.status === 'kurang' ? '#fecdd3'
-      : (r.status === 'lebih' ? '#bfdbfe'
-      : (r.status === 'unlisted' ? '#fbcfe8' : '#e2e8f0')));
-    const bg = r.hasRevisi ? '#f5f3ff' : (r._kind === 'unlisted' ? '#fff1f2' : '#ffffff');
+    const selColor = r.selisih === 0 ? 'var(--success)' : (r.selisih < 0 ? '#b45309' : 'var(--info)');
+    const bg = r.hasRevisi ? '#f5f3ff' : (r._kind === 'unlisted' ? '#fff1f2' : '');
     const statusExtra = r.hasRevisi
-      ? ' <span class="badge" style="background:#ede9fe;color:#6d28d9;font-size:10px;">Direvisi</span>'
+      ? '<div class="badge" style="background:#ede9fe;color:#6d28d9;font-size:10px;margin-top:3px;">Direvisi</div>'
       : '';
     const revVal = r.hasRevisi ? r.qtyRevisi : '';
 
-    const bcRow = bc
-      ? ('<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">' +
-         '<span style="font-family:var(--mono);font-size:12px;color:#475569;">' + esc(bc) + '</span>' +
+    const bcCell = bc
+      ? ('<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">' +
+         '<span style="font-family:var(--mono);font-size:11px;">' + esc(bc) + '</span>' +
          '<button type="button" class="btn btn-outline btn-sm audit-copy-bc" data-bc="' + esc(bc) + '" data-key="' + esc(r.key || '') +
-         '" style="padding:6px 10px;min-height:36px;font-size:13px;">📋 Salin</button>' +
-         '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;">' +
+         '" style="padding:4px 8px;min-height:32px;">📋</button>' +
          '<input type="checkbox" class="audit-copied-cb" data-bc="' + esc(bc) + '" ' + (isCopied ? 'checked' : '') +
-         ' style="width:18px;height:18px;"> sudah</label></div>')
-      : '';
+         ' style="width:16px;height:16px;"></div>')
+      : '—';
 
-    const revBlock = (r._kind === 'unlisted')
-      ? ''
-      : ('<div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;">' +
-         '<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">QTY REVISI</div>' +
-         '<div style="display:flex;gap:8px;align-items:center;">' +
+    const revInput = (r._kind === 'unlisted')
+      ? '—'
+      : ('<div style="display:flex;flex-direction:column;gap:4px;min-width:78px;">' +
          '<input type="number" class="audit-rev-qty" data-key="' + esc(r.key || '') + '" value="' +
          (revVal !== '' && revVal != null ? revVal : '') +
-         '" placeholder="isi revisi" inputmode="numeric" style="flex:1;padding:10px 12px;font-size:16px;font-weight:700;min-height:44px;">' +
-         '<button type="button" class="btn btn-primary btn-sm audit-rev-save" data-key="' + esc(r.key || '') +
-         '" style="padding:10px 14px;min-height:44px;font-weight:700;">Simpan</button></div></div>');
+         '" placeholder="0" inputmode="numeric" style="width:78px;padding:6px 8px;font-size:14px;font-weight:700;background:#fffbeb;min-height:36px;">' +
+         '<button type="button" class="btn btn-outline btn-sm audit-rev-save" data-key="' + esc(r.key || '') +
+         '" style="padding:4px 6px;font-size:11px;">Simpan</button></div>');
 
-    return (
-      '<div style="border:1.5px solid ' + borderCol + ';background:' + bg + ';border-radius:12px;padding:12px 14px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
-      '<div style="min-width:0;flex:1;">' +
-      '<div style="font-size:11px;color:var(--text-muted);">#' + (idx + 1) +
-      ' · <span style="font-family:var(--mono);font-weight:700;color:var(--text);">' + esc(r.kode || '-') + '</span></div>' +
-      '<div style="font-weight:800;font-size:14.5px;line-height:1.3;margin-top:2px;">' + esc(r.nama || '-') + '</div>' +
-      '<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">' +
-      esc(r.vendor || '-') + (r.kategori ? ' · ' + esc(r.kategori) : '') + '</div>' +
-      bcRow +
-      '</div>' +
-      '<div style="text-align:right;flex-shrink:0;">' + auditStatusBadge(r.status) + statusExtra + '</div>' +
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;text-align:center;">' +
-      '<div style="background:#f8fafc;border-radius:10px;padding:8px 4px;">' +
-      '<div style="font-size:10px;color:var(--text-muted);font-weight:700;">QTY DB</div>' +
-      '<div style="font-size:16px;font-weight:800;">' + qT + '</div></div>' +
-      '<div style="background:#f0fdfa;border-radius:10px;padding:8px 4px;">' +
-      '<div style="font-size:10px;color:#0f766e;font-weight:700;">QTY AUDIT</div>' +
-      '<div style="font-size:16px;font-weight:800;color:#0f766e;">' + qF + '</div></div>' +
-      '<div style="background:#fff7ed;border-radius:10px;padding:8px 4px;">' +
-      '<div style="font-size:10px;color:#c2410c;font-weight:700;">SELISIH</div>' +
-      '<div style="font-size:16px;font-weight:800;color:' + selColor + ';">' +
-      (qS > 0 ? '+' : '') + qS + '</div></div>' +
-      '</div>' +
-      revBlock +
-      '</div>'
-    );
+    return '<tr style="' + (bg ? 'background:' + bg + ';' : '') + '">' +
+      '<td style="position:sticky;left:0;background:' + (bg || '#fff') + ';z-index:1;font-weight:700;">' + (idx + 1) + '</td>' +
+      '<td style="white-space:nowrap;">' + auditStatusBadge(r.status) + statusExtra + '</td>' +
+      '<td style="font-family:var(--mono);font-weight:700;white-space:nowrap;">' + esc(r.kode || '-') + '</td>' +
+      '<td>' + bcCell + '</td>' +
+      '<td><div style="font-weight:700;min-width:140px;max-width:220px;">' + esc(r.nama || '-') + '</div>' +
+      '<div class="meta" style="font-size:11px;">' + esc(r.vendor || '-') + '</div></td>' +
+      '<td><span class="badge badge-muted">' + esc(r.kategori || '—') + '</span></td>' +
+      '<td style="font-weight:700;white-space:nowrap;">' + qT + '</td>' +
+      '<td style="font-weight:700;white-space:nowrap;">' + qF + '</td>' +
+      '<td>' + revInput + '</td>' +
+      '<td style="font-weight:800;color:' + selColor + ';white-space:nowrap;">' + (qS > 0 ? '+' : '') + qS + '</td>' +
+      '</tr>';
   }).join('');
 }
 
@@ -12744,6 +12802,8 @@ function bindEvents() {
     if (cb.checked) state.auditCopiedBc[bc] = true;
     else delete state.auditCopiedBc[bc];
     try { cacheLocal('auditCopiedBc', state.auditCopiedBc); } catch (_) {}
+    // refresh counts / current filter so Sudah Salin tidak tercampur
+    if (typeof renderAuditComparison === 'function') renderAuditComparison();
   });
 
   $('#auditCurrentPlakatBtn')?.addEventListener('click', () => {
