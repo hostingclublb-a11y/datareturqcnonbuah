@@ -167,6 +167,7 @@ button, .chip, .nav-item, .list-item .actions button {
 /* Main Content */
 .main {
   flex: 1;
+  min-width: 0;
   margin-left: var(--sidebar-w);
   min-height: 100vh;
   display: flex;
@@ -187,7 +188,7 @@ button, .chip, .nav-item, .list-item .actions button {
 .page-sub { font-size: 12px; color: var(--text-muted); }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 
-.content { padding: 20px 24px 40px; flex: 1; max-width: 1400px; }
+.content { padding: 20px 24px 40px; flex: 1; min-width: 0; width: 100%; max-width: 1400px; }
 
 /* Cards */
 .card {
@@ -268,9 +269,21 @@ textarea { resize: vertical; min-height: 70px; }
 .btn-sm svg.lucide { width: 13px; height: 13px; }
 
 /* Table */
-.table-wrap { overflow-x: auto; }
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: auto;
+}
 table.data-table {
-  width: 100%; border-collapse: collapse; font-size: 13px;
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
 table.data-table th {
   text-align: left; padding: 10px 12px;
@@ -1027,6 +1040,11 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
+/* Prevent wide tables from forcing the whole page wider than the viewport. */
+.main, .content, .card, .card-body {
+  min-width: 0;
+}
+
 /* ===== AUDIT MOBILE UX ===== */
 @media (max-width: 768px) {
   #page-audit .content, .content:has(#page-audit) { padding-left: 12px; padding-right: 12px; }
@@ -1115,10 +1133,21 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 
 
 #auditCompareScroll {
-  overflow-x: auto;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto !important;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  touch-action: pan-x pan-y;
+  touch-action: auto;
+  scrollbar-width: thin;
+}
+#auditCompareTable {
+  width: max-content !important;
+  min-width: 900px !important;
+  max-width: none !important;
 }
 #auditCompareTable th, #auditCompareTable td {
   padding: 10px 12px;
@@ -1133,6 +1162,7 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 @media (max-width: 768px) {
   #auditCompareScroll {
     max-height: 70vh;
+    overflow-x: auto !important;
     overflow-y: auto;
   }
   #auditCompareTable td, #auditCompareTable th {
