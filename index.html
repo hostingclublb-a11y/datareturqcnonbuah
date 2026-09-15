@@ -1026,6 +1026,93 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ===== AUDIT MOBILE UX ===== */
+@media (max-width: 768px) {
+  #page-audit .content, .content:has(#page-audit) { padding-left: 12px; padding-right: 12px; }
+  #page-audit { padding-bottom: 88px; }
+  #auditTabBar .chip.audit-main-tab {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    font-size: 13px;
+    min-height: 42px;
+    white-space: nowrap;
+  }
+  #auditActionScroll {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  #auditActionScroll .btn {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+  #auditStickyTabs {
+    position: sticky;
+    top: var(--header-h, 56px);
+    z-index: 40;
+    background: var(--bg);
+    padding-bottom: 4px;
+    margin: 0 -4px 10px;
+  }
+  #auditSearch {
+    min-height: 48px !important;
+    font-size: 16px !important; /* avoid iOS zoom */
+    padding: 12px 64px 12px 14px !important;
+  }
+  #auditQty {
+    font-size: 32px !important;
+    min-height: 56px !important;
+  }
+  #auditKondisiChips .chip,
+  #auditSatuanChips .chip {
+    min-height: 44px;
+    font-size: 14px !important;
+  }
+  #addAuditBtn, #addAuditBtnTop {
+    min-height: 52px !important;
+    font-size: 16px !important;
+  }
+  #auditCompareFilterChips .chip {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+  #auditCompareSearch {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .audit-list-item-m {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    margin-bottom: 8px;
+  }
+  .audit-list-item-m .qty-big {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .audit-list-item-m .act {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .audit-list-item-m .act .btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1240,7 +1327,7 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
           <div class="card-header"><h2>Cari Produk</h2></div>
           <div class="card-body">
             <div class="form-group" style="position:relative;">
-              <input type="text" id="returSearch" placeholder="Ketik nama, kode, atau barcode..." autocomplete="off">
+              <input type="text" id="returSearch" placeholder="Scan barcode / ketik nama..." autocomplete="off">
               <div class="suggest-list" id="returSuggest" style="display:none;"></div>
             </div>
             <div id="returSelected"></div>
@@ -1359,25 +1446,28 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
       <!-- ==================== AUDIT RETUR ==================== -->
       <div class="page" id="page-audit">
         <!-- Tab navigasi ala dashboard audit karantina -->
-        <div class="card" style="margin-bottom:12px;">
-          <div class="card-body" style="padding:10px 12px;">
-            <div class="chip-group" id="auditTabBar" style="gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
-              <button type="button" class="chip active audit-main-tab" data-tab="dashboard">Dashboard</button>
-              <button type="button" class="chip audit-main-tab" data-tab="input">Input Fisik</button>
-              <button type="button" class="chip audit-main-tab" data-tab="selisih">Selisih Live &amp; Revisi</button>
-              <button type="button" class="chip audit-main-tab" data-tab="anomali" style="color:#b91c1c;">Anomali <span id="auditAnomaliTabCount">(0)</span></button>
-            </div>
-            <div class="btn-group" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
-              <button type="button" class="btn btn-primary btn-sm" id="saveAuditSessionBtn">💾 Simpan Sesi per Tanggal</button>
-              <button type="button" class="btn btn-outline btn-sm" id="auditTargetUploadBtn"><i data-lucide="upload"></i> Upload Excel</button>
-              <input type="file" id="auditTargetFile" accept=".xlsx,.xls,.csv" style="display:none;">
-              <button type="button" class="btn btn-outline btn-sm" id="auditTargetSampleBtn">Contoh Excel</button>
-              <button type="button" class="btn btn-outline btn-sm" id="auditTargetClearBtn" style="color:#b91c1c;display:none;">Hapus Target</button>
-              <button type="button" class="btn btn-outline btn-sm" id="auditCurrentPlakatBtn">🟨 Cetak Plakat</button>
-              <button type="button" class="btn btn-outline btn-sm" id="clearAuditBtn">Kosongkan Fisik</button>
+        <div id="auditStickyTabs">
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-body" style="padding:10px 12px;">
+              <div class="chip-group" id="auditTabBar" style="gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;">
+                <button type="button" class="chip active audit-main-tab" data-tab="dashboard">Dashboard</button>
+                <button type="button" class="chip audit-main-tab" data-tab="input">Input Fisik</button>
+                <button type="button" class="chip audit-main-tab" data-tab="selisih">Selisih Live</button>
+                <button type="button" class="chip audit-main-tab" data-tab="anomali" style="color:#b91c1c;">Anomali <span id="auditAnomaliTabCount">(0)</span></button>
+              </div>
+              <div id="auditActionScroll" class="btn-group" style="margin-top:10px;gap:8px;">
+                <button type="button" class="btn btn-primary btn-sm" id="saveAuditSessionBtn">💾 Simpan Sesi</button>
+                <button type="button" class="btn btn-outline btn-sm" id="auditTargetUploadBtn">⬆ Upload Excel</button>
+                <input type="file" id="auditTargetFile" accept=".xlsx,.xls,.csv" style="display:none;">
+                <button type="button" class="btn btn-outline btn-sm" id="auditTargetSampleBtn">Contoh Excel</button>
+                <button type="button" class="btn btn-outline btn-sm" id="auditTargetClearBtn" style="color:#b91c1c;display:none;">Hapus Target</button>
+                <button type="button" class="btn btn-outline btn-sm" id="auditCurrentPlakatBtn">🟨 Plakat</button>
+                <button type="button" class="btn btn-outline btn-sm" id="clearAuditBtn">Kosongkan</button>
+              </div>
             </div>
           </div>
         </div>
+        <div style="height:12px;"></div>
 
         <!-- ===== TAB: DASHBOARD ===== -->
         <div id="auditTab-dashboard">
@@ -1616,25 +1706,9 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                 </select>
               </div>
                             <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser tabel ← → untuk semua kolom</p>
-              <div class="table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;border:1px solid var(--border);border-radius:10px;">
-                <table class="data-table" style="font-size:12.5px;min-width:760px;width:max-content;">
-                  <thead>
-                    <tr style="background:#0f172a;">
-                      <th style="color:#fff;white-space:nowrap;">No</th>
-                      <th style="color:#fff;white-space:nowrap;">Status</th>
-                      <th style="color:#fff;white-space:nowrap;">Kode SKU</th>
-                      <th style="color:#fff;white-space:nowrap;">Barcode</th>
-                      <th style="color:#fff;white-space:nowrap;">Nama Produk</th>
-                      <th style="color:#fff;white-space:nowrap;">Kategori</th>
-                      <th style="color:#fff;white-space:nowrap;">QTY DB</th>
-                      <th style="color:#fff;white-space:nowrap;">QTY Audit</th>
-                      <th style="color:#fff;white-space:nowrap;">QTY Revisi</th>
-                      <th style="color:#fff;white-space:nowrap;">Selisih</th>
-                    </tr>
-                  </thead>
-                  <tbody id="auditCompareTbody"></tbody>
-                </table>
-              </div>
+                            <div id="auditCompareList" style="display:flex;flex-direction:column;gap:10px;"></div>
+              <tbody id="auditCompareTbody" style="display:none;"></tbody>
+
               <div id="auditCompareEmpty" class="empty-state" style="display:none;padding:20px;"><p>Tidak ada baris untuk filter ini.</p></div>
             </div>
           </div>
@@ -5385,9 +5459,9 @@ function renderAuditComparison() {
 }
 
 function fillAuditCompareTable() {
-  const tbody = $('#auditCompareTbody');
+  const listEl = $('#auditCompareList');
   const empty = $('#auditCompareEmpty');
-  if (!tbody) return;
+  if (!listEl) return;
   const cache = state._auditCompareCache || { rows: [], unlisted: [] };
   const rows = cache.rows || [];
   const unlisted = cache.unlisted || [];
@@ -5397,7 +5471,7 @@ function fillAuditCompareTable() {
 
   const matchTerm = (r) => {
     if (!term) return true;
-    const hay = ((r.nama || '') + ' ' + (r.kode || '') + ' ' + (r.barcode || '') + ' ' + (r.vendor || '')).toLowerCase();
+    const hay = ((r.nama || '') + ' ' + (r.kode || '') + ' ' + (r.barcode || '') + ' ' + (r.vendor || '') + ' ' + (r.kategori || '')).toLowerCase();
     return hay.includes(term);
   };
 
@@ -5421,7 +5495,7 @@ function fillAuditCompareTable() {
         : (u.barcode || '');
       const row = {
         status: 'unlisted', kode: u.kode, nama: u.nama, barcode: ubc || '-',
-        satuan: u.satuan || 'PCS', vendor: u.vendor || '',
+        satuan: u.satuan || 'PCS', vendor: u.vendor || '', kategori: u.kategori || '',
         qtyDatabase: null, qtyFisik: parseFloat(u.qty) || 0, selisih: parseFloat(u.qty) || 0,
         key: (typeof auditRevisionKey === 'function' ? auditRevisionKey(u.kode, u.kode, u.satuan) : u.kode),
         _kind: 'unlisted'
@@ -5431,61 +5505,83 @@ function fillAuditCompareTable() {
   }
 
   if (!data.length) {
-    tbody.innerHTML = '';
+    listEl.innerHTML = '';
     if (empty) empty.style.display = 'block';
     return;
   }
   if (empty) empty.style.display = 'none';
 
-  tbody.innerHTML = data.map((r, idx) => {
+  const nice = (n) => (typeof auditNiceNum === 'function' ? auditNiceNum(n) : n);
+
+  listEl.innerHTML = data.map((r, idx) => {
     const bc = (r.barcode && r.barcode !== '-') ? String(r.barcode) : '';
     const isCopied = !!(bc && copied[bc]) || !!(r.key && copied['key:' + r.key]);
-    const bcCell = bc
-      ? ('<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">' +
-         '<span style="font-family:var(--mono);font-size:11px;">' + esc(bc) + '</span>' +
-         '<button type="button" class="btn btn-outline btn-sm audit-copy-bc" data-bc="' + esc(bc) + '" data-key="' + esc(r.key || '') +
-         '" title="Salin barcode" style="padding:2px 8px;font-size:12px;min-height:28px;">📋</button>' +
-         '<input type="checkbox" class="audit-copied-cb" data-bc="' + esc(bc) + '" ' + (isCopied ? 'checked' : '') +
-         ' title="Sudah disalin" style="width:16px;height:16px;"></div>')
-      : '<span style="color:var(--text-muted);">—</span>';
-    const qF = (typeof auditNiceNum === 'function' ? auditNiceNum(r.qtyFisik) : r.qtyFisik);
-    const qT = r.qtyDatabase == null ? '—' : (typeof auditNiceNum === 'function' ? auditNiceNum(r.qtyDatabase) : r.qtyDatabase);
-    const qS = (typeof auditNiceNum === 'function' ? auditNiceNum(r.selisih) : r.selisih);
-    const kat = r.kategori || '—';
-
-    if (r._kind === 'unlisted') {
-      return '<tr style="background:#fff1f2;"><td>' + (idx + 1) + '</td><td>' + auditStatusBadge('unlisted') + '</td>' +
-        '<td style="font-family:var(--mono);font-weight:600;white-space:nowrap;">' + esc(r.kode) + '</td>' +
-        '<td>' + bcCell + '</td>' +
-        '<td><div style="font-weight:600;min-width:140px;">' + esc(r.nama) + '</div><div class="meta" style="color:var(--danger);">Tidak di Excel</div></td>' +
-        '<td><span class="badge badge-muted">' + esc(kat) + '</span></td>' +
-        '<td>—</td><td><b>' + qF + '</b></td><td>—</td>' +
-        '<td style="font-weight:800;color:var(--danger);">+' + qS + '</td></tr>';
-    }
-
-    const selColor = r.selisih === 0 ? 'var(--success)' : (r.selisih < 0 ? '#b45309' : 'var(--info)');
-    const statusExtra = r.hasRevisi ? '<div class="badge" style="background:#ede9fe;color:#6d28d9;font-size:10px;margin-top:4px;">Direvisi</div>' : '';
+    const qF = nice(r.qtyFisik);
+    const qT = r.qtyDatabase == null ? '—' : nice(r.qtyDatabase);
+    const qS = nice(r.selisih);
+    const selColor = r.selisih === 0 ? '#16a34a' : (r.selisih < 0 ? '#b45309' : '#2563eb');
+    const borderCol = r.status === 'sesuai' ? '#a7f3d0'
+      : (r.status === 'kurang' ? '#fecdd3'
+      : (r.status === 'lebih' ? '#bfdbfe'
+      : (r.status === 'unlisted' ? '#fbcfe8' : '#e2e8f0')));
+    const bg = r.hasRevisi ? '#f5f3ff' : (r._kind === 'unlisted' ? '#fff1f2' : '#ffffff');
+    const statusExtra = r.hasRevisi
+      ? ' <span class="badge" style="background:#ede9fe;color:#6d28d9;font-size:10px;">Direvisi</span>'
+      : '';
     const revVal = r.hasRevisi ? r.qtyRevisi : '';
-    const revInput =
-      '<div style="display:flex;flex-direction:column;gap:4px;min-width:72px;">' +
-      '<input type="number" class="audit-rev-qty" data-key="' + esc(r.key || '') + '" value="' + (revVal !== '' && revVal != null ? revVal : '') +
-      '" placeholder="0" inputmode="numeric" style="width:72px;padding:4px 6px;font-size:12.5px;font-weight:700;background:#fffbeb;">' +
-      '<button type="button" class="btn btn-outline btn-sm audit-rev-save" data-key="' + esc(r.key || '') +
-      '" style="padding:2px 6px;font-size:11px;">Simpan</button></div>';
 
-    return '<tr' + (r.hasRevisi ? ' style="background:#f5f3ff;"' : '') + '>' +
-      '<td>' + (idx + 1) + '</td>' +
-      '<td style="white-space:nowrap;">' + auditStatusBadge(r.status) + statusExtra + '</td>' +
-      '<td style="font-family:var(--mono);font-weight:600;white-space:nowrap;">' + esc(r.kode) + '</td>' +
-      '<td>' + bcCell + '</td>' +
-      '<td><div style="font-weight:600;min-width:150px;">' + esc(r.nama) + '</div><div class="meta" style="font-size:11px;">' + esc(r.vendor || '-') + '</div></td>' +
-      '<td><span class="badge badge-muted">' + esc(kat) + '</span></td>' +
-      '<td style="font-weight:700;white-space:nowrap;">' + qT + '</td>' +
-      '<td style="font-weight:700;white-space:nowrap;">' + qF + '</td>' +
-      '<td>' + revInput + '</td>' +
-      '<td style="font-weight:800;color:' + selColor + ';white-space:nowrap;">' + (qS > 0 ? '+' : '') + qS + '</td></tr>';
+    const bcRow = bc
+      ? ('<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">' +
+         '<span style="font-family:var(--mono);font-size:12px;color:#475569;">' + esc(bc) + '</span>' +
+         '<button type="button" class="btn btn-outline btn-sm audit-copy-bc" data-bc="' + esc(bc) + '" data-key="' + esc(r.key || '') +
+         '" style="padding:6px 10px;min-height:36px;font-size:13px;">📋 Salin</button>' +
+         '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;">' +
+         '<input type="checkbox" class="audit-copied-cb" data-bc="' + esc(bc) + '" ' + (isCopied ? 'checked' : '') +
+         ' style="width:18px;height:18px;"> sudah</label></div>')
+      : '';
+
+    const revBlock = (r._kind === 'unlisted')
+      ? ''
+      : ('<div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;">' +
+         '<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">QTY REVISI</div>' +
+         '<div style="display:flex;gap:8px;align-items:center;">' +
+         '<input type="number" class="audit-rev-qty" data-key="' + esc(r.key || '') + '" value="' +
+         (revVal !== '' && revVal != null ? revVal : '') +
+         '" placeholder="isi revisi" inputmode="numeric" style="flex:1;padding:10px 12px;font-size:16px;font-weight:700;min-height:44px;">' +
+         '<button type="button" class="btn btn-primary btn-sm audit-rev-save" data-key="' + esc(r.key || '') +
+         '" style="padding:10px 14px;min-height:44px;font-weight:700;">Simpan</button></div></div>');
+
+    return (
+      '<div style="border:1.5px solid ' + borderCol + ';background:' + bg + ';border-radius:12px;padding:12px 14px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+      '<div style="min-width:0;flex:1;">' +
+      '<div style="font-size:11px;color:var(--text-muted);">#' + (idx + 1) +
+      ' · <span style="font-family:var(--mono);font-weight:700;color:var(--text);">' + esc(r.kode || '-') + '</span></div>' +
+      '<div style="font-weight:800;font-size:14.5px;line-height:1.3;margin-top:2px;">' + esc(r.nama || '-') + '</div>' +
+      '<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">' +
+      esc(r.vendor || '-') + (r.kategori ? ' · ' + esc(r.kategori) : '') + '</div>' +
+      bcRow +
+      '</div>' +
+      '<div style="text-align:right;flex-shrink:0;">' + auditStatusBadge(r.status) + statusExtra + '</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;text-align:center;">' +
+      '<div style="background:#f8fafc;border-radius:10px;padding:8px 4px;">' +
+      '<div style="font-size:10px;color:var(--text-muted);font-weight:700;">QTY DB</div>' +
+      '<div style="font-size:16px;font-weight:800;">' + qT + '</div></div>' +
+      '<div style="background:#f0fdfa;border-radius:10px;padding:8px 4px;">' +
+      '<div style="font-size:10px;color:#0f766e;font-weight:700;">QTY AUDIT</div>' +
+      '<div style="font-size:16px;font-weight:800;color:#0f766e;">' + qF + '</div></div>' +
+      '<div style="background:#fff7ed;border-radius:10px;padding:8px 4px;">' +
+      '<div style="font-size:10px;color:#c2410c;font-weight:700;">SELISIH</div>' +
+      '<div style="font-size:16px;font-weight:800;color:' + selColor + ';">' +
+      (qS > 0 ? '+' : '') + qS + '</div></div>' +
+      '</div>' +
+      revBlock +
+      '</div>'
+    );
   }).join('');
 }
+
 
 function openAuditLivePanel(filter) {
   if (filter && $('#auditCompareFilter')) $('#auditCompareFilter').value = filter;
@@ -5564,17 +5660,21 @@ function renderAuditList() {
     const expLine = it.expDate ? ` · Exp: ${esc(it.expDate)}` : '';
     const rakLine = it.rak ? ` · Rak: ${esc(it.rak)}` : '';
     return `
-    <div class="list-item">
-      <div class="idx">${i + 1}</div>
-      <div class="info">
-        <div class="nm">${esc(it.nama)} <span class="badge ${badge}">${label}</span></div>
-        <div class="meta">${esc(it.kode)} · ${esc(it.vendor || '-')} · PIC: <b>${esc(pic)}</b>${expLine}${rakLine}</div>
-        <div class="meta" style="margin-top:4px;"><b>${esc(it.qty)} ${esc(it.satuan || 'PCS')}</b>${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
-        ${it.catatan ? `<div class="meta" style="color:var(--danger);">📝 ${esc(it.catatan)}</div>` : ''}
+    <div class="audit-list-item-m">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--text-muted);">#${i + 1}</span>
+          <span class="badge ${badge}">${label}</span>
+          <span style="font-family:var(--mono);font-size:11px;font-weight:700;">${esc(it.kode)}</span>
+        </div>
+        <div style="font-weight:800;font-size:14px;margin-top:4px;line-height:1.25;">${esc(it.nama)}</div>
+        <div class="qty-big" style="margin-top:6px;color:var(--primary);">${esc(it.qty)} <span style="font-size:13px;font-weight:700;">${esc(it.satuan || 'PCS')}</span></div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">${esc(it.vendor || '-')}${expLine}${rakLine}${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
+        ${it.catatan ? `<div style="font-size:12px;color:var(--danger);margin-top:4px;">📝 ${esc(it.catatan)}</div>` : ''}
       </div>
-      <div class="actions">
-        <button class="btn btn-icon btn-outline btn-sm" onclick="editAuditItem('${it.id}')" title="Ubah qty">✏️</button>
-        <button class="btn btn-icon btn-outline btn-sm" onclick="removeAuditItem('${it.id}')" title="Hapus">🗑</button>
+      <div class="act">
+        <button class="btn btn-outline" onclick="editAuditItem('${it.id}')" title="Ubah qty" style="padding:8px;">✏️</button>
+        <button class="btn btn-outline" onclick="removeAuditItem('${it.id}')" title="Hapus" style="padding:8px;color:var(--danger);">🗑</button>
       </div>
     </div>`;
   }).join('');
