@@ -167,7 +167,6 @@ button, .chip, .nav-item, .list-item .actions button {
 /* Main Content */
 .main {
   flex: 1;
-  min-width: 0;
   margin-left: var(--sidebar-w);
   min-height: 100vh;
   display: flex;
@@ -188,7 +187,7 @@ button, .chip, .nav-item, .list-item .actions button {
 .page-sub { font-size: 12px; color: var(--text-muted); }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 
-.content { padding: 20px 24px 40px; flex: 1; min-width: 0; width: 100%; max-width: 1400px; }
+.content { padding: 20px 24px 40px; flex: 1; max-width: 1400px; }
 
 /* Cards */
 .card {
@@ -269,21 +268,9 @@ textarea { resize: vertical; min-height: 70px; }
 .btn-sm svg.lucide { width: 13px; height: 13px; }
 
 /* Table */
-.table-wrap {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto !important;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  touch-action: auto;
-}
+.table-wrap { overflow-x: auto; }
 table.data-table {
-  width: max-content;
-  min-width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+  width: 100%; border-collapse: collapse; font-size: 13px;
 }
 table.data-table th {
   text-align: left; padding: 10px 12px;
@@ -1040,11 +1027,6 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-/* Prevent wide tables from forcing the whole page wider than the viewport. */
-.main, .content, .card, .card-body {
-  min-width: 0;
-}
-
 /* ===== AUDIT MOBILE UX ===== */
 @media (max-width: 768px) {
   #page-audit .content, .content:has(#page-audit) { padding-left: 12px; padding-right: 12px; }
@@ -1133,21 +1115,10 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 
 
 #auditCompareScroll {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto !important;
-  overflow-y: auto;
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  touch-action: auto;
-  scrollbar-width: thin;
-}
-#auditCompareTable {
-  width: max-content !important;
-  min-width: 900px !important;
-  max-width: none !important;
+  touch-action: pan-x pan-y;
 }
 #auditCompareTable th, #auditCompareTable td {
   padding: 10px 12px;
@@ -1162,7 +1133,6 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 @media (max-width: 768px) {
   #auditCompareScroll {
     max-height: 70vh;
-    overflow-x: auto !important;
     overflow-y: auto;
   }
   #auditCompareTable td, #auditCompareTable th {
@@ -1519,6 +1489,7 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                 <button type="button" class="btn btn-outline btn-sm" id="auditTargetSampleBtn">Contoh Excel</button>
                 <button type="button" class="btn btn-outline btn-sm" id="auditTargetClearBtn" style="color:#b91c1c;display:none;">Hapus Target</button>
                 <button type="button" class="btn btn-outline btn-sm" id="auditCurrentPlakatBtn">🟨 Plakat</button>
+                <button type="button" class="btn btn-outline btn-sm" id="auditRefreshBtn" title="Ambil ulang dari server">⟳ Refresh</button>
                 <button type="button" class="btn btn-outline btn-sm" id="clearAuditBtn">Kosongkan</button>
               </div>
             </div>
@@ -1730,6 +1701,11 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
           <div class="card">
             <div class="card-header">
               <h2>Daftar Audit Retur (<span id="auditCount">0</span>)</h2>
+              <div class="btn-group">
+                <button type="button" class="btn btn-outline btn-sm" id="auditInputRefreshBtn" title="Ambil data terbaru dari server (input anggota lain)">
+                  ⟳ Refresh list
+                </button>
+              </div>
             </div>
             <div class="card-body" id="auditList">
               <div class="empty-state"><div class="ico">🛒</div><h3>Belum ada item</h3><p>Scan atau cari produk, isi qty, lalu tambahkan.</p></div>
@@ -1744,7 +1720,7 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
               <h2>Verifikasi Selisih Live &amp; Revisi</h2>
             </div>
             <div class="card-body">
-              <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser filter ← →</p>
+              <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser filter ← → · <span id="auditLiveSyncHint" style="display:none;color:#0f766e;font-weight:700;"></span></p>
               <div class="chip-group" id="auditCompareFilterChips" style="margin-bottom:12px;gap:8px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding-bottom:8px;max-width:100%;"></div>
               <div class="toolbar" style="margin-bottom:10px;">
                 <div class="search-box" style="flex:1;">
@@ -1764,21 +1740,19 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                   <option value="unlisted">Anomali</option>
                 </select>
               </div>
-                                          <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser tabel ← → seperti spreadsheet</p>
+                                          <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser tabel ← → seperti spreadsheet · <button type="button" class="btn btn-outline btn-sm" id="auditTableRefreshBtn" style="margin-left:6px;padding:4px 10px;min-height:32px;">⟳ Refresh data</button></p>
               <div id="auditCompareScroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;border:1px solid var(--border);border-radius:10px;background:#fff;">
-                <table class="data-table" id="auditCompareTable" style="font-size:12.5px;min-width:900px;width:max-content;border-collapse:collapse;">
+                <table class="data-table" id="auditCompareTable" style="font-size:12.5px;min-width:920px;width:max-content;border-collapse:collapse;">
                   <thead>
                     <tr style="background:#0f172a;">
                       <th style="color:#fff;position:sticky;left:0;background:#0f172a;z-index:2;">No</th>
                       <th style="color:#fff;white-space:nowrap;">Status</th>
-                      <th style="color:#fff;white-space:nowrap;">Kode SKU</th>
-                      <th style="color:#fff;white-space:nowrap;">Barcode</th>
-                      <th style="color:#fff;white-space:nowrap;">Nama Produk</th>
-                      <th style="color:#fff;white-space:nowrap;">Kategori</th>
                       <th style="color:#fff;white-space:nowrap;">QTY DB</th>
                       <th style="color:#fff;white-space:nowrap;">QTY Audit</th>
-                      <th style="color:#fff;white-space:nowrap;">QTY Revisi</th>
+                      <th style="color:#fff;white-space:nowrap;">Revisi</th>
                       <th style="color:#fff;white-space:nowrap;">Selisih</th>
+                      <th style="color:#fff;white-space:nowrap;">Nama Produk</th>
+                      <th style="color:#fff;white-space:nowrap;">Barcode · Keterangan</th>
                     </tr>
                   </thead>
                   <tbody id="auditCompareTbody"></tbody>
@@ -2557,20 +2531,24 @@ const storage = {
 
 // Sesi login otomatis kedaluwarsa setelah sekian jam, supaya device yang dipakai
 // bergantian (mis. HP gudang bersama) tidak "nyangkut" login sebagai akun key/orang lain.
-const SESSION_TTL_HOURS = 2;
+const SESSION_TTL_HOURS = 168; // 7 hari soft-session agar refresh tidak ke login
 function saveSession(user) {
-  storage.set('session', Object.assign({}, user, { _savedAt: Date.now() }));
+  if (!user) { storage.set('session', null); return; }
+  storage.set('session', {
+    uid: user.uid || '',
+    name: user.name || '',
+    username: user.username || user.email || '',
+    email: user.email || '',
+    role: user.role || 'staff',
+    assignedDc: user.assignedDc || '',
+    locked: !!user.locked,
+    _savedAt: Date.now()
+  });
 }
 function loadValidSession() {
   const s = storage.get('session', null);
-  if (!s) return null;
-  const savedAt = s._savedAt || 0;
-  const ageHours = (Date.now() - savedAt) / 36e5;
-  if (!savedAt || ageHours > SESSION_TTL_HOURS) {
-    storage.set('session', null);
-    return null;
-  }
-  return s;
+  if (!s || !s.uid) return null;
+  return s; // soft-session; Firebase Auth yang memutuskan logout sejati
 }
 
 /** Tulis ke cache lokal TANPA menganggap itu sumber data utama */
@@ -2629,6 +2607,11 @@ try {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     auth = firebase.auth();
+    try {
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => console.log('[DC NONBUAH] Auth persistence LOCAL'))
+        .catch(e => console.warn('[auth persistence]', e));
+    } catch (e) { console.warn('[auth persistence]', e); }
     firebaseReady = true;
     console.log('[DC NONBUAH] Firebase connected:', firebaseConfig.projectId);
   }
@@ -2908,6 +2891,23 @@ function cloudSaveCart() {
     updatedAt: tsNow(),
     updatedBy: actorName()
   }, { merge: true }).catch(err => console.warn('[server] cart draft', err));
+}
+async function refreshAuditFromServer() {
+  if (!firebaseReady || !db) return showToast('Server offline');
+  try {
+    const doc = await db.collection('drafts').doc(draftDocId('audit')).get();
+    const d = doc.exists ? (doc.data() || {}) : {};
+    const items = Array.isArray(d.items) ? d.items : [];
+    draftApplying = true;
+    state.auditList = items;
+    saveLocalAuditList();
+    draftApplying = false;
+    if (typeof renderAuditList === 'function') renderAuditList();
+    if (typeof renderAuditComparison === 'function') renderAuditComparison();
+    showToast('⟳ Data tabel: ' + items.length + ' item dari server');
+  } catch (e) {
+    showToast('Gagal refresh: ' + (e.message || e));
+  }
 }
 function cloudSaveAuditList() {
   if (!requireServer(true) || draftApplying) return Promise.resolve();
@@ -3446,18 +3446,40 @@ function startCloudSync() {
   syncUnsubs.push(db.collection('drafts').doc(auditDraftId)
     .onSnapshot(doc => apply(() => {
       if (draftDocId('audit') !== auditDraftId) return;
-      if (!doc.exists) return;
+      if (!doc.exists) {
+        // Dokumen dihapus di server → kosongkan lokal agar HP lain ikut bersih
+        if ((state.auditList || []).length) {
+          draftApplying = true;
+          state.auditList = [];
+          saveLocalAuditList();
+          try { if (typeof renderAuditList === 'function') renderAuditList(); } catch (e) {}
+          try { if (typeof renderAuditComparison === 'function') renderAuditComparison(); } catch (e) {}
+          draftApplying = false;
+        }
+        return;
+      }
       const d = doc.data() || {};
       if (d.dcName && normDc(d.dcName) !== normDc(effectiveDcName()) && !canViewAllDc()) return;
       const items = Array.isArray(d.items) ? d.items : [];
       try {
         if (JSON.stringify(items) === JSON.stringify(state.auditList || [])) return;
       } catch (e) {}
+      const prevN = (state.auditList || []).length;
       draftApplying = true;
       state.auditList = items;
       saveLocalAuditList();
       try { if (typeof renderAuditList === 'function') renderAuditList(); } catch (e) {}
+      try { if (typeof renderAuditComparison === 'function') renderAuditComparison(); } catch (e) {}
       draftApplying = false;
+      const by = d.updatedBy || 'anggota lain';
+      if (items.length !== prevN) {
+        try { showToast('☁ Audit live: ' + items.length + ' item · ' + by); } catch (_) {}
+      }
+      const liveEl = document.getElementById('auditLiveSyncHint');
+      if (liveEl) {
+        liveEl.textContent = '☁ Live · ' + items.length + ' item · ' + (by || '');
+        liveEl.style.display = 'block';
+      }
     }), err => console.warn('[server] audit draft', err)));
 
   console.log('[DC NONBUAH] Server listeners aktif (termasuk draft cart & audit)');
@@ -5497,7 +5519,9 @@ function renderAuditComparison() {
   const meta = $('#auditTargetMeta');
   const clearBtn = $('#auditTargetClearBtn');
   const targets = state.auditTargets || [];
-  if (clearBtn) clearBtn.style.display = targets.length ? 'inline-flex' : 'none';
+  const hasTargetOrRev = !!(targets.length ||
+    (state.auditRevisions && Object.keys(state.auditRevisions).length));
+  if (clearBtn) clearBtn.style.display = hasTargetOrRev ? 'inline-flex' : 'none';
   if (meta) {
     meta.textContent = targets.length
       ? ('Target aktif: ' + targets.length + ' item · ' + (state.auditTargetFileName || 'Excel'))
@@ -5509,12 +5533,16 @@ function renderAuditComparison() {
     const c = buildAuditComparison();
     rows = c.rows || []; unlisted = c.unlisted || []; stats = c.stats;
   } else {
+    // tanpa target: jangan tampilkan sisa cache / revisi lama sebagai selisih
+    unlisted = (state.auditList || []).map(u => Object.assign({}, u));
     stats = {
       targetCount: 0, targetQty: 0,
       fisikQty: (state.auditList || []).reduce((s, x) => s + (parseFloat(x.qty) || 0), 0),
-      sesuai: 0, kurang: 0, lebih: 0, belum: 0,
-      anomali: 0, anomaliQty: 0
+      sesuai: 0, kurang: 0, lebih: 0, belum: 0, sudah: 0, selisih: 0, direvisi: 0,
+      anomali: unlisted.length,
+      anomaliQty: unlisted.reduce((s, x) => s + (parseFloat(x.qty) || 0), 0)
     };
+    rows = [];
   }
   state._auditCompareCache = { rows, unlisted, stats };
   updateAuditDashboard(stats, unlisted);
@@ -5624,7 +5652,14 @@ function fillAuditCompareTable() {
   const nice = (n) => (typeof auditNiceNum === 'function' ? auditNiceNum(n) : n);
 
   tbody.innerHTML = data.map((r, idx) => {
-    const bc = (r.barcode && r.barcode !== '-') ? String(r.barcode) : '';
+    let bc = (r.barcode && r.barcode !== '-') ? String(r.barcode) : '';
+    if (!bc && r.kode && typeof resolveAuditBarcode === 'function') {
+      bc = resolveAuditBarcode(r.kode, '') || '';
+    }
+    if (!bc && r.kode && Array.isArray(state.products)) {
+      const p = state.products.find(x => String(x.kode || '').toLowerCase() === String(r.kode).toLowerCase());
+      if (p) bc = String(p.barcode || (p.barcodes && p.barcodes[0]) || '') || '';
+    }
     const isCopied = !!(bc && copied[bc]) || !!(r.key && copied['key:' + r.key]);
     const qF = nice(r.qtyFisik);
     const qT = r.qtyDatabase == null ? '—' : nice(r.qtyDatabase);
@@ -5635,37 +5670,42 @@ function fillAuditCompareTable() {
       ? '<div class="badge" style="background:#ede9fe;color:#6d28d9;font-size:10px;margin-top:3px;">Direvisi</div>'
       : '';
     const revVal = r.hasRevisi ? r.qtyRevisi : '';
+    const ket = (r.catatanRevisi || r.vendor || r.kategori || '').trim();
+    const ketLine = ket ? ('<span style="color:var(--text-muted);font-size:11.5px;">' + esc(ket) + '</span>') : '';
 
-    const bcCell = bc
-      ? ('<div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">' +
-         '<span style="font-family:var(--mono);font-size:11px;">' + esc(bc) + '</span>' +
-         '<button type="button" class="btn btn-outline btn-sm audit-copy-bc" data-bc="' + esc(bc) + '" data-key="' + esc(r.key || '') +
-         '" style="padding:4px 8px;min-height:32px;">📋</button>' +
-         '<input type="checkbox" class="audit-copied-cb" data-bc="' + esc(bc) + '" ' + (isCopied ? 'checked' : '') +
-         ' style="width:16px;height:16px;"></div>')
-      : '—';
+    const bcCell = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:160px;">' +
+      (bc
+        ? ('<span style="font-family:var(--mono);font-size:12px;font-weight:700;">' + esc(bc) + '</span>' +
+           '<button type="button" class="btn btn-outline btn-sm audit-copy-bc" data-bc="' + esc(bc) + '" data-key="' + esc(r.key || '') +
+           '" style="padding:4px 8px;min-height:32px;">📋</button>' +
+           '<input type="checkbox" class="audit-copied-cb" data-bc="' + esc(bc) + '" ' + (isCopied ? 'checked' : '') +
+           ' style="width:16px;height:16px;">')
+        : '<span style="color:var(--text-muted);">—</span>') +
+      (ketLine ? ('<span style="margin-left:4px;">·</span> ' + ketLine) : '') +
+      '</div>';
 
     const revInput = (r._kind === 'unlisted')
       ? '—'
-      : ('<div style="display:flex;flex-direction:column;gap:4px;min-width:78px;">' +
+      : ('<div style="display:flex;flex-direction:column;gap:4px;min-width:72px;">' +
          '<input type="number" class="audit-rev-qty" data-key="' + esc(r.key || '') + '" value="' +
          (revVal !== '' && revVal != null ? revVal : '') +
-         '" placeholder="0" inputmode="numeric" style="width:78px;padding:6px 8px;font-size:14px;font-weight:700;background:#fffbeb;min-height:36px;">' +
+         '" placeholder="0" inputmode="numeric" style="width:72px;padding:6px 8px;font-size:14px;font-weight:700;background:#fffbeb;min-height:36px;">' +
          '<button type="button" class="btn btn-outline btn-sm audit-rev-save" data-key="' + esc(r.key || '') +
          '" style="padding:4px 6px;font-size:11px;">Simpan</button></div>');
+
+    const namaTitle = '<div style="font-weight:800;font-size:13.5px;line-height:1.25;min-width:140px;max-width:240px;">' + esc(r.nama || '-') + '</div>' +
+      '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;font-family:var(--mono);">' + esc(r.kode || '-') +
+      (r.kategori ? ' · ' + esc(r.kategori) : '') + '</div>';
 
     return '<tr style="' + (bg ? 'background:' + bg + ';' : '') + '">' +
       '<td style="position:sticky;left:0;background:' + (bg || '#fff') + ';z-index:1;font-weight:700;">' + (idx + 1) + '</td>' +
       '<td style="white-space:nowrap;">' + auditStatusBadge(r.status) + statusExtra + '</td>' +
-      '<td style="font-family:var(--mono);font-weight:700;white-space:nowrap;">' + esc(r.kode || '-') + '</td>' +
-      '<td>' + bcCell + '</td>' +
-      '<td><div style="font-weight:700;min-width:140px;max-width:220px;">' + esc(r.nama || '-') + '</div>' +
-      '<div class="meta" style="font-size:11px;">' + esc(r.vendor || '-') + '</div></td>' +
-      '<td><span class="badge badge-muted">' + esc(r.kategori || '—') + '</span></td>' +
-      '<td style="font-weight:700;white-space:nowrap;">' + qT + '</td>' +
-      '<td style="font-weight:700;white-space:nowrap;">' + qF + '</td>' +
+      '<td style="font-weight:700;white-space:nowrap;text-align:right;">' + qT + '</td>' +
+      '<td style="font-weight:800;white-space:nowrap;text-align:right;color:var(--primary);">' + qF + '</td>' +
       '<td>' + revInput + '</td>' +
-      '<td style="font-weight:800;color:' + selColor + ';white-space:nowrap;">' + (qS > 0 ? '+' : '') + qS + '</td>' +
+      '<td style="font-weight:800;color:' + selColor + ';white-space:nowrap;text-align:right;">' + (qS > 0 ? '+' : '') + qS + '</td>' +
+      '<td>' + namaTitle + '</td>' +
+      '<td>' + bcCell + '</td>' +
       '</tr>';
   }).join('');
 }
@@ -5747,6 +5787,17 @@ function renderAuditList() {
     const label = isGood ? '🟢 Bagus' : '🔴 Jelek';
     const expLine = it.expDate ? ` · Exp: ${esc(it.expDate)}` : '';
     const rakLine = it.rak ? ` · Rak: ${esc(it.rak)}` : '';
+    const entries = Array.isArray(it.entries) ? it.entries : [];
+    const nInput = it.inputCount || entries.length || 1;
+    const inputBadge = nInput > 1
+      ? `<button type="button" class="badge badge-info audit-entries-toggle" data-id="${esc(it.id)}" style="cursor:pointer;border:none;">×${nInput} input · rincian</button>`
+      : `<span class="badge badge-muted">1× input</span>`;
+    const entryLines = entries.length
+      ? entries.map((e, ei) => `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px dashed var(--border);">
+          <span>#${ei + 1} · ${esc(e.at || '-')} ${e.by ? '· ' + esc(e.by) : ''}</span>
+          <strong style="color:var(--primary);">+${esc(e.qty)} ${esc(it.satuan || 'PCS')}</strong>
+        </div>`).join('')
+      : `<div style="color:var(--text-muted);">Belum ada rincian (total ${esc(it.qty)})</div>`;
     return `
     <div class="audit-list-item-m">
       <div style="flex:1;min-width:0;">
@@ -5754,11 +5805,17 @@ function renderAuditList() {
           <span style="font-size:11px;color:var(--text-muted);">#${i + 1}</span>
           <span class="badge ${badge}">${label}</span>
           <span style="font-family:var(--mono);font-size:11px;font-weight:700;">${esc(it.kode)}</span>
+          ${inputBadge}
         </div>
         <div style="font-weight:800;font-size:14px;margin-top:4px;line-height:1.25;">${esc(it.nama)}</div>
         <div class="qty-big" style="margin-top:6px;color:var(--primary);">${esc(it.qty)} <span style="font-size:13px;font-weight:700;">${esc(it.satuan || 'PCS')}</span></div>
         <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">${esc(it.vendor || '-')}${expLine}${rakLine}${it.alasan ? ' · ' + esc(it.alasan) : ''}</div>
         ${it.catatan ? `<div style="font-size:12px;color:var(--danger);margin-top:4px;">📝 ${esc(it.catatan)}</div>` : ''}
+        <div class="audit-entries-panel" data-id="${esc(it.id)}" style="display:none;margin-top:8px;padding:8px 10px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;font-size:12px;">
+          <div style="font-weight:700;margin-bottom:6px;">Rincian input (${nInput}×)</div>
+          ${entryLines}
+          <div style="margin-top:6px;font-weight:800;">Total: ${esc(it.qty)} ${esc(it.satuan || 'PCS')}</div>
+        </div>
       </div>
       <div class="act">
         <button class="btn btn-outline" onclick="editAuditItem('${it.id}')" title="Ubah qty" style="padding:8px;">✏️</button>
@@ -11162,10 +11219,18 @@ async function deleteProductsFromCloud(kodes) {
   if (!firebaseReady || !db || !kodes || !kodes.length) return 0;
   const CHUNK = 400;
   let n = 0;
+  // simpan daftar hapus agar snapshot tidak mengembalikan item
+  if (!state._productsRemovedKodes) state._productsRemovedKodes = new Set();
+  kodes.forEach(k => state._productsRemovedKodes.add(String(k).toLowerCase()));
+  try { cacheLocal('_productsRemovedKodes', Array.from(state._productsRemovedKodes)); } catch (_) {}
   for (let i = 0; i < kodes.length; i += CHUNK) {
     const batch = db.batch();
     kodes.slice(i, i + CHUNK).forEach(kode => {
-      batch.delete(db.collection('products').doc(String(kode)));
+      const id = String(kode);
+      batch.delete(db.collection('products').doc(id));
+      // jaga jika dulu disimpan dengan id beda case
+      if (id !== id.toUpperCase()) batch.delete(db.collection('products').doc(id.toUpperCase()));
+      if (id !== id.toLowerCase()) batch.delete(db.collection('products').doc(id.toLowerCase()));
     });
     await batch.commit();
     n += Math.min(CHUNK, kodes.length - i);
@@ -12700,7 +12765,13 @@ function bindEvents() {
       ? resolveAuditBarcode(p.kode, p.barcode || (Array.isArray(p.barcodes) && p.barcodes[0]) || '')
       : '') || String(p.barcode || '').trim() || '';
     if (existing) {
-      existing.qty = (parseFloat(existing.qty) || 0) + qty;
+      const prevQty = parseFloat(existing.qty) || 0;
+      existing.qty = prevQty + qty;
+      if (!Array.isArray(existing.entries) || !existing.entries.length) {
+        existing.entries = [{ qty: prevQty, at: existing.updatedAt || existing.createdAt || nowLabel(), by: '' }];
+      }
+      existing.entries.push({ qty: qty, at: nowLabel(), by: actorName() });
+      existing.inputCount = existing.entries.length;
       if (expDate) existing.expDate = expDate;
       if (rak) existing.rak = rak;
       if (catatan) existing.catatan = [existing.catatan, catatan].filter(Boolean).join(' | ');
@@ -12708,7 +12779,8 @@ function bindEvents() {
       if (!existing.pic) existing.pic = resolveItemPic(p) || p.pic || '';
       if (!existing.barcode && productBc) existing.barcode = productBc;
       if (Array.isArray(p.barcodes) && p.barcodes.length) existing.barcodes = p.barcodes.slice();
-      showToast('Qty digabung (auto-sum): ' + existing.qty + ' ' + satuan);
+      existing.updatedAt = nowLabel();
+      showToast('Auto-sum ×' + existing.inputCount + ': +' + qty + ' → total ' + existing.qty + ' ' + satuan);
     } else {
       state.auditList.push({
         id: uid(),
@@ -12725,7 +12797,10 @@ function bindEvents() {
         kondisi,
         expDate,
         rak,
-        catatan
+        catatan,
+        entries: [{ qty: qty, at: nowLabel(), by: actorName() }],
+        inputCount: 1,
+        createdAt: nowLabel()
       });
       showToast('Ditambahkan ke audit retur (' + (kondisi === 'Good' ? 'Bagus' : 'Jelek') + ')');
     }
@@ -12768,14 +12843,32 @@ function bindEvents() {
     if (typeof downloadSampleAuditTargetExcel === 'function') downloadSampleAuditTargetExcel();
   });
   $('#auditTargetClearBtn')?.addEventListener('click', () => {
-    if (!(state.auditTargets || []).length) return;
-    if (!confirm('Hapus target karantina Excel? Data fisik tetap ada.')) return;
+    const hasT = !!(state.auditTargets || []).length;
+    const hasR = state.auditRevisions && Object.keys(state.auditRevisions).length;
+    if (!hasT && !hasR) return showToast('Tidak ada target Excel / data selisih');
+    if (!confirm('Hapus target Excel & data Selisih Live?\n\n• Target Excel dihapus\n• Qty revisi dihapus\n• Tabel selisih dikosongkan\n\nInput fisik (scan) TETAP aman.')) return;
     state.auditTargets = [];
     state.auditTargetFileName = '';
-    try { cacheLocal('auditTargets', []); cacheLocal('auditTargetFileName', ''); } catch (_) {}
+    state.auditRevisions = {};
+    state._auditCompareCache = { rows: [], unlisted: [], stats: null };
+    try {
+      cacheLocal('auditTargets', []);
+      cacheLocal('auditTargetFileName', '');
+      cacheLocal('auditRevisions', {});
+    } catch (_) {}
+    if ($('#auditCompareFilter')) $('#auditCompareFilter').value = 'all';
     renderAuditComparison();
     renderAuditList();
-    showToast('Target dihapus');
+    if (typeof updateAuditDashboard === 'function') {
+      const fisikQty = (state.auditList || []).reduce((sum, x) => sum + (parseFloat(x.qty) || 0), 0);
+      updateAuditDashboard({
+        targetCount: 0, targetQty: 0, fisikQty,
+        sesuai: 0, kurang: 0, lebih: 0, belum: 0, sudah: 0, selisih: 0, direvisi: 0,
+        anomali: (state.auditList || []).length,
+        anomaliQty: fisikQty
+      }, state.auditList || []);
+    }
+    showToast('Target Excel & Selisih Live dihapus — fisik tetap ada');
   });
   // Tab Dashboard / Input / Selisih / Anomali
   $$('.audit-main-tab').forEach(btn => {
@@ -12824,6 +12917,15 @@ function bindEvents() {
       return;
     }
   });
+  document.addEventListener('click', (e) => {
+    const tgl = e.target.closest('.audit-entries-toggle');
+    if (!tgl) return;
+    const id = tgl.dataset.id || '';
+    const panel = document.querySelector('.audit-entries-panel[data-id="' + id.replace(/"/g, '') + '"]');
+    if (!panel) return;
+    const open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+  });
   document.addEventListener('change', (e) => {
     const cb = e.target.closest('.audit-copied-cb');
     if (!cb) return;
@@ -12847,10 +12949,25 @@ function bindEvents() {
       dcName: effectiveDcName()
     });
   });
+  $('#auditRefreshBtn')?.addEventListener('click', () => refreshAuditFromServer());
+  $('#auditTableRefreshBtn')?.addEventListener('click', () => refreshAuditFromServer());
+  $('#auditInputRefreshBtn')?.addEventListener('click', () => refreshAuditFromServer());
   $('#clearAuditBtn').onclick = () => {
-    if (confirm('Kosongkan list audit?')) {
-      state.auditList=[]; saveLocalAuditList(); cloudSaveAuditList(); renderAuditList();
+    if (!(state.auditList || []).length && !(state.auditRevisions && Object.keys(state.auditRevisions).length)) {
+      return showToast('List fisik sudah kosong');
     }
+    if (!confirm('Kosongkan list fisik + qty revisi?\n\nTarget Excel tetap ada (jika masih di-upload).\nCentang salin barcode tetap disimpan.')) return;
+    state.auditList = [];
+    state.auditRevisions = {};
+    state._auditCompareCache = null;
+    try {
+      saveLocalAuditList();
+      cacheLocal('auditRevisions', {});
+    } catch (_) {}
+    try { cloudSaveAuditList(); } catch (_) {}
+    renderAuditList();
+    if (typeof renderAuditComparison === 'function') renderAuditComparison();
+    showToast('List fisik dikosongkan');
   };
 
   // Banding
@@ -13295,8 +13412,8 @@ async function restoreFirebaseUser(firebaseUser) {
       role, locked: !!profile.locked,
       assignedDc: profile.assignedDc || 'DC INDUK'
     };
-    // Do not persist credentials or an app-level session token in localStorage.
-    storage.set('session', null);
+    // Soft-session profil (tanpa password) agar refresh tidak pental login
+    saveSession(state.user);
     // Non-Induk: kunci DC aktif ke penempatan user
     if (!isAdmin() && !isIndukDc(state.user.assignedDc)) {
       state.dcName = state.user.assignedDc;
@@ -13327,7 +13444,40 @@ function init() {
     $('#loginError').textContent = 'Firebase Authentication wajib tersedia.';
     return;
   }
-  auth.onAuthStateChanged(restoreFirebaseUser);
+  const soft = loadValidSession();
+  if (soft && soft.uid && !state.user) {
+    state.user = {
+      uid: soft.uid,
+      name: soft.name || soft.email || 'User',
+      username: soft.username || soft.email || '',
+      email: soft.email || '',
+      role: normalizeRole(soft.role || 'staff'),
+      locked: !!soft.locked,
+      assignedDc: soft.assignedDc || 'DC INDUK'
+    };
+    try {
+      $('#authScreen')?.classList.add('hidden');
+      if ($('#appShell')) $('#appShell').style.display = 'flex';
+      if ($('#userName')) $('#userName').textContent = state.user.name;
+      if ($('#userRole')) $('#userRole').textContent = currentRole();
+      if ($('#userAvatar')) $('#userAvatar').textContent = (state.user.name || 'U')[0].toUpperCase();
+      if ($('#dcBadge')) $('#dcBadge').textContent = effectiveDcName();
+      applyMenuVisibility();
+      navigate(state.page || 'dashboard');
+    } catch (e) { console.warn('[soft boot]', e); }
+  }
+  let authFirst = true;
+  auth.onAuthStateChanged(async (fu) => {
+    if (!fu && soft && soft.uid && authFirst) {
+      authFirst = false;
+      setTimeout(() => {
+        if (!auth.currentUser) restoreFirebaseUser(null);
+      }, 2500);
+      return;
+    }
+    authFirst = false;
+    await restoreFirebaseUser(fu);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
