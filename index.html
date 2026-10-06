@@ -16,7 +16,53 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <!-- Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js">
+/* ===== LIVE AUDIT: reliable horizontal swipe on Android ===== */
+(function () {
+  function enableAuditLiveHorizontalSwipe() {
+    const el = document.getElementById('auditCompareScroll');
+    if (!el || el.dataset.swipeReady === '1') return;
+    el.dataset.swipeReady = '1';
+
+    let startX = 0, startY = 0, startScroll = 0, dragging = false;
+
+    el.addEventListener('touchstart', function (e) {
+      if (!e.touches || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      startScroll = el.scrollLeft;
+      dragging = false;
+    }, { passive: true });
+
+    el.addEventListener('touchmove', function (e) {
+      if (!e.touches || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+
+      if (!dragging && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+        dragging = true;
+      }
+
+      if (dragging) {
+        e.preventDefault();
+        el.scrollLeft = startScroll - dx;
+      }
+    }, { passive: false });
+
+    el.addEventListener('touchend', function () {
+      dragging = false;
+    }, { passive: true });
+  }
+
+  document.addEventListener('DOMContentLoaded', enableAuditLiveHorizontalSwipe);
+  // The audit page may be shown/hidden after login/navigation.
+  const observer = new MutationObserver(enableAuditLiveHorizontalSwipe);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+})();
+
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -1115,25 +1161,67 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
 
 
 #auditCompareScroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: scroll !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   overscroll-behavior-x: contain;
+  overscroll-behavior-y: contain;
   touch-action: pan-x pan-y;
+  scrollbar-width: auto;
+  max-height: 72vh;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+  position: relative;
+}
+#auditCompareTable {
+  display: table !important;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 920px !important;
+  width: max-content !important;
+  max-width: none !important;
+  table-layout: auto;
 }
 #auditCompareTable th, #auditCompareTable td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  background-clip: padding-box;
 }
+/* JANGAN sticky semua header (sering freeze saat geser kiri-kanan di HP) */
 #auditCompareTable thead th {
-  position: sticky;
-  top: 0;
-  z-index: 3;
+  position: static;
+  background: #0f172a;
+  color: #fff;
+  white-space: nowrap;
+  z-index: 1;
 }
+/* Kolom No tetap sticky horizontal saja */
+#auditCompareTable th:first-child,
+#auditCompareTable td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  box-shadow: 2px 0 4px rgba(15,23,42,0.06);
+}
+#auditCompareTable th:first-child { background: #0f172a; color: #fff; z-index: 4; }
+#auditCompareTable td:first-child { background: #fff; }
+
 @media (max-width: 768px) {
   #auditCompareScroll {
+    width: 100% !important;
+    max-width: 100% !important;
     max-height: 70vh;
-    overflow-y: auto;
+    overflow-x: scroll !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
   }
   #auditCompareTable td, #auditCompareTable th {
     font-size: 12px;
@@ -1741,8 +1829,8 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                 </select>
               </div>
                                           <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser tabel ← → seperti spreadsheet · <button type="button" class="btn btn-outline btn-sm" id="auditTableRefreshBtn" style="margin-left:6px;padding:4px 10px;min-height:32px;">⟳ Refresh data</button></p>
-              <div id="auditCompareScroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;border:1px solid var(--border);border-radius:10px;background:#fff;">
-                <table class="data-table" id="auditCompareTable" style="font-size:12.5px;min-width:920px;width:max-content;border-collapse:collapse;">
+              <div id="auditCompareScroll" class="audit-live-horizontal-scroll">
+                <table class="data-table" id="auditCompareTable">
                   <thead>
                     <tr style="background:#0f172a;">
                       <th style="color:#fff;position:sticky;left:0;background:#0f172a;z-index:2;">No</th>
@@ -5362,8 +5450,9 @@ function buildAuditComparison() {
     const hasRevisi = qtyRevisi != null && !isNaN(qtyRevisi);
     const effectiveQty = hasRevisi ? qtyRevisi : qtyFisik;
     const selisih = effectiveQty - (parseFloat(t.qtyDatabase) || 0);
+    const hasInput = (matching.length > 0) || hasRevisi || (qtyFisik > 0);
     let status = 'belum';
-    if (matching.length || hasRevisi) {
+    if (hasInput) {
       if (selisih === 0) status = 'sesuai';
       else if (selisih < 0) status = 'kurang';
       else status = 'lebih';
@@ -5373,6 +5462,7 @@ function buildAuditComparison() {
       kode: displayKode,
       kodeTarget: t.kode,
       nama: t.nama,
+      hasInput,
       barcode: barcode || '-',
       satuan: String(t.satuan || 'PCS').toUpperCase().split(/[:\s]/)[0] || 'PCS',
       vendor: (matching[0] && matching[0].vendor) || t.vendor || '',
@@ -5390,8 +5480,8 @@ function buildAuditComparison() {
   const sesuaiN = rows.filter(r => r.status === 'sesuai').length;
   const kurangN = rows.filter(r => r.status === 'kurang').length;
   const lebihN = rows.filter(r => r.status === 'lebih').length;
-  const belumN = rows.filter(r => r.status === 'belum' && !r.hasRevisi).length;
-  const sudahN = rows.filter(r => r.status !== 'belum' || r.hasRevisi).length;
+  const belumN = rows.filter(r => !r.hasInput).length;
+  const sudahN = rows.filter(r => !!r.hasInput).length;
   const stats = {
     targetCount: targets.length,
     targetQty: targets.reduce((s, t) => s + (parseFloat(t.qtyDatabase) || 0), 0),
@@ -5544,7 +5634,7 @@ function renderAuditComparison() {
     };
     rows = [];
   }
-  state._auditCompareCache = { rows, unlisted, stats };
+  state._auditCompareCache = { rows, unlisted, stats, _tCount: (state.auditTargets || []).length, _lCount: (state.auditList || []).length };
   updateAuditDashboard(stats, unlisted);
 
   // chips filter di tab selisih
@@ -5593,7 +5683,20 @@ function fillAuditCompareTable() {
   const tbody = $('#auditCompareTbody');
   const empty = $('#auditCompareEmpty');
   if (!tbody) return;
-  const cache = state._auditCompareCache || { rows: [], unlisted: [] };
+  // Pastikan cache selaras dengan target/fisik terkini (hindari data Excel lama)
+  let cache = state._auditCompareCache;
+  const tCount = (state.auditTargets || []).length;
+  const lCount = (state.auditList || []).length;
+  if (!cache || cache._tCount !== tCount || cache._lCount !== lCount) {
+    if (typeof buildAuditComparison === 'function' && tCount) {
+      const c = buildAuditComparison();
+      cache = { rows: c.rows || [], unlisted: c.unlisted || [], stats: c.stats, _tCount: tCount, _lCount: lCount };
+      state._auditCompareCache = cache;
+    } else {
+      cache = { rows: [], unlisted: (state.auditList || []).slice(), stats: null, _tCount: tCount, _lCount: lCount };
+      state._auditCompareCache = cache;
+    }
+  }
   const rows = cache.rows || [];
   const unlisted = cache.unlisted || [];
   const filter = ($('#auditCompareFilter')?.value) || 'all';
@@ -5612,9 +5715,9 @@ function fillAuditCompareTable() {
     if (filter === 'sesuai') ok = r.status === 'sesuai';
     else if (filter === 'kurang') ok = r.status === 'kurang';
     else if (filter === 'lebih') ok = r.status === 'lebih';
-    else if (filter === 'belum') ok = r.status === 'belum' && !r.hasRevisi;
+    else if (filter === 'belum') ok = !r.hasInput; // belum diinput fisik & belum revisi
     else if (filter === 'selisih') ok = (r.status === 'kurang' || r.status === 'lebih');
-    else if (filter === 'sudah') ok = r.status !== 'belum' || r.hasRevisi;
+    else if (filter === 'sudah') ok = !!r.hasInput; // sudah ada qty fisik / revisi
     else if (filter === 'direvisi') ok = !!r.hasRevisi;
     else if (filter === 'copied') ok = isAuditBarcodeCopied(r);
     else if (filter === 'notcopied') ok = !isAuditBarcodeCopied(r) && !!(r.barcode && r.barcode !== '-');
@@ -5743,13 +5846,19 @@ function handleAuditTargetFile(file) {
           }
         }
       });
+      // Ganti total target — jangan campur Excel lama
       state.auditTargets = items;
       state.auditTargetFileName = file.name || 'target.xlsx';
-      try { cacheLocal('auditTargets', state.auditTargets); } catch (_) {}
-      try { cacheLocal('auditTargetFileName', state.auditTargetFileName); } catch (_) {}
+      state.auditRevisions = {}; // revisi lama dari file sebelumnya dibuang
+      state._auditCompareCache = null;
+      try {
+        cacheLocal('auditTargets', state.auditTargets);
+        cacheLocal('auditTargetFileName', state.auditTargetFileName);
+        cacheLocal('auditRevisions', {});
+      } catch (_) {}
       renderAuditComparison();
       renderAuditList();
-      showToast('Target karantina: ' + items.length + ' item');
+      showToast('Target baru: ' + items.length + ' item (data Excel lama diganti)');
       logActivity('IMPORT', 'Audit Retur', 'Target Excel ' + items.length + ' item');
     } catch (err) {
       console.error(err);
@@ -12898,7 +13007,14 @@ function bindEvents() {
       const f = chip.dataset.filter || 'all';
       if ($('#auditCompareFilter')) $('#auditCompareFilter').value = f;
       $$('.audit-filter-chip').forEach(c => c.classList.toggle('active', c === chip));
-      fillAuditCompareTable();
+      // rebuild dulu supaya sudah/belum tidak pakai data lama
+      if (typeof renderAuditComparison === 'function') {
+        const prev = f;
+        renderAuditComparison();
+        if ($('#auditCompareFilter')) $('#auditCompareFilter').value = prev;
+        $$('.audit-filter-chip').forEach(c => c.classList.toggle('active', (c.dataset.filter || '') === prev));
+        fillAuditCompareTable();
+      } else fillAuditCompareTable();
       return;
     }
     const copyBtn = e.target.closest('.audit-copy-bc');
