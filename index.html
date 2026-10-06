@@ -1142,24 +1142,37 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  overflow-x: scroll !important;
+  overflow-x: hidden !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  overscroll-behavior-x: contain;
-  touch-action: pan-x pan-y;
+  /* none = kita kendalikan geser horizontal lewat JS (transform) */
+  touch-action: none;
   max-height: 70vh;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #fff;
   position: relative;
   z-index: 1;
-  min-height: 120px;
+  min-height: 160px;
+  cursor: grab;
 }
+#auditCompareScroll:active { cursor: grabbing; }
 #auditCompareInner {
   width: 1200px !important;
   min-width: 1200px !important;
   max-width: none !important;
   display: block;
+  transform: translate3d(0,0,0);
+  will-change: transform;
+}
+#auditCompareTable {
+  pointer-events: auto;
+}
+/* input revisi tetap bisa diketik — jangan diblok */
+#auditCompareScroll input,
+#auditCompareScroll button {
+  touch-action: manipulation;
+  pointer-events: auto;
 }
 .audit-scroll-nav {
   display: flex;
@@ -1861,10 +1874,8 @@ div[style*="position:relative"] > input[type="text"]#plkSearch,
                 </select>
               </div>
                                           <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 6px;">Geser tabel ← → seperti spreadsheet · <button type="button" class="btn btn-outline btn-sm" id="auditTableRefreshBtn" style="margin-left:6px;padding:4px 10px;min-height:32px;">⟳ Refresh data</button></p>
-              <div class="audit-scroll-nav">
-                <button type="button" id="auditScrollLeftBtn" aria-label="Geser kiri">← Kiri</button>
-                <button type="button" id="auditScrollRightBtn" aria-label="Geser kanan">Kanan →</button>
-                <span class="hint">Tombol atau geser tabel untuk lihat Nama &amp; Barcode</span>
+              <div class="audit-scroll-nav" style="margin-bottom:6px;">
+                <span class="hint" style="font-size:12px;color:var(--text-muted);">Geser tabel ke kiri/kanan dengan jari · seperti spreadsheet</span>
               </div>
               <div id="auditCompareScroll" class="audit-h-scroll table-wrap">
                 <div id="auditCompareInner" style="width:1200px;min-width:1200px;max-width:none;">
@@ -5724,96 +5735,140 @@ function renderAuditComparison() {
 }
 
 
+/* Geser horizontal tabel Selisih Live — jari langsung (transform), tanpa tombol */
+window._auditHOffset = window._auditHOffset || 0;
 function forceAuditTableWide() {
   const el = document.getElementById('auditCompareScroll');
   const inner = document.getElementById('auditCompareInner');
   const table = document.getElementById('auditCompareTable');
-  const W = '1200px';
+  const W = 1200;
   if (inner) {
-    inner.style.width = W;
-    inner.style.minWidth = W;
-    inner.style.maxWidth = 'none';
+    inner.style.cssText = 'width:' + W + 'px;min-width:' + W + 'px;max-width:none;display:block;will-change:transform;';
   }
   if (table) {
-    table.style.width = W;
-    table.style.minWidth = W;
+    table.style.width = W + 'px';
+    table.style.minWidth = W + 'px';
     table.style.maxWidth = 'none';
-    table.style.tableLayout = 'auto';
+    table.style.tableLayout = 'fixed';
   }
   if (el) {
-    el.style.overflowX = 'scroll';
-    el.style.overflowY = 'auto';
-    el.style.webkitOverflowScrolling = 'touch';
-    el.style.width = '100%';
-    el.style.maxWidth = '100%';
-    el.style.display = 'block';
+    el.style.cssText = (el.getAttribute('style') || '') +
+      ';overflow-x:hidden!important;overflow-y:auto!important;width:100%!important;max-width:100%!important;display:block!important;position:relative!important;touch-action:none;webkit-user-select:none;user-select:none;-webkit-overflow-scrolling:touch;';
   }
-  // pastikan ancestor tidak melebar
   try {
-    let n = el && el.parentElement;
-    let guard = 0;
-    while (n && guard++ < 8) {
-      if (n.classList && (n.classList.contains('card') || n.classList.contains('card-body') || n.id === 'page-audit' || n.classList.contains('content'))) {
+    let n = el && el.parentElement, g = 0;
+    while (n && g++ < 10) {
+      if (n.classList && (n.classList.contains('card') || n.classList.contains('card-body') || n.id === 'page-audit' || n.classList.contains('content') || n.classList.contains('main'))) {
         n.style.maxWidth = '100%';
-        if (n.classList.contains('card-body') || n.classList.contains('card')) {
-          n.style.overflowX = 'hidden';
-        }
+        if (n.classList.contains('card') || n.classList.contains('card-body')) n.style.overflowX = 'hidden';
       }
       n = n.parentElement;
     }
   } catch (_) {}
+  applyAuditHOffset(window._auditHOffset || 0, false);
+}
+function auditHMaxOffset() {
+  const el = document.getElementById('auditCompareScroll');
+  const inner = document.getElementById('auditCompareInner');
+  if (!el || !inner) return 0;
+  return Math.max(0, (inner.scrollWidth || inner.offsetWidth || 1200) - el.clientWidth);
+}
+function applyAuditHOffset(x, animate) {
+  const inner = document.getElementById('auditCompareInner');
+  if (!inner) return;
+  const max = auditHMaxOffset();
+  const v = Math.max(0, Math.min(max, Number(x) || 0));
+  window._auditHOffset = v;
+  inner.style.transition = animate ? 'transform 0.2s ease-out' : 'none';
+  inner.style.transform = 'translate3d(' + (-v) + 'px,0,0)';
 }
 function auditTableScrollBy(dx) {
-  const el = document.getElementById('auditCompareScroll');
-  if (!el) return;
-  el.scrollBy({ left: dx, behavior: 'smooth' });
+  forceAuditTableWide();
+  applyAuditHOffset((window._auditHOffset || 0) + dx, true);
 }
 function bindAuditTableHScroll() {
   forceAuditTableWide();
   const el = document.getElementById('auditCompareScroll');
   if (!el) return;
-  // tombol kiri/kanan — selalu jalan di HP
-  const leftBtn = document.getElementById('auditScrollLeftBtn');
-  const rightBtn = document.getElementById('auditScrollRightBtn');
-  if (leftBtn && !leftBtn._bound) {
-    leftBtn._bound = true;
-    leftBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      auditTableScrollBy(-220);
-    });
-  }
-  if (rightBtn && !rightBtn._bound) {
-    rightBtn._bound = true;
-    rightBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      auditTableScrollBy(220);
-    });
-  }
-  if (el._hScrollBound) return;
-  el._hScrollBound = true;
-  let sx = 0, sy = 0, sl = 0, mode = null;
-  el.addEventListener('touchstart', function (e) {
-    if (!e.touches || !e.touches.length) return;
-    sx = e.touches[0].pageX;
-    sy = e.touches[0].pageY;
-    sl = el.scrollLeft;
+
+  // Hapus listener lama dengan clone (agar bisa rebind tiap render)
+  if (el._auditPanBound) return;
+  el._auditPanBound = true;
+
+  let active = false, mode = null, sx = 0, sy = 0, startOff = 0, startTop = 0, lastX = 0, lastT = 0, vel = 0;
+
+  function onDown(pageX, pageY) {
+    active = true;
     mode = null;
-  }, { passive: true });
-  el.addEventListener('touchmove', function (e) {
-    if (!e.touches || !e.touches.length || sx == null) return;
-    const dx = e.touches[0].pageX - sx;
-    const dy = e.touches[0].pageY - sy;
-    if (mode === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-      mode = Math.abs(dx) > Math.abs(dy) * 1.1 ? 'h' : 'v';
+    sx = pageX; sy = pageY;
+    lastX = pageX; lastT = Date.now();
+    vel = 0;
+    startOff = window._auditHOffset || 0;
+    startTop = el.scrollTop || 0;
+    forceAuditTableWide();
+    const inner = document.getElementById('auditCompareInner');
+    if (inner) inner.style.transition = 'none';
+  }
+  function onMove(pageX, pageY, e) {
+    if (!active) return;
+    const dx = pageX - sx;
+    const dy = pageY - sy;
+    if (mode === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      mode = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
     }
     if (mode === 'h') {
-      el.scrollLeft = sl - dx;
-      if (e.cancelable) e.preventDefault();
+      const now = Date.now();
+      const dt = Math.max(1, now - lastT);
+      vel = (pageX - lastX) / dt;
+      lastX = pageX; lastT = now;
+      applyAuditHOffset(startOff - dx, false);
+      if (e && e.cancelable) e.preventDefault();
+      if (e) e.stopPropagation();
+    } else if (mode === 'v') {
+      // scroll baris atas-bawah manual (karena touch-action:none)
+      el.scrollTop = startTop - dy;
+      if (e && e.cancelable) e.preventDefault();
     }
-  }, { passive: false });
-  el.addEventListener('touchend', function () { mode = null; sx = null; }, { passive: true });
+  }
+  function onUp() {
+    if (!active) return;
+    active = false;
+    if (mode === 'h') {
+      let v = vel * 180;
+      if (Math.abs(v) > 8) {
+        applyAuditHOffset((window._auditHOffset || 0) - v, true);
+      } else {
+        const inner = document.getElementById('auditCompareInner');
+        if (inner) inner.style.transition = 'transform 0.15s ease-out';
+      }
+    }
+    mode = null;
+  }
+
+  el.addEventListener('touchstart', function (e) {
+    if (!e.touches || !e.touches.length) return;
+    onDown(e.touches[0].pageX, e.touches[0].pageY);
+  }, { passive: true, capture: true });
+
+  el.addEventListener('touchmove', function (e) {
+    if (!e.touches || !e.touches.length) return;
+    onMove(e.touches[0].pageX, e.touches[0].pageY, e);
+  }, { passive: false, capture: true });
+
+  el.addEventListener('touchend', onUp, { passive: true, capture: true });
+  el.addEventListener('touchcancel', onUp, { passive: true, capture: true });
+
+  // Pointer (stylus / beberapa Chrome)
+  el.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    onDown(e.pageX, e.pageY);
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  el.addEventListener('pointermove', function (e) {
+    onMove(e.pageX, e.pageY, e);
+  });
+  el.addEventListener('pointerup', onUp);
+  el.addEventListener('pointercancel', onUp);
 }
 
 function fillAuditCompareTable() {
